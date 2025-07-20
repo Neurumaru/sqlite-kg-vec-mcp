@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sqlite-kg-vec-mcp"
+version = "0.1.0"
+description = "Integrated Knowledge Graph and Vector Database with MCP Server Interface"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+    { name = "MCP Team" }
+]
+
+dependencies = [
+    "numpy>=1.20",
+    "fastmcp>=2.3.0",
+    "mcp>=1.8.0",
+    "exceptiongroup>=1.2.2", # Required by fastmcp
+    "httpx>=0.28.1",         # Required by mcp
+    "hnswlib>=0.7.0",        # Optional but recommended for vector search
+    "sentence-transformers>=2.2.0", # For text embeddings
+    "torch>=2.0.0",          # Required by sentence-transformers
+    "ollama>=0.3.0",         # For Ollama integration
+    "requests>=2.25.0",      # For HTTP requests
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.1.1",
+    "black>=24.1.0",
+    "isort>=5.13.0",
+    "mypy>=1.7.0",
+]
+embeddings = [
+    "openai>=1.0.0",         # For OpenAI embeddings API
+]
+
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.18",
+]
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+show_error_codes = true
+
+# Specific module configurations
+[[tool.mypy.overrides]]
+module = [
+    "hnswlib.*",
+    "sentence_transformers.*", 
+    "openai.*",
+    "fastmcp.*",
+    "torch.*",
+    "sqlite_kg_vec_mcp.*",
+]
+ignore_missing_imports = true
+ignore_errors = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+asyncio_mode = "auto" # or strict
+
+[tool.uv.sources]
+"sqlite-kg-vec-mcp" = { path = "." } 
