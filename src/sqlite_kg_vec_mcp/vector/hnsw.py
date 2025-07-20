@@ -1,21 +1,42 @@
 """
 HNSW (Hierarchical Navigable Small World) index for vector similarity search.
+Supports multiple backends: hnswlib and FAISS.
 """
 
 import os
 import pickle
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+from enum import Enum
 
-import hnswlib
 import numpy as np
 
+# Optional imports
+try:
+    import hnswlib
+    HNSWLIB_AVAILABLE = True
+except ImportError:
+    HNSWLIB_AVAILABLE = False
+
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+
 from .embeddings import Embedding, EmbeddingManager
+
+
+class HNSWBackend(Enum):
+    """Available HNSW backends."""
+    HNSWLIB = "hnswlib"
+    FAISS = "faiss"
 
 
 class HNSWIndex:
     """
     HNSW index for fast approximate nearest neighbor search.
+    Supports multiple backends: hnswlib and FAISS.
     """
 
     def __init__(
@@ -25,6 +46,7 @@ class HNSWIndex:
         ef_construction: int = 200,
         M: int = 16,
         index_dir: Optional[Union[str, Path]] = None,
+        backend: Union[str, HNSWBackend] = HNSWBackend.HNSWLIB,
     ):
         """
         Initialize the HNSW index.
@@ -35,15 +57,28 @@ class HNSWIndex:
             ef_construction: Controls quality/speed trade-off at index construction
             M: Parameter controlling index graph connectivity
             index_dir: Directory to save/load index files (None for memory-only)
+            backend: Backend to use ('hnswlib' or 'faiss')
         """
         self.space = space
         self.dim = dim
         self.ef_construction = ef_construction
         self.M = M
         self.index_dir = Path(index_dir) if index_dir else None
+        
+        # Handle backend selection
+        if isinstance(backend, str):
+            backend = HNSWBackend(backend.lower())
+        self.backend = backend
+        
+        # Validate backend availability
+        if self.backend == HNSWBackend.HNSWLIB and not HNSWLIB_AVAILABLE:
+            raise ImportError("hnswlib is not available. Install with: pip install hnswlib")
+        if self.backend == HNSWBackend.FAISS and not FAISS_AVAILABLE:
+            raise ImportError("faiss is not available. Install with: pip install faiss-cpu")
 
-        # Initialize the index with parameters
-        self.index = hnswlib.Index(space=space, dim=dim)
+        # Initialize the backend-specific index
+        self.index = None
+        self._init_backend()
 
         # Maps from SQLite ID to index ID
         self.id_to_idx: Dict[Tuple[str, int], int] = {}
@@ -54,6 +89,22 @@ class HNSWIndex:
         self.current_capacity = 0
         self.is_initialized = False
 
+    def _init_backend(self):
+        """Initialize the backend-specific index."""
+        if self.backend == HNSWBackend.HNSWLIB:
+            self.index = hnswlib.Index(space=self.space, dim=self.dim)
+        elif self.backend == HNSWBackend.FAISS:
+            # Convert space name for FAISS
+            if self.space in ["cosine", "angular"]:
+                metric = faiss.METRIC_INNER_PRODUCT
+            elif self.space == "ip":
+                metric = faiss.METRIC_INNER_PRODUCT
+            else:  # l2
+                metric = faiss.METRIC_L2
+            
+            self.index = faiss.IndexHNSWFlat(self.dim, self.M, metric)
+            self.index.hnsw.efConstruction = self.ef_construction
+
     def init_index(self, max_elements: int = 1000) -> None:
         """
         Initialize a new index with the specified capacity.
@@ -61,12 +112,17 @@ class HNSWIndex:
         Args:
             max_elements: Maximum number of elements in the index
         """
-        self.index.init_index(
-            max_elements=max_elements, ef_construction=self.ef_construction, M=self.M
-        )
-
-        # Set the search parameter
-        self.index.set_ef(max(self.ef_construction, 100))
+        if self.backend == HNSWBackend.HNSWLIB:
+            self.index.init_index(
+                max_elements=max_elements, ef_construction=self.ef_construction, M=self.M
+            )
+            # Set the search parameter
+            self.index.set_ef(max(self.ef_construction, 100))
+        
+        elif self.backend == HNSWBackend.FAISS:
+            # FAISS doesn't need explicit initialization for capacity
+            # It grows dynamically
+            self.index.hnsw.efSearch = max(self.ef_construction, 100)
 
         self.current_capacity = max_elements
         self.current_size = 0
@@ -86,7 +142,7 @@ class HNSWIndex:
 
         if filename is None:
             # Use default filenames based on parameters
-            base_name = f"hnsw_{self.space}_{self.dim}_{self.M}"
+            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.M}"
         else:
             base_name = filename
 
@@ -100,9 +156,15 @@ class HNSWIndex:
 
         # Load the index
         if index_path.exists():
-            self.index.load_index(str(index_path))
-            self.current_capacity = self.index.get_max_elements()
-            self.current_size = self.index.get_current_count()
+            if self.backend == HNSWBackend.HNSWLIB:
+                self.index.load_index(str(index_path))
+                self.current_capacity = self.index.get_max_elements()
+                self.current_size = self.index.get_current_count()
+            elif self.backend == HNSWBackend.FAISS:
+                self.index = faiss.read_index(str(index_path))
+                self.current_size = self.index.ntotal
+                self.current_capacity = self.current_size  # FAISS grows dynamically
+            
             self.is_initialized = True
 
             # Load ID mappings
@@ -133,7 +195,7 @@ class HNSWIndex:
 
         if filename is None:
             # Use default filenames based on parameters
-            base_name = f"hnsw_{self.space}_{self.dim}_{self.M}"
+            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.M}"
         else:
             base_name = filename
 
@@ -147,7 +209,10 @@ class HNSWIndex:
             mapping_path = Path(f"{base_name}_mapping.pkl")
 
         # Save the index
-        self.index.save_index(str(index_path))
+        if self.backend == HNSWBackend.HNSWLIB:
+            self.index.save_index(str(index_path))
+        elif self.backend == HNSWBackend.FAISS:
+            faiss.write_index(self.index, str(index_path))
 
         # Save ID mappings
         mappings = {"id_to_idx": self.id_to_idx, "idx_to_id": self.idx_to_id}
@@ -164,8 +229,12 @@ class HNSWIndex:
         if new_size <= self.current_capacity:
             return
 
-        self.index.resize_index(new_size)
-        self.current_capacity = new_size
+        if self.backend == HNSWBackend.HNSWLIB:
+            self.index.resize_index(new_size)
+            self.current_capacity = new_size
+        elif self.backend == HNSWBackend.FAISS:
+            # FAISS grows dynamically, no need to resize
+            self.current_capacity = new_size
 
     def add_item(
         self,
@@ -194,26 +263,29 @@ class HNSWIndex:
         # Check if item already exists
         if item_key in self.id_to_idx:
             if replace_existing:
-                # Replace existing item
-                idx = self.id_to_idx[item_key]
-                self.index.mark_deleted(idx)  # Mark old vector as deleted
-                vector = vector.astype(np.float32)  # Ensure correct data type
-                self.index.add_items(vector, [idx])  # Replace with new vector
-                return idx
+                # Remove old item first
+                self.remove_item(entity_type, entity_id)
             else:
                 # Return existing index
                 return self.id_to_idx[item_key]
 
-        # Check if we need to resize
-        if self.current_size >= self.current_capacity:
+        # Check if we need to resize (only for hnswlib)
+        if self.backend == HNSWBackend.HNSWLIB and self.current_size >= self.current_capacity:
             # Resize to double the capacity
             new_capacity = max(1000, self.current_capacity * 2)
             self.resize_index(new_capacity)
 
-        # Add new item
+        # Prepare vector
         vector = vector.astype(np.float32)  # Ensure correct data type
-        idx = self.current_size
-        self.index.add_items(vector, [idx])
+        
+        if self.backend == HNSWBackend.HNSWLIB:
+            idx = self.current_size
+            self.index.add_items(vector, [idx])
+        elif self.backend == HNSWBackend.FAISS:
+            # For FAISS, add vector and use current size as index
+            idx = self.current_size
+            vector_reshaped = vector.reshape(1, -1)  # FAISS expects 2D array
+            self.index.add(vector_reshaped)
 
         # Update mappings
         self.id_to_idx[item_key] = idx
@@ -240,7 +312,13 @@ class HNSWIndex:
 
         if item_key in self.id_to_idx:
             idx = self.id_to_idx[item_key]
-            self.index.mark_deleted(idx)
+            
+            if self.backend == HNSWBackend.HNSWLIB:
+                self.index.mark_deleted(idx)
+            elif self.backend == HNSWBackend.FAISS:
+                # FAISS doesn't support individual deletion
+                # We just remove from mappings and ignore in search
+                pass
 
             # Update mappings
             del self.id_to_idx[item_key]
@@ -278,7 +356,10 @@ class HNSWIndex:
 
         # Set search parameter if provided
         if ef_search is not None:
-            self.index.set_ef(ef_search)
+            if self.backend == HNSWBackend.HNSWLIB:
+                self.index.set_ef(ef_search)
+            elif self.backend == HNSWBackend.FAISS:
+                self.index.hnsw.efSearch = ef_search
 
         # Convert to correct type
         query_vector = query_vector.astype(np.float32)
@@ -289,11 +370,17 @@ class HNSWIndex:
             return []
 
         # Search the index
-        indices, distances = self.index.knn_query(query_vector, k=adjusted_k)
+        if self.backend == HNSWBackend.HNSWLIB:
+            indices, distances = self.index.knn_query(query_vector, k=adjusted_k)
+            indices, distances = indices[0], distances[0]
+        elif self.backend == HNSWBackend.FAISS:
+            query_reshaped = query_vector.reshape(1, -1)  # FAISS expects 2D array
+            distances, indices = self.index.search(query_reshaped, adjusted_k)
+            indices, distances = indices[0], distances[0]
 
         # Process results
         results = []
-        for idx, dist in zip(indices[0], distances[0]):
+        for idx, dist in zip(indices, distances):
             if idx in self.idx_to_id:
                 entity_type, entity_id = self.idx_to_id[idx]
 

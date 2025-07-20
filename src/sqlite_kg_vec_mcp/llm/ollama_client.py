@@ -8,6 +8,7 @@ import time
 from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass
+from .langfuse_prompts import get_knowledge_extraction_prompt, get_prompt_manager
 
 
 @dataclass
@@ -149,41 +150,57 @@ class OllamaClient:
         Returns:
             Dictionary containing extracted entities and relationships
         """
-        system_prompt = """You are an expert knowledge graph extraction system. 
-        Analyze the given text and extract entities and relationships in JSON format.
-        
-        Return a JSON object with this structure:
-        {
-            "entities": [
-                {
-                    "id": "unique_id",
-                    "name": "entity_name", 
-                    "type": "entity_type",
-                    "properties": {"key": "value"}
-                }
-            ],
-            "relationships": [
-                {
-                    "source": "source_entity_id",
-                    "target": "target_entity_id", 
-                    "type": "relationship_type",
-                    "properties": {"key": "value"}
-                }
-            ]
-        }
-        
-        Focus on extracting:
-        - People, organizations, places, concepts, events
-        - Clear relationships between entities
-        - Important properties and attributes
-        
-        Be precise and only extract information explicitly mentioned in the text."""
-        
-        prompt = f"""Extract entities and relationships from this text:
+        # Langfuse에서 프롬프트 가져오기
+        try:
+            prompts = get_knowledge_extraction_prompt(text)
+            system_prompt = prompts["system"]
+            prompt = prompts["user"]
+            
+            # 프롬프트 사용 로깅
+            prompt_manager = get_prompt_manager()
+            if prompt_manager.enabled:
+                logging.info("Using Langfuse prompt for knowledge extraction")
+            else:
+                logging.info("Using fallback prompt for knowledge extraction")
+                
+        except Exception as e:
+            logging.error(f"Failed to get Langfuse prompt, using fallback: {e}")
+            # 기본 프롬프트로 대체
+            system_prompt = """You are an expert knowledge graph extraction system. 
+            Analyze the given text and extract entities and relationships in JSON format.
+            
+            Return a JSON object with this structure:
+            {
+                "entities": [
+                    {
+                        "id": "unique_id",
+                        "name": "entity_name", 
+                        "type": "entity_type",
+                        "properties": {"key": "value"}
+                    }
+                ],
+                "relationships": [
+                    {
+                        "source": "source_entity_id",
+                        "target": "target_entity_id", 
+                        "type": "relationship_type",
+                        "properties": {"key": "value"}
+                    }
+                ]
+            }
+            
+            Focus on extracting:
+            - People, organizations, places, concepts, events
+            - Clear relationships between entities
+            - Important properties and attributes
+            
+            Be precise and only extract information explicitly mentioned in the text."""
+            
+            prompt = f"""Extract entities and relationships from this text:
 
-        {text}
+            {text}
 
-        Return only valid JSON, no additional text or explanation."""
+            Return only valid JSON, no additional text or explanation."""
         
         response = self.generate(
             prompt=prompt,
@@ -193,14 +210,41 @@ class OllamaClient:
         )
         
         try:
+            # Clean the response text (remove markdown code blocks if present)
+            response_text = response.text.strip()
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]  # Remove ```json
+            if response_text.startswith("```"):
+                response_text = response_text[3:]   # Remove ```
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]  # Remove closing ```
+            response_text = response_text.strip()
+            
             # Parse the JSON response
-            result = json.loads(response.text.strip())
+            result = json.loads(response_text)
             
             # Validate structure
             if "entities" not in result:
                 result["entities"] = []
             if "relationships" not in result:
                 result["relationships"] = []
+            
+            # Langfuse에 사용 로깅
+            try:
+                prompt_manager = get_prompt_manager()
+                prompt_manager.log_prompt_usage(
+                    prompt_name="knowledge_extraction",
+                    version=None,
+                    input_variables={"text": text},
+                    response=response_text,
+                    metadata={
+                        "model": self.model,
+                        "entities_count": len(result["entities"]),
+                        "relationships_count": len(result["relationships"])
+                    }
+                )
+            except Exception as e:
+                logging.warning(f"Failed to log prompt usage to Langfuse: {e}")
                 
             return result
             

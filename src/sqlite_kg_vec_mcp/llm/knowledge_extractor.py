@@ -269,10 +269,10 @@ class KnowledgeExtractor:
         total_entities = cursor.fetchone()[0]
         
         # Relationship statistics
-        cursor.execute("SELECT relation_type, COUNT(*) FROM relationships GROUP BY relation_type")
+        cursor.execute("SELECT relation_type, COUNT(*) FROM edges GROUP BY relation_type")
         relationship_stats = dict(cursor.fetchall())
         
-        cursor.execute("SELECT COUNT(*) FROM relationships")
+        cursor.execute("SELECT COUNT(*) FROM edges")
         total_relationships = cursor.fetchone()[0]
         
         # Embedding statistics if available

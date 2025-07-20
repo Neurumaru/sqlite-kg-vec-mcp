@@ -174,3 +174,16 @@ cython_debug/
 .pypirc
 
 **/.claude/settings.local.json
+
+# Local development
+*.db
+*.db-*
+/data/
+/temp/
+/local/
+*.local.*
+
+# Benchmark and comparison results
+/benchmark_results/
+/comparison_results/
+/plots/

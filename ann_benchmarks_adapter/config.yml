@@ -1,0 +1,42 @@
+# ann-benchmarks configuration for sqlite-kg-vec-mcp HNSW
+# This file defines different parameter configurations to test
+
+float:
+  any:
+    # Small configuration - fast but lower quality
+    - M: 16
+      efConstruction: 200
+    
+    # Medium configuration - balanced
+    - M: 32
+      efConstruction: 400
+    
+    # Large configuration - high quality but slower
+    - M: 64
+      efConstruction: 800
+    
+    # Optimized configurations for specific use cases
+    - M: 24
+      efConstruction: 300
+    
+    - M: 48
+      efConstruction: 600
+
+int:
+  any:
+    # Same configurations for integer datasets
+    - M: 16
+      efConstruction: 200
+    
+    - M: 32
+      efConstruction: 400
+    
+    - M: 64
+      efConstruction: 800
+
+bit:
+  hamming:
+    # For binary datasets with Hamming distance
+    # Note: Our implementation might not support this yet
+    - M: 16
+      efConstruction: 200

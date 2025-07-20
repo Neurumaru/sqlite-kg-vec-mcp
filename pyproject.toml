@@ -24,6 +24,7 @@ dependencies = [
     "torch>=2.0.0",          # Required by sentence-transformers
     "ollama>=0.3.0",         # For Ollama integration
     "requests>=2.25.0",      # For HTTP requests
+    "langfuse>=2.0.0",       # For prompt management and observability
 ]
 
 [project.optional-dependencies]
@@ -32,6 +33,12 @@ dev = [
     "black>=24.1.0",
     "isort>=5.13.0",
     "mypy>=1.7.0",
+]
+benchmark = [
+    "psutil>=5.9.0",        # 메모리 사용량 측정
+    "matplotlib>=3.5.0",    # 그래프 생성
+    "pandas>=1.5.0",        # 데이터 분석
+    "scipy>=1.9.0",         # 통계 계산
 ]
 embeddings = [
     "openai>=1.0.0",         # For OpenAI embeddings API

@@ -28,6 +28,22 @@ def setup_logging():
     )
 
 
+def setup_langfuse():
+    """Langfuse 환경변수 설정"""
+    # Langfuse API 키 설정 (예제용)
+    if not os.getenv("LANGFUSE_SECRET_KEY"):
+        os.environ["LANGFUSE_SECRET_KEY"] = "sk-lf-a4337e80-2ca0-4f79-9443-91e3730c1be5"
+    if not os.getenv("LANGFUSE_PUBLIC_KEY"):
+        os.environ["LANGFUSE_PUBLIC_KEY"] = "pk-lf-f4e7f521-9f22-41a5-9859-75b9904b8ece"
+    if not os.getenv("LANGFUSE_HOST"):
+        os.environ["LANGFUSE_HOST"] = "https://us.cloud.langfuse.com"
+    
+    print("🔧 Langfuse 설정 완료")
+    print(f"   Host: {os.getenv('LANGFUSE_HOST')}")
+    print(f"   Public Key: {os.getenv('LANGFUSE_PUBLIC_KEY')[:20]}...")
+    print(f"   Secret Key: {'*' * 20}...")
+
+
 def check_ollama_models():
     """Ollama 모델 확인 및 설치"""
     try:
@@ -38,13 +54,13 @@ def check_ollama_models():
         for model in available_models:
             print(f"  - {model}")
         
-        # Gemma3 모델 확인 (여러 버전 중 하나만 있으면 됨)
-        gemma3_available = any("gemma3" in model for model in available_models)
+        # Gemma3n 모델 확인
+        gemma3n_available = any("gemma3n" in model for model in available_models)
         
-        if not gemma3_available:
-            print("\n❌ Gemma3 모델이 없습니다.")
+        if not gemma3n_available:
+            print("\n❌ Gemma3n 모델이 없습니다.")
             print("다음 명령어로 설치하세요:")
-            print("  ollama pull gemma3")
+            print("  ollama pull gemma3n")
             return False
         
         # Nomic 모델은 선택사항으로 처리
@@ -65,6 +81,7 @@ def check_ollama_models():
 def main():
     """메인 실행 함수"""
     setup_logging()
+    setup_langfuse()
     
     # Ollama 모델 확인
     if not check_ollama_models():
@@ -88,7 +105,7 @@ def main():
     
     # Ollama 클라이언트 초기화
     print("🤖 Ollama 클라이언트 초기화...")
-    ollama_client = OllamaClient(model="gemma3")
+    ollama_client = OllamaClient(model="gemma3n")
     
     # Nomic 임베더 초기화
     print("🧮 Nomic 임베더 초기화...")
