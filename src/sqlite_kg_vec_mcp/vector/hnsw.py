@@ -294,6 +294,91 @@ class HNSWIndex:
 
         return idx
 
+    def add_items_batch(
+        self,
+        entity_types: List[str],
+        entity_ids: List[int],
+        vectors: np.ndarray,
+        replace_existing: bool = True,
+    ) -> List[int]:
+        """
+        Add multiple items to the index efficiently using batch operations.
+
+        Args:
+            entity_types: List of entity types
+            entity_ids: List of entity IDs
+            vectors: 2D numpy array of vectors (n_vectors x dimension)
+            replace_existing: Whether to replace if items already exist
+
+        Returns:
+            List of index IDs of the added items
+        """
+        if not self.is_initialized:
+            raise RuntimeError("Index is not initialized")
+
+        if len(entity_types) != len(entity_ids) or len(entity_types) != len(vectors):
+            raise ValueError("entity_types, entity_ids, and vectors must have the same length")
+
+        if len(vectors) == 0:
+            return []
+
+        # Prepare data
+        vectors = vectors.astype(np.float32)
+        item_keys = [(entity_type, entity_id) for entity_type, entity_id in zip(entity_types, entity_ids)]
+        
+        # Filter out existing items if not replacing
+        if not replace_existing:
+            new_indices = []
+            new_vectors_list = []
+            new_item_keys = []
+            
+            for i, item_key in enumerate(item_keys):
+                if item_key not in self.id_to_idx:
+                    new_indices.append(i)
+                    new_vectors_list.append(vectors[i])
+                    new_item_keys.append(item_key)
+            
+            if not new_vectors_list:
+                # All items already exist
+                return [self.id_to_idx[key] for key in item_keys]
+            
+            vectors = np.array(new_vectors_list)
+            item_keys = new_item_keys
+        else:
+            # Remove existing items first
+            for item_key in item_keys:
+                if item_key in self.id_to_idx:
+                    entity_type, entity_id = item_key
+                    self.remove_item(entity_type, entity_id)
+
+        n_items = len(vectors)
+        
+        # Check if we need to resize
+        if self.backend == HNSWBackend.HNSWLIB and self.current_size + n_items > self.current_capacity:
+            new_capacity = max(self.current_capacity * 2, self.current_size + n_items + 1000)
+            self.resize_index(new_capacity)
+
+        # Generate new indices
+        start_idx = self.current_size
+        indices = list(range(start_idx, start_idx + n_items))
+
+        # Batch add to index
+        if self.backend == HNSWBackend.HNSWLIB:
+            self.index.add_items(vectors, indices)
+        elif self.backend == HNSWBackend.FAISS:
+            # FAISS expects 2D array
+            if vectors.ndim == 1:
+                vectors = vectors.reshape(1, -1)
+            self.index.add(vectors)
+
+        # Batch update mappings
+        for i, (item_key, idx) in enumerate(zip(item_keys, indices)):
+            self.id_to_idx[item_key] = idx
+            self.idx_to_id[idx] = item_key
+
+        self.current_size += n_items
+        return indices
+
     def remove_item(self, entity_type: str, entity_id: int) -> bool:
         """
         Remove an item from the index.
@@ -378,17 +463,25 @@ class HNSWIndex:
             distances, indices = self.index.search(query_reshaped, adjusted_k)
             indices, distances = indices[0], distances[0]
 
-        # Process results
-        results = []
-        for idx, dist in zip(indices, distances):
-            if idx in self.idx_to_id:
-                entity_type, entity_id = self.idx_to_id[idx]
-
-                # Apply entity type filter if provided
-                if filter_entity_types and entity_type not in filter_entity_types:
-                    continue
-
-                results.append((entity_type, entity_id, float(dist)))
+        # Process results (optimized with list comprehension and fewer lookups)
+        if filter_entity_types:
+            # Convert to set for O(1) lookup instead of O(n) list lookup
+            filter_set = set(filter_entity_types)
+            results = [
+                (entity_type, entity_id, float(dist))
+                for idx, dist in zip(indices, distances)
+                if idx in self.idx_to_id
+                and (entity_type := self.idx_to_id[idx][0]) in filter_set
+                and (entity_id := self.idx_to_id[idx][1]) is not None
+            ]
+        else:
+            results = [
+                (entity_type, entity_id, float(dist))
+                for idx, dist in zip(indices, distances)
+                if idx in self.idx_to_id
+                and (entity_type := self.idx_to_id[idx][0]) is not None
+                and (entity_id := self.idx_to_id[idx][1]) is not None
+            ]
 
         return results
 
@@ -450,18 +543,29 @@ class HNSWIndex:
                     entity_type=entity_type,
                     model_info=model_info,
                     batch_size=batch_size,
+                    offset=offset
                 )
 
                 if not embeddings:
                     break
 
-                # Add each embedding to the index
-                for emb in embeddings:
-                    self.add_item(
-                        entity_type=entity_type,
-                        entity_id=emb.entity_id,
-                        vector=emb.embedding,
-                    )
+                # Prepare batch data for efficient insertion
+                entity_types_batch = [entity_type] * len(embeddings)
+                entity_ids_batch = [emb.entity_id for emb in embeddings]
+                
+                # Optimized vector batch creation - stack directly instead of list->array conversion
+                if embeddings:
+                    vectors_batch = np.stack([emb.embedding for emb in embeddings]).astype(np.float32)
+                else:
+                    vectors_batch = np.array([], dtype=np.float32)
+
+                # Use batch insertion for better performance
+                self.add_items_batch(
+                    entity_types=entity_types_batch,
+                    entity_ids=entity_ids_batch,
+                    vectors=vectors_batch,
+                    replace_existing=False  # Avoid checking for replacements during initial build
+                )
 
                 total_embeddings += len(embeddings)
                 offset += batch_size

@@ -6,6 +6,22 @@ and provides an interface through an MCP (Model Context Protocol) server.
 """
 
 import sqlite3
+from pathlib import Path
+
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    
+    # Look for .env file in project root
+    project_root = Path(__file__).parent.parent.parent
+    env_path = project_root / '.env'
+    
+    if env_path.exists():
+        load_dotenv(env_path)
+        
+except ImportError:
+    # python-dotenv not installed, skip loading
+    pass
 
 __version__ = "0.1.0"
 

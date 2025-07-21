@@ -28,6 +28,35 @@ pip install -e ".[dev]"
 uv pip install -e ".[dev]"
 ```
 
+## 환경 변수 설정
+
+프로젝트 루트에 `.env` 파일을 생성하여 필요한 환경 변수를 설정하세요:
+
+```bash
+# .env.example 파일을 복사하여 시작
+cp .env.example .env
+```
+
+`.env` 파일에 다음 설정을 포함해야 합니다:
+
+```env
+# Langfuse 설정 (프롬프트 관리용)
+LANGFUSE_SECRET_KEY=your-secret-key-here
+LANGFUSE_PUBLIC_KEY=your-public-key-here
+LANGFUSE_HOST=https://us.cloud.langfuse.com
+
+# Ollama 설정
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=gemma3n
+
+# 데이터베이스 설정
+DATABASE_PATH=./knowledge_graph.db
+
+# 임베딩 설정
+EMBEDDING_MODEL=nomic-embed-text
+EMBEDDING_DIMENSION=768
+```
+
 ## 빠른 시작
 
 ```python

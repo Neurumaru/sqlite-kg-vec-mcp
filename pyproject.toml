@@ -25,6 +25,7 @@ dependencies = [
     "ollama>=0.3.0",         # For Ollama integration
     "requests>=2.25.0",      # For HTTP requests
     "langfuse>=2.0.0",       # For prompt management and observability
+    "python-dotenv>=1.0.0",  # For .env file support
 ]
 
 [project.optional-dependencies]

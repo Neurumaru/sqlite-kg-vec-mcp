@@ -25,6 +25,13 @@ class Embedding:
     created_at: str
     updated_at: str
 
+    # Class-level constant for performance
+    _ENTITY_ID_FIELDS = {
+        "node": "node_id",
+        "edge": "edge_id", 
+        "hyperedge": "hyperedge_id"
+    }
+
     @classmethod
     def from_row(cls, row: sqlite3.Row, entity_type: str) -> "Embedding":
         """
@@ -37,19 +44,15 @@ class Embedding:
         Returns:
             Embedding object
         """
-        # Convert BLOB to numpy array
-        embedding_blob = row["embedding"]
-        embedding = np.frombuffer(embedding_blob, dtype=np.float32)
+        # Convert BLOB to numpy array (optimized - avoid intermediate variable)
+        embedding = np.frombuffer(row["embedding"], dtype=np.float32)
 
-        # Determine entity ID field based on entity type
-        if entity_type == "node":
-            entity_id = row["node_id"]
-        elif entity_type == "edge":
-            entity_id = row["edge_id"]
-        elif entity_type == "hyperedge":
-            entity_id = row["hyperedge_id"]
-        else:
+        # Fast dictionary lookup instead of if-elif chain
+        id_field = cls._ENTITY_ID_FIELDS.get(entity_type)
+        if not id_field:
             raise ValueError(f"Unsupported entity type: {entity_type}")
+        
+        entity_id = row[id_field]
 
         return cls(
             entity_id=entity_id,
@@ -224,7 +227,7 @@ class EmbeddingManager:
         return cursor.rowcount > 0
 
     def get_all_embeddings(
-        self, entity_type: str, model_info: Optional[str] = None, batch_size: int = 1000
+        self, entity_type: str, model_info: Optional[str] = None, batch_size: int = 1000, offset: int = 0
     ) -> List[Embedding]:
         """
         Get all embeddings of a specific type, optionally filtered by model_info.
@@ -274,8 +277,9 @@ class EmbeddingManager:
             if not batch:
                 break
 
-            for row in batch:
-                all_embeddings.append(Embedding.from_row(row, entity_type))
+            # Convert rows to embeddings (optimized with list comprehension)
+            batch_embeddings = [Embedding.from_row(row, entity_type) for row in batch]
+            all_embeddings.extend(batch_embeddings)
 
             offset += batch_size
 

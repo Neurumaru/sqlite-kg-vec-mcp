@@ -187,3 +187,8 @@ cython_debug/
 /benchmark_results/
 /comparison_results/
 /plots/
+
+# Temporary data and output directories
+/data/
+/output/
+/results/
