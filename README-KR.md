@@ -60,7 +60,7 @@ EMBEDDING_DIMENSION=768
 ## 빠른 시작
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraphServer
+from src import KnowledgeGraphServer
 
 # SQLite 데이터베이스 파일로 서버 초기화
 server = KnowledgeGraphServer(db_path="knowledge_graph.db")
@@ -128,7 +128,7 @@ pytest --cov=sqlite_kg_vec_mcp
 ### 노드 및 관계 생성
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 
 # 지식 그래프 열기 또는 생성
 kg = KnowledgeGraph("example.db")

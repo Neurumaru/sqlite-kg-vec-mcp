@@ -7,7 +7,7 @@ import unittest
 
 import numpy as np
 
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 
 
 class TestKnowledgeGraph(unittest.TestCase):

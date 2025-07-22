@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import numpy as np
 
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 from sqlite_kg_vec_mcp.db.connection import DatabaseConnection
 from sqlite_kg_vec_mcp.db.schema import SchemaManager
 from sqlite_kg_vec_mcp.graph.entities import EntityManager

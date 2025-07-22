@@ -13,7 +13,7 @@ try:
     from dotenv import load_dotenv
     
     # Look for .env file in project root
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parent.parent
     env_path = project_root / '.env'
     
     if env_path.exists():

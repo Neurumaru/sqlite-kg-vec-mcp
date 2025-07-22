@@ -31,7 +31,7 @@ uv pip install -e ".[dev]"
 ## Quick Start
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraphServer
+from src import KnowledgeGraphServer
 
 # Initialize the server with a SQLite database file
 server = KnowledgeGraphServer(
@@ -98,7 +98,7 @@ pytest
 pytest tests/test_graph.py
 
 # Run with coverage
-pytest --cov=sqlite_kg_vec_mcp
+pytest --cov=src
 ```
 
 ## Usage Examples
@@ -106,7 +106,7 @@ pytest --cov=sqlite_kg_vec_mcp
 ### Creating Nodes and Relationships
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 
 # Open or create a knowledge graph
 kg = KnowledgeGraph("example.db")
@@ -143,7 +143,7 @@ similar_engineers = kg.search_similar_nodes(
 ### Text Embedding and Semantic Search
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 
 # Initialize with sentence-transformers (default)
 kg = KnowledgeGraph(
@@ -213,7 +213,7 @@ neighbors = client.get_neighbors(
 Starting the server:
 
 ```python
-from sqlite_kg_vec_mcp import KnowledgeGraphServer
+from src import KnowledgeGraphServer
 
 # Initialize the server with a SQLite database file
 server = KnowledgeGraphServer(

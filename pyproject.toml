@@ -2,6 +2,9 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [project]
 name = "sqlite-kg-vec-mcp"
 version = "0.1.0"
@@ -79,7 +82,7 @@ module = [
     "openai.*",
     "fastmcp.*",
     "torch.*",
-    "sqlite_kg_vec_mcp.*",
+    "src.*",
 ]
 ignore_missing_imports = true
 ignore_errors = true

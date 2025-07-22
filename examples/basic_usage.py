@@ -7,7 +7,7 @@ import os
 # Add the parent directory to the path so we can import the package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from sqlite_kg_vec_mcp import KnowledgeGraph
+from src import KnowledgeGraph
 
 
 def main():
