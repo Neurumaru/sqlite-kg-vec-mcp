@@ -1,1 +1,0 @@
-"""FastMCP server adapter for knowledge graph API."""

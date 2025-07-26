@@ -14,6 +14,8 @@ from .knowledge_extractor import KnowledgeExtractor
 from .text_embedder import TextEmbedder
 from .vector_store import VectorStore
 from .database import Database
+from .prompt_manager import PromptManager
+from .observability import ObservabilityService
 
 # Import repository interfaces for convenience
 from .repositories import (
@@ -32,6 +34,8 @@ __all__ = [
     "TextEmbedder",
     "VectorStore",
     "Database",
+    "PromptManager",
+    "ObservabilityService",
     "EntityRepository",
     "EmbeddingRepository",
     "RelationshipRepository", 

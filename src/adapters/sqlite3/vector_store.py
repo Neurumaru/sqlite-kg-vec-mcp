@@ -9,7 +9,7 @@ from pathlib import Path
 
 from src.ports.vector_store import VectorStore
 from src.domain import Vector
-from ..database.connection import DatabaseConnection
+from .connection import DatabaseConnection
 
 
 class SQLiteVectorStore(VectorStore):

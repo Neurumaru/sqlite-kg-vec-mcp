@@ -7,7 +7,7 @@ import requests
 import json
 from typing import List, Optional, Union
 import numpy as np
-from .text_embedder import VectorTextEmbedder
+from src.adapters.hnsw.text_embedder import VectorTextEmbedder
 
 
 class NomicEmbedder(VectorTextEmbedder):

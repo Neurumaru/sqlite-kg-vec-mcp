@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from src.adapters.database.transactions import UnitOfWork
+from src.adapters.sqlite3.transactions import UnitOfWork
 
 
 @dataclass

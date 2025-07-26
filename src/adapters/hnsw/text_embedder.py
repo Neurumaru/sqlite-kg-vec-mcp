@@ -196,7 +196,7 @@ def create_embedder(
     elif embedder_type == "openai":
         return OpenAIEmbedder(**kwargs)
     elif embedder_type == "nomic":
-        from .nomic_embedder import NomicEmbedder
+        from src.adapters.ollama.nomic_embedder import NomicEmbedder
         return NomicEmbedder(**kwargs)
     elif embedder_type == "random":
         return RandomEmbedder(**kwargs)

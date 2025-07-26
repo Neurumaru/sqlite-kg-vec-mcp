@@ -9,7 +9,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from .transactions import UnitOfWork
+from ..transactions import UnitOfWork
 from .entities import Entity
 
 

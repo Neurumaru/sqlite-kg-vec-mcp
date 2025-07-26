@@ -11,13 +11,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.adapters.database.connection import DatabaseConnection
-from src.adapters.database.schema import SchemaManager
-from src.adapters.llm.ollama import OllamaClient
-from src.adapters.llm.ollama import OllamaKnowledgeExtractor
-from src.adapters.vector.text_embedder import create_embedder
-from src.adapters.vector.embeddings import EmbeddingManager
-from src.adapters.vector.search import VectorSearch
+from src.adapters.sqlite3.connection import DatabaseConnection
+from src.adapters.sqlite3.schema import SchemaManager
+from src.adapters.ollama import OllamaClient
+from src.adapters.ollama import OllamaKnowledgeExtractor
+from src.adapters.hnsw.text_embedder import create_embedder
+from src.adapters.hnsw.embeddings import EmbeddingManager
+from src.adapters.hnsw.search import VectorSearch
 
 
 def setup_logging():

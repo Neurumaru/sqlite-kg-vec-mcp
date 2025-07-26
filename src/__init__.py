@@ -26,19 +26,19 @@ except ImportError:
 __version__ = "0.1.0"
 
 # Export main classes
-from .adapters.database.connection import DatabaseConnection
-from .adapters.database.schema import SchemaManager
-from .adapters.graph.entities import Entity, EntityManager
-from .adapters.graph.relationships import Relationship, RelationshipManager
-from .adapters.graph.traversal import GraphTraversal, PathNode
-from .adapters.vector.embeddings import Embedding, EmbeddingManager
-from .adapters.vector.hnsw import HNSWIndex
-from .adapters.vector.search import SearchResult, VectorSearch
-from .adapters.vector.text_embedder import VectorTextEmbedder, create_embedder
+from .adapters.sqlite3.connection import DatabaseConnection
+from .adapters.sqlite3.schema import SchemaManager
+from .adapters.sqlite3.graph.entities import Entity, EntityManager
+from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
+from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
+from .adapters.hnsw.embeddings import Embedding, EmbeddingManager
+from .adapters.hnsw.hnsw import HNSWIndex
+from .adapters.hnsw.search import SearchResult, VectorSearch
+from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder
 
 # Import server API conditionally
 # try:
-#     from .adapters.web.fastmcp.server import KnowledgeGraphServer
+#     from .adapters.fastmcp.server import KnowledgeGraphServer
 # except ImportError:
 #     # If MCP server dependencies aren't available, provide a message
 #     class KnowledgeGraphServer:

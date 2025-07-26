@@ -8,7 +8,7 @@ import time
 from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass
-from src.adapters.prompt.langfuse import get_knowledge_extraction_prompt, get_prompt_manager
+# Langfuse integration removed - using fallback prompts
 
 
 @dataclass
@@ -150,23 +150,8 @@ class OllamaClient:
         Returns:
             Dictionary containing extracted entities and relationships
         """
-        # Langfuse에서 프롬프트 가져오기
-        try:
-            prompts = get_knowledge_extraction_prompt(text)
-            system_prompt = prompts["system"]
-            prompt = prompts["user"]
-            
-            # 프롬프트 사용 로깅
-            prompt_manager = get_prompt_manager()
-            if prompt_manager.enabled:
-                logging.info("Using Langfuse prompt for knowledge extraction")
-            else:
-                logging.info("Using fallback prompt for knowledge extraction")
-                
-        except Exception as e:
-            logging.error(f"Failed to get Langfuse prompt, using fallback: {e}")
-            # 기본 프롬프트로 대체
-            system_prompt = """You are an expert knowledge graph extraction system. 
+        # 기본 프롬프트 사용 (Langfuse 제거됨)
+        system_prompt = """You are an expert knowledge graph extraction system. 
             Analyze the given text and extract entities and relationships in JSON format.
             
             Return a JSON object with this structure:
@@ -229,22 +214,7 @@ class OllamaClient:
             if "relationships" not in result:
                 result["relationships"] = []
             
-            # Langfuse에 사용 로깅
-            try:
-                prompt_manager = get_prompt_manager()
-                prompt_manager.log_prompt_usage(
-                    prompt_name="knowledge_extraction",
-                    version=None,
-                    input_variables={"text": text},
-                    response=response_text,
-                    metadata={
-                        "model": self.model,
-                        "entities_count": len(result["entities"]),
-                        "relationships_count": len(result["relationships"])
-                    }
-                )
-            except Exception as e:
-                logging.warning(f"Failed to log prompt usage to Langfuse: {e}")
+            # Prompt usage logging removed (Langfuse integration removed)
                 
             return result
             

@@ -10,9 +10,9 @@ import sqlite3
 from typing import Dict, List, Optional, Any, Tuple
 
 from .ollama_client import OllamaClient
-from src.adapters.graph.entities import EntityManager
-from src.adapters.graph.relationships import RelationshipManager
-from src.adapters.vector.embeddings import EmbeddingManager
+from src.adapters.sqlite3.graph.entities import EntityManager
+from src.adapters.sqlite3.graph.relationships import RelationshipManager
+from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.ports.knowledge_extractor import KnowledgeExtractor, ExtractionResult
 from src.domain.entities.entity import Entity
 from src.domain.entities.relationship import Relationship

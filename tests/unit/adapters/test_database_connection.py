@@ -7,7 +7,7 @@ import tempfile
 import os
 from pathlib import Path
 
-from src.adapters.database.connection import DatabaseConnection
+from src.adapters.sqlite3.connection import DatabaseConnection
 
 
 class TestDatabaseConnection(unittest.TestCase):
