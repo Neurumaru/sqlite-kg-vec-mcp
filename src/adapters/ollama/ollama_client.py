@@ -52,8 +52,23 @@ class OllamaClient:
             response = self.session.get(f"{self.base_url}/api/tags", timeout=5)
             response.raise_for_status()
             return True
-        except Exception as e:
+        except requests.ConnectionError as e:
+            from .exceptions import OllamaConnectionException
+            # Instead of silent failure, could raise exception if needed
+            # raise OllamaConnectionException.from_requests_error(self.base_url, e)
             logging.warning(f"Cannot connect to Ollama server at {self.base_url}: {e}")
+            return False
+        except requests.Timeout as e:
+            from .exceptions import OllamaTimeoutException
+            # Optional: raise timeout exception instead of silent failure
+            logging.warning(f"Ollama server connection timed out: {e}")
+            return False
+        except requests.HTTPError as e:
+            from .exceptions import OllamaConnectionException
+            logging.warning(f"Ollama server HTTP error: {e}")
+            return False
+        except Exception as e:
+            logging.warning(f"Unexpected error connecting to Ollama server: {e}")
             return False
     
     def generate(
@@ -136,9 +151,43 @@ class OllamaClient:
                 metadata={"temperature": temperature}
             )
             
+        except requests.ConnectionError as e:
+            from .exceptions import OllamaConnectionException
+            raise OllamaConnectionException.from_requests_error(self.base_url, e)
+        except requests.Timeout as e:
+            from .exceptions import OllamaTimeoutException
+            raise OllamaTimeoutException(
+                base_url=self.base_url,
+                operation="text generation",
+                timeout_duration=self.timeout,
+                original_error=e
+            )
+        except requests.HTTPError as e:
+            from .exceptions import OllamaConnectionException
+            status_code = getattr(e.response, 'status_code', None)
+            raise OllamaConnectionException(
+                base_url=self.base_url,
+                message=f"HTTP {status_code} error during generation",
+                status_code=status_code,
+                original_error=e
+            )
+        except json.JSONDecodeError as e:
+            from .exceptions import OllamaResponseException
+            response_text = getattr(e, 'doc', 'Unknown response')
+            raise OllamaResponseException(
+                response_text=response_text,
+                parsing_error=str(e),
+                original_error=e
+            )
         except Exception as e:
-            logging.error(f"Error generating text with Ollama: {e}")
-            raise
+            from .exceptions import OllamaGenerationException
+            raise OllamaGenerationException(
+                model_name=self.model,
+                prompt=prompt,
+                message=f"Unexpected error during generation: {e}",
+                generation_params={"temperature": temperature, "max_tokens": max_tokens},
+                original_error=e
+            )
     
     def extract_entities_and_relationships(self, text: str) -> Dict[str, Any]:
         """
