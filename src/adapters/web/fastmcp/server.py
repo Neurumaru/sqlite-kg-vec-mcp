@@ -13,14 +13,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from fastmcp import Context, FastMCP
 
-from ..repositories.connection import DatabaseConnection
-from ..repositories.schema import SchemaManager
-from ..repositories.entities import Entity, EntityManager
-from ..repositories.relationships import Relationship, RelationshipManager
-from ..repositories.traversal import GraphTraversal
-from ..repositories.embeddings import EmbeddingManager
-from ..repositories.search import VectorSearch
-from ..repositories.text_embedder import TextEmbedder
+from src.adapters.database.connection import DatabaseConnection
+from src.adapters.database.schema import SchemaManager
+from src.adapters.graph.entities import Entity, EntityManager
+from src.adapters.graph.relationships import Relationship, RelationshipManager
+from src.adapters.graph.traversal import GraphTraversal
+from src.adapters.vector.embeddings import EmbeddingManager
+from src.adapters.vector.search import VectorSearch
+from src.adapters.vector.text_embedder import TextEmbedder
 
 
 class KnowledgeGraphServer:

@@ -5,7 +5,7 @@ Repository port for entity persistence.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 
-from ....domain import NodeId, Entity, EntityType
+from src.domain import NodeId, Entity, EntityType
 
 
 class EntityRepository(ABC):

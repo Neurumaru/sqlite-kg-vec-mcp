@@ -5,7 +5,7 @@ Repository port for embedding persistence.
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from ....domain import NodeId, Embedding, Vector
+from src.domain import NodeId, Embedding, Vector
 
 
 class EmbeddingRepository(ABC):

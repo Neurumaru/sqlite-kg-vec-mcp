@@ -5,7 +5,7 @@ Search completion domain event.
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
-from ..value_objects.node_id import NodeId
+from src.domain.value_objects.node_id import NodeId
 from .base import DomainEvent
 
 

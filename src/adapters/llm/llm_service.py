@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, AsyncGenerator
 from enum import Enum
 
-from ...domain import SearchResult
+from src.domain import SearchResult
 
 
 class SearchStrategy(Enum):

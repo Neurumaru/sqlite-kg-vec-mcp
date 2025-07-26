@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from ..value_objects.node_id import NodeId
-from ..value_objects.entity_type import EntityType
-from ..exceptions.entity_exceptions import InvalidEntityException
+from src.domain.value_objects.node_id import NodeId
+from src.domain.value_objects.entity_type import EntityType
+from src.domain.exceptions.entity_exceptions import InvalidEntityException
 
 
 @dataclass

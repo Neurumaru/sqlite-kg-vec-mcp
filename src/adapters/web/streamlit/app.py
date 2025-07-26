@@ -7,11 +7,11 @@ import argparse
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from ...repositories.connection import DatabaseConnection
-from ...repositories.schema import SchemaManager
-from ...repositories.entities import EntityManager
-from ...repositories.relationships import RelationshipManager
-from ...repositories.search import VectorSearch
+from src.adapters.database.connection import DatabaseConnection
+from src.adapters.database.schema import SchemaManager
+from src.adapters.graph.entities import EntityManager
+from src.adapters.graph.relationships import RelationshipManager
+from src.adapters.vector.search import VectorSearch
 
 
 class KnowledgeGraphStreamlitApp:

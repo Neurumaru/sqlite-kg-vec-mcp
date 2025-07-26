@@ -3,19 +3,18 @@ Base domain event classes.
 """
 
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict
 
 
-@dataclass
+@dataclass(frozen=True)
 class DomainEvent(ABC):
     """Base class for all domain events."""
-
-    occurred_at: datetime = None
-
+    
     def __post_init__(self):
-        if self.occurred_at is None:
+        # Add occurred_at if not present
+        if not hasattr(self, 'occurred_at'):
             object.__setattr__(self, 'occurred_at', datetime.now())
 
     def to_dict(self) -> Dict[str, Any]:

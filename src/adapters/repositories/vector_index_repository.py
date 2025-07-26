@@ -5,7 +5,7 @@ Repository port for vector index operations.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple
 
-from ....domain import NodeId, Vector
+from src.domain import NodeId, Vector
 
 
 class VectorIndexRepository(ABC):

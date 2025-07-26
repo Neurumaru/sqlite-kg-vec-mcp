@@ -4,7 +4,7 @@ Relationship creation domain event.
 
 from dataclasses import dataclass
 
-from ..value_objects.node_id import NodeId
+from src.domain.value_objects.node_id import NodeId
 from .base import DomainEvent
 
 

@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from ..value_objects.node_id import NodeId
-from ..value_objects.relationship_type import RelationshipType
-from ..exceptions.relationship_exceptions import InvalidRelationshipException
+from src.domain.value_objects.node_id import NodeId
+from src.domain.value_objects.relationship_type import RelationshipType
+from src.domain.exceptions.relationship_exceptions import InvalidRelationshipException
 
 
 @dataclass

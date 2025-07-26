@@ -5,7 +5,7 @@ Vector store infrastructure port for vector operations.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple
 
-from ...domain import Vector
+from src.domain import Vector
 
 
 class VectorStore(ABC):

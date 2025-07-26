@@ -8,9 +8,9 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 
 from .ollama_client import OllamaClient
-from ..repositories.entities import EntityManager
-from ..repositories.relationships import RelationshipManager
-from ..repositories.embeddings import EmbeddingManager
+from src.adapters.graph.entities import EntityManager
+from src.adapters.graph.relationships import RelationshipManager
+from src.adapters.vector.embeddings import EmbeddingManager
 
 
 @dataclass

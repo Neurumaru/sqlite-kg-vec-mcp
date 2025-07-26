@@ -5,7 +5,7 @@ Repository port for relationship persistence.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 
-from ....domain import NodeId, Relationship, RelationshipType
+from src.domain import NodeId, Relationship, RelationshipType
 
 
 class RelationshipRepository(ABC):

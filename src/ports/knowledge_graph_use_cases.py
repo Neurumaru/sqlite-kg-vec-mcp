@@ -5,7 +5,7 @@ Primary port for knowledge graph use cases.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 
-from ..domain import (
+from src.domain import (
     NodeId,
     Entity,
     Relationship,

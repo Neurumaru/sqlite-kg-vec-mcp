@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from ..value_objects.node_id import NodeId
-from ..events.entity_created import EntityCreated
-from ..events.relationship_created import RelationshipCreated
-from ..exceptions.entity_exceptions import EntityNotFoundException, EntityAlreadyExistsException
-from ..exceptions.relationship_exceptions import RelationshipNotFoundException
+from src.domain.value_objects.node_id import NodeId
+from src.domain.events.entity_created import EntityCreated
+from src.domain.events.relationship_created import RelationshipCreated
+from src.domain.exceptions.entity_exceptions import EntityNotFoundException, EntityAlreadyExistsException
+from src.domain.exceptions.relationship_exceptions import RelationshipNotFoundException
 from .entity import Entity
 from .relationship import Relationship
 

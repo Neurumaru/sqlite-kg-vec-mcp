@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Union
 
-from ..llm.langfuse_prompts import (
+from src.adapters.llm.langfuse_prompts import (
     LangfusePromptManager,
     get_search_navigation_prompt,
     get_search_evaluation_prompt,

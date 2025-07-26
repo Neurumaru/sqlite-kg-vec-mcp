@@ -5,7 +5,7 @@ Primary port for administrative use cases.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 
-from ..domain import NodeId
+from src.domain import NodeId
 
 
 class AdminUseCases(ABC):

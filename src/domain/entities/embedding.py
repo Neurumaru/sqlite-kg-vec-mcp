@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
-from ..value_objects.node_id import NodeId
-from ..value_objects.vector import Vector
+from src.domain.value_objects.node_id import NodeId
+from src.domain.value_objects.vector import Vector
 
 
 @dataclass

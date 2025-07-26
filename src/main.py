@@ -6,8 +6,8 @@ import sys
 import argparse
 from pathlib import Path
 
-from adapters.web.fastmcp.server import KnowledgeGraphServer
-from adapters.database.schema import SchemaManager
+from src.adapters.web.fastmcp.server import KnowledgeGraphServer
+from src.adapters.database.schema import SchemaManager
 
 def main():
     """Run the Knowledge Graph MCP server."""

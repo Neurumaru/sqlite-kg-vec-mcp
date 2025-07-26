@@ -2,11 +2,12 @@
 Entity creation domain event.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional
 
-from ..value_objects.node_id import NodeId
-from .base import DomainEvent
+from src.domain.value_objects.node_id import NodeId
+from src.domain.events.base import DomainEvent
 
 
 @dataclass(frozen=True)
@@ -15,8 +16,8 @@ class EntityCreated(DomainEvent):
 
     entity_id: NodeId
     entity_type: str
-    name: Optional[str]
     graph_id: NodeId
+    name: Optional[str] = None
 
     @property
     def event_type(self) -> str:
