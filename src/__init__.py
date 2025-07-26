@@ -26,19 +26,19 @@ except ImportError:
 __version__ = "0.1.0"
 
 # Export main classes
-from .db.connection import DatabaseConnection
-from .db.schema import SchemaManager
-from .graph.entities import Entity, EntityManager
-from .graph.relationships import Relationship, RelationshipManager
-from .graph.traversal import GraphTraversal, PathNode
-from .vector.embeddings import Embedding, EmbeddingManager
-from .vector.hnsw import HNSWIndex
-from .vector.search import SearchResult, VectorSearch
-from .vector.text_embedder import TextEmbedder, create_embedder
+from .adapters.persistence.connection import DatabaseConnection
+from .adapters.persistence.schema import SchemaManager
+from .adapters.persistence.entities import Entity, EntityManager
+from .adapters.persistence.relationships import Relationship, RelationshipManager
+from .adapters.persistence.traversal import GraphTraversal, PathNode
+from .adapters.persistence.embeddings import Embedding, EmbeddingManager
+from .adapters.persistence.hnsw import HNSWIndex
+from .adapters.persistence.search import SearchResult, VectorSearch
+from .adapters.persistence.text_embedder import TextEmbedder, create_embedder
 
 # Import server API conditionally
 try:
-    from .server.api import KnowledgeGraphServer
+    from .adapters.web.api import KnowledgeGraphServer
 except ImportError:
     # If MCP server dependencies aren't available, provide a message
     class KnowledgeGraphServer:

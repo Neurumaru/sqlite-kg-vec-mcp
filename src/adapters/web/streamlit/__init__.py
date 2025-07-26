@@ -1,0 +1,1 @@
+"""Streamlit web UI adapter for knowledge graph exploration."""
