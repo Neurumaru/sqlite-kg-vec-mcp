@@ -7,10 +7,10 @@ import requests
 import json
 from typing import List, Optional, Union
 import numpy as np
-from .text_embedder import TextEmbedder
+from .text_embedder import VectorTextEmbedder
 
 
-class NomicEmbedder(TextEmbedder):
+class NomicEmbedder(VectorTextEmbedder):
     """Nomic Embed Text embedder using Ollama."""
     
     def __init__(

@@ -5,7 +5,7 @@ Text embedder service port for text-to-vector conversion.
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Tuple
 
-from src.domain import Vector
+from ..domain.value_objects.vector import Vector
 
 
 class TextEmbedder(ABC):

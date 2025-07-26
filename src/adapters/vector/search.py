@@ -12,7 +12,7 @@ from .entities import Entity, EntityManager
 from .relationships import Relationship, RelationshipManager
 from .embeddings import Embedding, EmbeddingManager
 from .hnsw import HNSWIndex
-from .text_embedder import TextEmbedder, create_embedder
+from .text_embedder import VectorTextEmbedder, create_embedder
 
 
 @dataclass
@@ -78,7 +78,7 @@ class VectorSearch:
         index_dir: Optional[str] = None,
         embedding_dim: int = 128,
         space: str = "cosine",
-        text_embedder: Optional[TextEmbedder] = None,
+        text_embedder: Optional[VectorTextEmbedder] = None,
         embedder_type: str = "sentence-transformers",
         embedder_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -90,7 +90,7 @@ class VectorSearch:
             index_dir: Directory to store HNSW index files
             embedding_dim: Dimension of the embedding vectors
             space: Distance metric ('cosine', 'ip', or 'l2')
-            text_embedder: TextEmbedder instance for text-to-vector conversion
+            text_embedder: VectorTextEmbedder instance for text-to-vector conversion
             embedder_type: Type of embedder to create if text_embedder is None
             embedder_kwargs: Arguments for embedder creation
         """

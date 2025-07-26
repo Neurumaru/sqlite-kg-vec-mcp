@@ -25,16 +25,16 @@ except ImportError:
 
 __version__ = "0.1.0"
 
-# Export main classes - temporarily commented for testing
-# from .adapters.database.connection import DatabaseConnection
-# from .adapters.database.schema import SchemaManager
-# from .adapters.graph.entities import Entity, EntityManager
-# from .adapters.graph.relationships import Relationship, RelationshipManager
-# from .adapters.graph.traversal import GraphTraversal, PathNode
-# from .adapters.vector.embeddings import Embedding, EmbeddingManager
-# from .adapters.vector.hnsw import HNSWIndex
-# from .adapters.vector.search import SearchResult, VectorSearch
-# from .adapters.vector.text_embedder import TextEmbedder, create_embedder
+# Export main classes
+from .adapters.database.connection import DatabaseConnection
+from .adapters.database.schema import SchemaManager
+from .adapters.graph.entities import Entity, EntityManager
+from .adapters.graph.relationships import Relationship, RelationshipManager
+from .adapters.graph.traversal import GraphTraversal, PathNode
+from .adapters.vector.embeddings import Embedding, EmbeddingManager
+from .adapters.vector.hnsw import HNSWIndex
+from .adapters.vector.search import SearchResult, VectorSearch
+from .adapters.vector.text_embedder import VectorTextEmbedder, create_embedder
 
 # Import server API conditionally
 # try:
@@ -72,7 +72,7 @@ class KnowledgeGraph:
             db_path: Path to SQLite database file
             vector_index_dir: Directory for storing vector index files
             embedding_dim: Dimension of embedding vectors
-            text_embedder: TextEmbedder instance for text-to-vector conversion
+            text_embedder: VectorTextEmbedder instance for text-to-vector conversion
             embedder_type: Type of embedder to create if text_embedder is None
             embedder_kwargs: Arguments for embedder creation
         """

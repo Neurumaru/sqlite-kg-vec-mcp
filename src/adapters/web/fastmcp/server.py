@@ -20,7 +20,7 @@ from src.adapters.graph.relationships import Relationship, RelationshipManager
 from src.adapters.graph.traversal import GraphTraversal
 from src.adapters.vector.embeddings import EmbeddingManager
 from src.adapters.vector.search import VectorSearch
-from src.adapters.vector.text_embedder import TextEmbedder
+from src.adapters.vector.text_embedder import VectorTextEmbedder
 
 
 class KnowledgeGraphServer:
@@ -37,7 +37,7 @@ class KnowledgeGraphServer:
         log_level: str = "INFO",
         server_name: str = "Knowledge Graph Server",
         server_instructions: str = "SQLite-based knowledge graph with vector search capabilities",
-        text_embedder: Optional[TextEmbedder] = None,
+        text_embedder: Optional[VectorTextEmbedder] = None,
         embedder_type: str = "sentence-transformers",
         embedder_kwargs: Optional[Dict[str, Any]] = None,
     ):
@@ -52,7 +52,7 @@ class KnowledgeGraphServer:
             log_level: Logging level
             server_name: Name of the MCP server
             server_instructions: Instructions for the MCP server
-            text_embedder: TextEmbedder instance for text-to-vector conversion
+            text_embedder: VectorTextEmbedder instance for text-to-vector conversion
             embedder_type: Type of embedder to create if text_embedder is None
             embedder_kwargs: Arguments for embedder creation
         """

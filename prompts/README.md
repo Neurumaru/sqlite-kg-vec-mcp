@@ -40,7 +40,7 @@
 
 ### 1. Langfuse와 함께 사용
 ```python
-from src.llm.langfuse_prompts import get_prompt_manager
+from src.adapters.prompt.langfuse import get_prompt_manager
 
 manager = get_prompt_manager()
 prompt = manager.get_prompt("query_analysis", variables={"query": "사용자 쿼리"})

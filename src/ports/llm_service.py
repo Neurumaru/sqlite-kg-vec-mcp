@@ -6,7 +6,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, AsyncGenerator
 from enum import Enum
 
-from src.domain import SearchResult
+# Note: SearchResult should be imported where needed to avoid circular dependencies
+# For now using Any type as placeholder
+SearchResult = Any
 
 
 class SearchStrategy(Enum):

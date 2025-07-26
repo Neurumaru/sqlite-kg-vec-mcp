@@ -23,7 +23,7 @@ except ImportError:
     OPENAI_AVAILABLE = False
 
 
-class TextEmbedder(ABC):
+class VectorTextEmbedder(ABC):
     """Abstract base class for text embedding implementations."""
 
     @abstractmethod
@@ -43,7 +43,7 @@ class TextEmbedder(ABC):
         pass
 
 
-class SentenceTransformerEmbedder(TextEmbedder):
+class SentenceTransformerEmbedder(VectorTextEmbedder):
     """Text embedder using sentence-transformers library."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
@@ -87,7 +87,7 @@ class SentenceTransformerEmbedder(TextEmbedder):
         return self._dimension
 
 
-class OpenAIEmbedder(TextEmbedder):
+class OpenAIEmbedder(VectorTextEmbedder):
     """Text embedder using OpenAI's API."""
 
     def __init__(
@@ -150,7 +150,7 @@ class OpenAIEmbedder(TextEmbedder):
         return self._dimension
 
 
-class RandomEmbedder(TextEmbedder):
+class RandomEmbedder(VectorTextEmbedder):
     """Dummy embedder that generates random vectors (for testing)."""
 
     def __init__(self, dimension: int = 128):
@@ -176,7 +176,7 @@ class RandomEmbedder(TextEmbedder):
 
 def create_embedder(
     embedder_type: str = "sentence-transformers", **kwargs
-) -> TextEmbedder:
+) -> VectorTextEmbedder:
     """
     Factory function to create text embedders.
 
@@ -189,7 +189,7 @@ def create_embedder(
         **kwargs: Additional arguments passed to the embedder constructor
 
     Returns:
-        TextEmbedder instance
+        VectorTextEmbedder instance
     """
     if embedder_type == "sentence-transformers":
         return SentenceTransformerEmbedder(**kwargs)

@@ -91,7 +91,7 @@ def main():
     # Example 4: Custom text embedder
     print("\n\n4. Using custom text embedder")
     
-    # You can create a custom embedder by implementing the TextEmbedder interface
+    # You can create a custom embedder by implementing the VectorTextEmbedder interface
     custom_embedder = create_embedder('random', dimension=256)
     kg_custom = KnowledgeGraph(
         "custom_example.db",

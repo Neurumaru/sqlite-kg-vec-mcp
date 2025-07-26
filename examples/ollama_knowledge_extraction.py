@@ -11,13 +11,13 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sqlite_kg_vec_mcp.db.connection import DatabaseConnection
-from sqlite_kg_vec_mcp.db.schema import SchemaManager
-from sqlite_kg_vec_mcp.llm.ollama_client import OllamaClient
-from sqlite_kg_vec_mcp.llm.knowledge_extractor import KnowledgeExtractor
-from sqlite_kg_vec_mcp.vector.text_embedder import create_embedder
-from sqlite_kg_vec_mcp.vector.embeddings import EmbeddingManager
-from sqlite_kg_vec_mcp.vector.search import VectorSearch
+from src.adapters.database.connection import DatabaseConnection
+from src.adapters.database.schema import SchemaManager
+from src.adapters.llm.ollama import OllamaClient
+from src.adapters.llm.ollama import OllamaKnowledgeExtractor
+from src.adapters.vector.text_embedder import create_embedder
+from src.adapters.vector.embeddings import EmbeddingManager
+from src.adapters.vector.search import VectorSearch
 
 
 def setup_logging():
@@ -132,7 +132,7 @@ def main():
     )
     
     # 지식 추출기 초기화
-    knowledge_extractor = KnowledgeExtractor(
+    knowledge_extractor = OllamaKnowledgeExtractor(
         connection=connection,
         ollama_client=ollama_client,
         auto_embed=True

@@ -1,15 +1,13 @@
 """
-External service ports for third-party integrations.
+LLM adapters for language model integrations.
 
-These interfaces define how the domain interacts with external services.
+These adapters implement LLM service interfaces for different providers.
 """
 
-from .llm_service import LLMService
-from .text_embedder import TextEmbedder
-from .monitoring_service import MonitoringService
+from .ollama import OllamaClient, OllamaLLMService, OllamaKnowledgeExtractor
 
 __all__ = [
-    "LLMService",
-    "TextEmbedder",
-    "MonitoringService",
+    "OllamaClient",
+    "OllamaLLMService", 
+    "OllamaKnowledgeExtractor",
 ]

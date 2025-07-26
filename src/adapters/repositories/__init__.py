@@ -1,13 +1,16 @@
 """
-Repository ports for data persistence.
+Repository adapters for data persistence.
 
-These interfaces define how the domain interacts with data storage systems.
+These adapters implement the repository ports for specific storage systems.
 """
 
-from .entity_repository import EntityRepository
-from .relationship_repository import RelationshipRepository
-from .embedding_repository import EmbeddingRepository
-from .vector_index_repository import VectorIndexRepository
+# Import repository interfaces from ports
+from src.ports.repositories import (
+    EntityRepository,
+    RelationshipRepository, 
+    EmbeddingRepository,
+    VectorIndexRepository
+)
 
 __all__ = [
     "EntityRepository",

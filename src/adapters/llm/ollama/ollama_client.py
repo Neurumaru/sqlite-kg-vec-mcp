@@ -8,7 +8,7 @@ import time
 from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass
-from .langfuse_prompts import get_knowledge_extraction_prompt, get_prompt_manager
+from src.adapters.prompt.langfuse import get_knowledge_extraction_prompt, get_prompt_manager
 
 
 @dataclass

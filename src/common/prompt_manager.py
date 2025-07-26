@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from src.adapters.llm.langfuse_prompts import get_prompt_manager
+from src.adapters.prompt.langfuse import get_prompt_manager
 
 
 def ensure_prompts_in_langfuse():
