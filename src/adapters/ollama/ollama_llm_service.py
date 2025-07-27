@@ -7,7 +7,8 @@ import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from src.ports.llm_service import LLMService, SearchStrategy
+from src.ports.llm_service import LLMService
+from src.domain.services.knowledge_search import SearchStrategy
 
 # Temporary type alias to avoid circular dependency
 SearchResult = Any

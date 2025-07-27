@@ -4,7 +4,7 @@
 
 import uuid
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict
 
@@ -22,11 +22,11 @@ class DomainEvent(ABC):
     event_type: str
     aggregate_id: str
     version: int = 1
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        if self.metadata is None:
-            self.metadata = {}
+        # metadata는 이제 field(default_factory=dict)로 처리됨
+        pass
 
     @classmethod
     def create(cls, aggregate_id: str, **kwargs) -> "DomainEvent":

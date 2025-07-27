@@ -7,11 +7,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.domain.entities.document import Document, DocumentStatus
-from src.domain.entities.node import Node, NodeType
-from src.domain.entities.relationship import Relationship, RelationshipType
+from src.domain.entities.node import Node
+from src.domain.entities.relationship import Relationship
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
+from src.ports.knowledge_extractor import KnowledgeExtractor
 
 
 class KnowledgeExtractionResult:
@@ -43,10 +44,15 @@ class DocumentProcessor:
     문서와 추출된 지식 요소들 간의 연결을 관리합니다.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(
+        self,
+        knowledge_extractor: KnowledgeExtractor,
+        logger: Optional[logging.Logger] = None,
+    ):
+        self.knowledge_extractor = knowledge_extractor
         self.logger = logger or logging.getLogger(__name__)
 
-    def process_document(self, document: Document) -> KnowledgeExtractionResult:
+    async def process_document(self, document: Document) -> KnowledgeExtractionResult:
         """
         문서를 처리하여 노드와 관계를 추출합니다.
 
@@ -62,8 +68,8 @@ class DocumentProcessor:
             # 문서 상태를 처리 중으로 변경
             document.mark_as_processing()
 
-            # 지식 추출 (실제 구현에서는 LLM이나 NLP 파이프라인 사용)
-            extraction_result = self._extract_knowledge(document)
+            # 지식 추출 (지식 추출 포트 사용)
+            extraction_result = await self._extract_knowledge(document)
 
             # 문서와 추출된 요소들 간의 연결 설정
             self._link_document_to_knowledge(document, extraction_result)
@@ -84,97 +90,14 @@ class DocumentProcessor:
             document.mark_as_failed(str(e))
             raise
 
-    def _extract_knowledge(self, document: Document) -> KnowledgeExtractionResult:
+    async def _extract_knowledge(self, document: Document) -> KnowledgeExtractionResult:
         """
         문서로부터 지식을 추출합니다.
 
-        실제 구현에서는 이 메서드가 LLM이나 NLP 파이프라인을 사용하여
-        문서에서 개체와 관계를 추출합니다.
+        지식 추출 포트를 사용하여 문서에서 개체와 관계를 추출합니다.
         """
-        # 예시 구현 - 실제로는 더 정교한 추출 로직이 필요
-        nodes = self._extract_entities(document)
-        relationships = self._extract_relationships(document, nodes)
-
+        nodes, relationships = await self.knowledge_extractor.extract_knowledge(document)
         return KnowledgeExtractionResult(nodes, relationships)
-
-    def _extract_entities(self, document: Document) -> List[Node]:
-        """
-        문서에서 개체(노드)를 추출합니다.
-
-        실제 구현에서는 Named Entity Recognition (NER)이나
-        LLM을 사용하여 개체를 추출합니다.
-        """
-        self.logger.debug(f"Extracting entities from document {document.id}")
-
-        # 예시 구현 - 단순한 키워드 기반 추출
-        entities = []
-
-        # 문서 내용을 분석하여 개체 추출
-        # 실제로는 더 정교한 NLP 파이프라인이 필요
-        content_lower = document.content.lower()
-
-        # 간단한 패턴 매칭 예시
-        if "openai" in content_lower:
-            node = Node(
-                id=NodeId.generate(),
-                name="OpenAI",
-                node_type=NodeType.ORGANIZATION,
-                description="AI research company",
-            )
-            node.add_source_document(document.id, "Referenced in document")
-            entities.append(node)
-
-        if "gpt" in content_lower:
-            node = Node(
-                id=NodeId.generate(),
-                name="GPT",
-                node_type=NodeType.TECHNOLOGY,
-                description="Generative Pre-trained Transformer",
-            )
-            node.add_source_document(document.id, "Mentioned as technology")
-            entities.append(node)
-
-        return entities
-
-    def _extract_relationships(
-        self, document: Document, nodes: List[Node]
-    ) -> List[Relationship]:
-        """
-        문서에서 관계를 추출합니다.
-
-        실제 구현에서는 Relation Extraction 모델이나
-        LLM을 사용하여 개체 간 관계를 추출합니다.
-        """
-        self.logger.debug(f"Extracting relationships from document {document.id}")
-
-        relationships = []
-
-        # 간단한 관계 추출 예시
-        # 실제로는 더 정교한 관계 추출 로직이 필요
-        for i, source_node in enumerate(nodes):
-            for target_node in nodes[i + 1 :]:
-                # 예시: 조직과 기술 간의 관계
-                if (
-                    source_node.node_type == NodeType.ORGANIZATION
-                    and target_node.node_type == NodeType.TECHNOLOGY
-                ):
-
-                    relationship = Relationship(
-                        id=RelationshipId.generate(),
-                        source_node_id=source_node.id,
-                        target_node_id=target_node.id,
-                        relationship_type=RelationshipType.CREATES,
-                        label="creates",
-                        confidence=0.8,
-                    )
-                    relationship.add_source_document(
-                        document.id,
-                        context="Inferred from document content",
-                        sentence="Organization and technology mentioned together",
-                    )
-                    relationships.append(relationship)
-
-        return relationships
 
     def _link_document_to_knowledge(
         self, document: Document, extraction_result: KnowledgeExtractionResult
@@ -234,7 +157,7 @@ class DocumentProcessor:
 
         return True
 
-    def reprocess_document(self, document: Document) -> KnowledgeExtractionResult:
+    async def reprocess_document(self, document: Document) -> KnowledgeExtractionResult:
         """문서를 재처리합니다."""
         self.logger.info(f"Reprocessing document: {document.id}")
 
@@ -247,7 +170,7 @@ class DocumentProcessor:
         document.processed_at = None
 
         # 재처리 실행
-        return self.process_document(document)
+        return await self.process_document(document)
 
     def get_processing_statistics(self, documents: List[Document]) -> Dict[str, Any]:
         """문서 처리 통계 정보를 반환합니다."""

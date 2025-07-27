@@ -18,9 +18,9 @@ class NodeId:
 
     def __post_init__(self):
         if not self.value:
-            raise ValueError("NodeId cannot be empty")
+            raise ValueError("NodeId value cannot be empty")
         if not isinstance(self.value, str):
-            raise ValueError("NodeId must be a string")
+            raise ValueError("NodeId value must be a string")
 
     @classmethod
     def generate(cls) -> "NodeId":
