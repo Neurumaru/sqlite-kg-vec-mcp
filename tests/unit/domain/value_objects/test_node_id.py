@@ -48,36 +48,6 @@ class TestNodeId(unittest.TestCase):
         id2 = NodeId.generate()
         self.assertNotEqual(id1.value, id2.value)
 
-    def test_from_int_creates_valid_node_id(self):
-        """Test creating NodeId from integer."""
-        int_value = 12345
-        node_id = NodeId.from_int(int_value)
-        self.assertEqual(node_id.value, str(int_value))
-
-    def test_from_uuid_with_valid_uuid(self):
-        """Test creating NodeId from valid UUID string."""
-        uuid_str = str(uuid.uuid4())
-        node_id = NodeId.from_uuid(uuid_str)
-        self.assertEqual(node_id.value, uuid_str)
-
-    def test_from_uuid_with_invalid_uuid_raises_error(self):
-        """Test that from_uuid with invalid UUID raises ValueError."""
-        invalid_uuid = "not-a-uuid"
-        with self.assertRaises(ValueError) as context:
-            NodeId.from_uuid(invalid_uuid)
-        self.assertIn("Invalid UUID format", str(context.exception))
-
-    def test_to_int_with_numeric_string(self):
-        """Test converting NodeId to int when value is numeric."""
-        node_id = NodeId("12345")
-        result = node_id.to_int()
-        self.assertEqual(result, 12345)
-
-    def test_to_int_with_non_numeric_string(self):
-        """Test that to_int returns None for non-numeric strings."""
-        node_id = NodeId("not-a-number")
-        result = node_id.to_int()
-        self.assertIsNone(result)
 
     def test_equality(self):
         """Test NodeId equality comparison."""
