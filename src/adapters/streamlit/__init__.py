@@ -7,6 +7,4 @@ a web-based user interface for knowledge graph exploration and management.
 
 from .app import main
 
-__all__ = [
-    "main"
-]
+__all__ = ["main"]

@@ -11,30 +11,31 @@ from pathlib import Path
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
-    
+
     # Look for .env file in project root
     project_root = Path(__file__).parent.parent
-    env_path = project_root / '.env'
-    
+    env_path = project_root / ".env"
+
     if env_path.exists():
         load_dotenv(env_path)
-        
+
 except ImportError:
     # python-dotenv not installed, skip loading
     pass
 
 __version__ = "0.1.0"
 
-# Export main classes
-from .adapters.sqlite3.connection import DatabaseConnection
-from .adapters.sqlite3.schema import SchemaManager
-from .adapters.sqlite3.graph.entities import Entity, EntityManager
-from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
-from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
 from .adapters.hnsw.embeddings import Embedding, EmbeddingManager
 from .adapters.hnsw.hnsw import HNSWIndex
 from .adapters.hnsw.search import SearchResult, VectorSearch
 from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder
+
+# Export main classes
+from .adapters.sqlite3.connection import DatabaseConnection
+from .adapters.sqlite3.graph.entities import Entity, EntityManager
+from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
+from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
+from .adapters.sqlite3.schema import SchemaManager
 
 # Import server API conditionally
 # try:

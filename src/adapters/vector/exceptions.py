@@ -5,19 +5,20 @@ These exceptions handle vector operations, embeddings generation,
 and vector database errors.
 """
 
-import numpy as np
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
 
-from ..exceptions.data import DataException, DataValidationException
-from ..exceptions.connection import HTTPConnectionException
-from ..exceptions.timeout import TimeoutException
+import numpy as np
+
 from ..exceptions.base import InfrastructureException
+from ..exceptions.connection import HTTPConnectionException
+from ..exceptions.data import DataException, DataValidationException
+from ..exceptions.timeout import TimeoutException
 
 
 class VectorException(InfrastructureException):
     """
     Base exception for vector processing errors.
-    
+
     Covers issues with vector operations, indexing,
     and vector data management.
     """
@@ -29,11 +30,11 @@ class VectorException(InfrastructureException):
         vector_dimension: Optional[int] = None,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector exception.
-        
+
         Args:
             operation: Vector operation being performed
             message: Detailed error message
@@ -44,23 +45,23 @@ class VectorException(InfrastructureException):
         """
         self.operation = operation
         self.vector_dimension = vector_dimension
-        
+
         full_message = f"Vector {operation} failed: {message}"
         if vector_dimension:
             full_message += f" (dimension: {vector_dimension})"
-        
+
         super().__init__(
             message=full_message,
             error_code=error_code or "VECTOR_ERROR",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class EmbeddingGenerationException(VectorException):
     """
     Embedding generation failures.
-    
+
     Handles errors during text-to-vector conversion,
     model loading, and embedding computation.
     """
@@ -73,11 +74,11 @@ class EmbeddingGenerationException(VectorException):
         expected_dimension: Optional[int] = None,
         actual_dimension: Optional[int] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize embedding generation exception.
-        
+
         Args:
             text: Input text (truncated for logging)
             model_name: Embedding model used
@@ -91,25 +92,29 @@ class EmbeddingGenerationException(VectorException):
         self.model_name = model_name
         self.expected_dimension = expected_dimension
         self.actual_dimension = actual_dimension
-        
-        full_message = f"Embedding generation failed for model '{model_name}': {message}"
+
+        full_message = (
+            f"Embedding generation failed for model '{model_name}': {message}"
+        )
         if expected_dimension and actual_dimension:
-            full_message += f" (expected dim: {expected_dimension}, got: {actual_dimension})"
-        
+            full_message += (
+                f" (expected dim: {expected_dimension}, got: {actual_dimension})"
+            )
+
         super().__init__(
             operation="embedding generation",
             message=full_message,
             vector_dimension=expected_dimension,
             error_code="EMBEDDING_GENERATION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class VectorDimensionException(DataValidationException):
     """
     Vector dimension mismatches.
-    
+
     Handles cases where vector dimensions don't match
     expected values or are incompatible.
     """
@@ -121,11 +126,11 @@ class VectorDimensionException(DataValidationException):
         operation: str,
         vector_id: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector dimension exception.
-        
+
         Args:
             expected_dimension: Expected vector dimension
             actual_dimension: Actual vector dimension
@@ -138,11 +143,11 @@ class VectorDimensionException(DataValidationException):
         self.actual_dimension = actual_dimension
         self.operation = operation
         self.vector_id = vector_id
-        
+
         message = f"Vector dimension mismatch in {operation}: expected {expected_dimension}, got {actual_dimension}"
         if vector_id:
             message += f" (vector: {vector_id})"
-        
+
         super().__init__(
             field="vector_dimension",
             value=actual_dimension,
@@ -150,14 +155,14 @@ class VectorDimensionException(DataValidationException):
             message=message,
             error_code="VECTOR_DIMENSION_MISMATCH",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class VectorSearchException(VectorException):
     """
     Vector search and similarity errors.
-    
+
     Handles failures during vector search, similarity computation,
     and index querying.
     """
@@ -169,11 +174,11 @@ class VectorSearchException(VectorException):
         search_params: Optional[Dict[str, Any]] = None,
         message: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector search exception.
-        
+
         Args:
             query_vector_dimension: Query vector dimension
             index_dimension: Index vector dimension
@@ -185,26 +190,26 @@ class VectorSearchException(VectorException):
         self.query_vector_dimension = query_vector_dimension
         self.index_dimension = index_dimension
         self.search_params = search_params or {}
-        
+
         if message is None:
             message = "Vector search failed"
             if index_dimension and query_vector_dimension != index_dimension:
                 message += f": dimension mismatch (query: {query_vector_dimension}, index: {index_dimension})"
-        
+
         super().__init__(
             operation="vector search",
             message=message,
             vector_dimension=query_vector_dimension,
             error_code="VECTOR_SEARCH_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class VectorIndexException(VectorException):
     """
     Vector index errors.
-    
+
     Handles issues with vector index creation, updates,
     and maintenance operations.
     """
@@ -217,11 +222,11 @@ class VectorIndexException(VectorException):
         vector_count: Optional[int] = None,
         dimension: Optional[int] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector index exception.
-        
+
         Args:
             index_name: Name of the vector index
             operation: Index operation being performed
@@ -233,25 +238,25 @@ class VectorIndexException(VectorException):
         """
         self.index_name = index_name
         self.vector_count = vector_count
-        
+
         full_message = f"Vector index '{index_name}' {operation} failed: {message}"
         if vector_count:
             full_message += f" (vectors: {vector_count})"
-        
+
         super().__init__(
             operation=f"index {operation}",
             message=full_message,
             vector_dimension=dimension,
             error_code="VECTOR_INDEX_ERROR",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class VectorStorageException(VectorException):
     """
     Vector storage and persistence errors.
-    
+
     Handles failures in storing, retrieving, and managing
     vector data in storage systems.
     """
@@ -263,11 +268,11 @@ class VectorStorageException(VectorException):
         entity_id: Optional[str] = None,
         message: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector storage exception.
-        
+
         Args:
             storage_type: Type of storage (SQLite, file, etc.)
             operation: Storage operation
@@ -278,25 +283,25 @@ class VectorStorageException(VectorException):
         """
         self.storage_type = storage_type
         self.entity_id = entity_id
-        
+
         if message is None:
             message = f"Vector storage operation '{operation}' failed in {storage_type}"
             if entity_id:
                 message += f" for entity {entity_id}"
-        
+
         super().__init__(
             operation=f"storage {operation}",
             message=message,
             error_code="VECTOR_STORAGE_ERROR",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class VectorNormalizationException(VectorException):
     """
     Vector normalization errors.
-    
+
     Handles issues with vector normalization, validation,
     and preprocessing operations.
     """
@@ -308,11 +313,11 @@ class VectorNormalizationException(VectorException):
         message: str,
         vector_stats: Optional[Dict[str, float]] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize vector normalization exception.
-        
+
         Args:
             vector_shape: Shape of the problematic vector
             normalization_type: Type of normalization attempted
@@ -324,14 +329,14 @@ class VectorNormalizationException(VectorException):
         self.vector_shape = vector_shape
         self.normalization_type = normalization_type
         self.vector_stats = vector_stats or {}
-        
+
         full_message = f"Vector normalization ({normalization_type}) failed for shape {vector_shape}: {message}"
-        
+
         super().__init__(
             operation=f"normalization ({normalization_type})",
             message=full_message,
             vector_dimension=vector_shape[0] if vector_shape else None,
             error_code="VECTOR_NORMALIZATION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )

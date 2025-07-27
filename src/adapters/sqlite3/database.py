@@ -2,20 +2,21 @@
 SQLite implementation of the Database port.
 """
 
-import uuid
 import sqlite3
+import uuid
 from contextlib import asynccontextmanager
-from typing import Dict, List, Optional, Any, AsyncContextManager
 from pathlib import Path
+from typing import Any, AsyncContextManager, Dict, List, Optional
 
 from src.ports.database import Database
+
 from .connection import DatabaseConnection
 
 
 class SQLiteDatabase(Database):
     """
     SQLite implementation of the Database port.
-    
+
     This adapter provides concrete implementation of database operations
     using SQLite as the underlying storage engine.
     """
@@ -64,7 +65,7 @@ class SQLiteDatabase(Database):
                 except Exception:
                     pass
             self._active_transactions.clear()
-            
+
             # Close main connection
             self._connection_manager.close()
             self._connection = None
@@ -81,7 +82,7 @@ class SQLiteDatabase(Database):
         """
         if not self._connection:
             return False
-        
+
         try:
             self._connection.execute("SELECT 1").fetchone()
             return True
@@ -123,7 +124,7 @@ class SQLiteDatabase(Database):
         """
         if not self._connection:
             raise RuntimeError("Database not connected")
-        
+
         transaction_id = str(uuid.uuid4())
         # For SQLite, we'll use the same connection but track transaction state
         self._active_transactions[transaction_id] = self._connection
@@ -142,7 +143,7 @@ class SQLiteDatabase(Database):
         """
         if transaction_id not in self._active_transactions:
             return False
-        
+
         try:
             connection = self._active_transactions[transaction_id]
             connection.commit()
@@ -163,7 +164,7 @@ class SQLiteDatabase(Database):
         """
         if transaction_id not in self._active_transactions:
             return False
-        
+
         try:
             connection = self._active_transactions[transaction_id]
             connection.rollback()
@@ -177,7 +178,7 @@ class SQLiteDatabase(Database):
         self,
         query: str,
         parameters: Optional[Dict[str, Any]] = None,
-        transaction_id: Optional[str] = None
+        transaction_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Execute a SELECT query.
@@ -193,16 +194,20 @@ class SQLiteDatabase(Database):
         connection = self._get_connection(transaction_id)
         if not connection:
             raise RuntimeError("Database not connected")
-        
+
         cursor = connection.cursor()
         try:
             if parameters:
                 cursor.execute(query, parameters)
             else:
                 cursor.execute(query)
-            
+
             # Convert rows to dictionaries
-            columns = [description[0] for description in cursor.description] if cursor.description else []
+            columns = (
+                [description[0] for description in cursor.description]
+                if cursor.description
+                else []
+            )
             rows = cursor.fetchall()
             return [dict(zip(columns, row)) for row in rows]
         finally:
@@ -212,7 +217,7 @@ class SQLiteDatabase(Database):
         self,
         command: str,
         parameters: Optional[Dict[str, Any]] = None,
-        transaction_id: Optional[str] = None
+        transaction_id: Optional[str] = None,
     ) -> int:
         """
         Execute a non-SELECT command (INSERT, UPDATE, DELETE).
@@ -228,7 +233,7 @@ class SQLiteDatabase(Database):
         connection = self._get_connection(transaction_id)
         if not connection:
             raise RuntimeError("Database not connected")
-        
+
         cursor = connection.cursor()
         try:
             if parameters:
@@ -243,7 +248,7 @@ class SQLiteDatabase(Database):
         self,
         commands: List[str],
         parameters: Optional[List[Dict[str, Any]]] = None,
-        transaction_id: Optional[str] = None
+        transaction_id: Optional[str] = None,
     ) -> List[int]:
         """
         Execute multiple commands in batch.
@@ -259,12 +264,14 @@ class SQLiteDatabase(Database):
         connection = self._get_connection(transaction_id)
         if not connection:
             raise RuntimeError("Database not connected")
-        
+
         results = []
         for i, command in enumerate(commands):
             cursor = connection.cursor()
             try:
-                cmd_params = parameters[i] if parameters and i < len(parameters) else None
+                cmd_params = (
+                    parameters[i] if parameters and i < len(parameters) else None
+                )
                 if cmd_params:
                     cursor.execute(command, cmd_params)
                 else:
@@ -272,15 +279,12 @@ class SQLiteDatabase(Database):
                 results.append(cursor.rowcount)
             finally:
                 cursor.close()
-        
+
         return results
 
     # Schema management
     async def create_table(
-        self,
-        table_name: str,
-        schema: Dict[str, Any],
-        if_not_exists: bool = True
+        self, table_name: str, schema: Dict[str, Any], if_not_exists: bool = True
     ) -> bool:
         """
         Create a database table.
@@ -309,20 +313,16 @@ class SQLiteDatabase(Database):
                     if "default" in column_def:
                         col_def += f" DEFAULT {column_def['default']}"
                     columns.append(col_def)
-            
+
             if_not_exists_clause = "IF NOT EXISTS " if if_not_exists else ""
             sql = f"CREATE TABLE {if_not_exists_clause}{table_name} ({', '.join(columns)})"
-            
+
             await self.execute_command(sql)
             return True
         except Exception:
             return False
 
-    async def drop_table(
-        self,
-        table_name: str,
-        if_exists: bool = True
-    ) -> bool:
+    async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
         """
         Drop a database table.
 
@@ -354,7 +354,7 @@ class SQLiteDatabase(Database):
         try:
             result = await self.execute_query(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-                {"name": table_name}
+                {"name": table_name},
             )
             return len(result) > 0
         except Exception:
@@ -374,14 +374,14 @@ class SQLiteDatabase(Database):
             result = await self.execute_query(f"PRAGMA table_info({table_name})")
             if not result:
                 return None
-            
+
             schema = {}
             for row in result:
                 schema[row["name"]] = {
                     "type": row["type"],
                     "not_null": bool(row["notnull"]),
                     "default": row["dflt_value"],
-                    "primary_key": bool(row["pk"])
+                    "primary_key": bool(row["pk"]),
                 }
             return schema
         except Exception:
@@ -393,7 +393,7 @@ class SQLiteDatabase(Database):
         table_name: str,
         columns: List[str],
         unique: bool = False,
-        if_not_exists: bool = True
+        if_not_exists: bool = True,
     ) -> bool:
         """
         Create a database index.
@@ -412,18 +412,14 @@ class SQLiteDatabase(Database):
             unique_clause = "UNIQUE " if unique else ""
             if_not_exists_clause = "IF NOT EXISTS " if if_not_exists else ""
             columns_str = ", ".join(columns)
-            
+
             sql = f"CREATE {unique_clause}INDEX {if_not_exists_clause}{index_name} ON {table_name} ({columns_str})"
             await self.execute_command(sql)
             return True
         except Exception:
             return False
 
-    async def drop_index(
-        self,
-        index_name: str,
-        if_exists: bool = True
-    ) -> bool:
+    async def drop_index(self, index_name: str, if_exists: bool = True) -> bool:
         """
         Drop a database index.
 
@@ -485,22 +481,24 @@ class SQLiteDatabase(Database):
         try:
             info = {
                 "path": str(self.db_path),
-                "size_bytes": self.db_path.stat().st_size if self.db_path.exists() else 0,
+                "size_bytes": (
+                    self.db_path.stat().st_size if self.db_path.exists() else 0
+                ),
             }
-            
+
             # Get SQLite version and settings
             version_result = await self.execute_query("SELECT sqlite_version()")
             if version_result:
                 info["sqlite_version"] = version_result[0]["sqlite_version()"]
-            
+
             # Get pragma settings
             pragma_queries = [
                 "PRAGMA journal_mode",
                 "PRAGMA synchronous",
                 "PRAGMA cache_size",
-                "PRAGMA foreign_keys"
+                "PRAGMA foreign_keys",
             ]
-            
+
             for pragma in pragma_queries:
                 try:
                     result = await self.execute_query(pragma)
@@ -509,7 +507,7 @@ class SQLiteDatabase(Database):
                         info[key] = result[0][pragma.replace("PRAGMA ", "")]
                 except Exception:
                     continue
-            
+
             return info
         except Exception:
             return {"error": "Failed to get database info"}
@@ -528,19 +526,21 @@ class SQLiteDatabase(Database):
             # Check if table exists
             if not await self.table_exists(table_name):
                 return None
-            
+
             info = {"name": table_name}
-            
+
             # Get row count
-            count_result = await self.execute_query(f"SELECT COUNT(*) as count FROM {table_name}")
+            count_result = await self.execute_query(
+                f"SELECT COUNT(*) as count FROM {table_name}"
+            )
             if count_result:
                 info["row_count"] = count_result[0]["count"]
-            
+
             # Get schema
             schema = await self.get_table_schema(table_name)
             if schema:
                 info["schema"] = schema
-            
+
             return info
         except Exception:
             return None
@@ -557,28 +557,30 @@ class SQLiteDatabase(Database):
             "connected": await self.is_connected(),
             "file_exists": self.db_path.exists(),
             "readable": False,
-            "writable": False
+            "writable": False,
         }
-        
+
         if health["connected"]:
             try:
                 # Test read
                 await self.execute_query("SELECT 1")
                 health["readable"] = True
-                
+
                 # Test write (create and drop temp table)
-                await self.execute_command("CREATE TEMP TABLE health_check_temp (id INTEGER)")
+                await self.execute_command(
+                    "CREATE TEMP TABLE health_check_temp (id INTEGER)"
+                )
                 await self.execute_command("DROP TABLE health_check_temp")
                 health["writable"] = True
             except Exception as e:
                 health["error"] = str(e)
-        
-        health["status"] = "healthy" if all([
-            health["connected"], 
-            health["readable"], 
-            health["writable"]
-        ]) else "unhealthy"
-        
+
+        health["status"] = (
+            "healthy"
+            if all([health["connected"], health["readable"], health["writable"]])
+            else "unhealthy"
+        )
+
         return health
 
     async def get_connection_info(self) -> Dict[str, Any]:
@@ -593,7 +595,7 @@ class SQLiteDatabase(Database):
             "db_path": str(self.db_path),
             "optimize": self.optimize,
             "active_transactions": len(self._active_transactions),
-            "transaction_ids": list(self._active_transactions.keys())
+            "transaction_ids": list(self._active_transactions.keys()),
         }
 
     async def get_performance_stats(self) -> Dict[str, Any]:
@@ -605,19 +607,19 @@ class SQLiteDatabase(Database):
         """
         try:
             stats = {}
-            
+
             # Database size
             if self.db_path.exists():
                 stats["file_size_bytes"] = self.db_path.stat().st_size
-            
+
             # Table statistics
             tables_result = await self.execute_query(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             )
-            
+
             stats["table_count"] = len(tables_result)
             stats["tables"] = {}
-            
+
             for table_row in tables_result:
                 table_name = table_row["name"]
                 table_info = await self.get_table_info(table_name)
@@ -625,12 +627,14 @@ class SQLiteDatabase(Database):
                     stats["tables"][table_name] = {
                         "row_count": table_info.get("row_count", 0)
                     }
-            
+
             return stats
         except Exception:
             return {"error": "Failed to get performance stats"}
 
-    def _get_connection(self, transaction_id: Optional[str] = None) -> Optional[sqlite3.Connection]:
+    def _get_connection(
+        self, transaction_id: Optional[str] = None
+    ) -> Optional[sqlite3.Connection]:
         """
         Get the appropriate connection for the transaction.
 

@@ -3,6 +3,7 @@ Unit tests for entity exceptions.
 """
 
 import unittest
+
 from src.domain.exceptions.entity_exceptions import InvalidEntityException
 
 
@@ -22,10 +23,11 @@ class TestEntityExceptions(unittest.TestCase):
     def test_invalid_entity_exception_inheritance(self):
         """Test that InvalidEntityException inherits from appropriate base."""
         from src.domain.exceptions.base import DomainException
+
         exception = InvalidEntityException("test")
         self.assertIsInstance(exception, DomainException)
         self.assertIsInstance(exception, Exception)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

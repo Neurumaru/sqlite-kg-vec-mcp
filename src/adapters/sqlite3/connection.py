@@ -96,27 +96,31 @@ class DatabaseConnection:
         except sqlite3.OperationalError as e:
             # Import and use our new exception
             from .exceptions import SQLiteConnectionException
+
             raise SQLiteConnectionException.from_sqlite_error(str(self.db_path), e)
         except sqlite3.Error as e:
             from .exceptions import SQLiteConnectionException
+
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
                 message=f"Database connection failed: {e}",
-                original_error=e
+                original_error=e,
             )
         except PermissionError as e:
             from .exceptions import SQLiteConnectionException
+
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
                 message=f"Permission denied accessing database: {e}",
-                original_error=e
+                original_error=e,
             )
         except Exception as e:
             from .exceptions import SQLiteConnectionException
+
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
                 message=f"Unexpected error connecting to database: {e}",
-                original_error=e
+                original_error=e,
             )
 
     def _apply_optimizations(self) -> None:

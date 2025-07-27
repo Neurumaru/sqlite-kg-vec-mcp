@@ -2,14 +2,15 @@
 Connection-related infrastructure exceptions.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from .base import InfrastructureException
 
 
 class ConnectionException(InfrastructureException):
     """
     Base exception for connection-related errors.
-    
+
     This exception covers failures in establishing or maintaining
     connections to external systems.
     """
@@ -21,11 +22,11 @@ class ConnectionException(InfrastructureException):
         message: str,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize connection exception.
-        
+
         Args:
             service: Name of the service (e.g., "SQLite", "Ollama")
             endpoint: Connection endpoint (URL, file path, etc.)
@@ -36,20 +37,20 @@ class ConnectionException(InfrastructureException):
         """
         self.service = service
         self.endpoint = endpoint
-        
+
         full_message = f"{service} connection failed ({endpoint}): {message}"
         super().__init__(
             message=full_message,
             error_code=error_code or "CONNECTION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class DatabaseConnectionException(ConnectionException):
     """
     Database connection failures.
-    
+
     Used for any database connection issues including
     file access, permissions, corruption, etc.
     """
@@ -60,11 +61,11 @@ class DatabaseConnectionException(ConnectionException):
         message: str,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize database connection exception.
-        
+
         Args:
             db_path: Database file path or connection string
             message: Detailed error message
@@ -78,7 +79,7 @@ class DatabaseConnectionException(ConnectionException):
             message=message,
             error_code=error_code or "DB_CONNECTION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
         self.db_path = db_path
 
@@ -86,7 +87,7 @@ class DatabaseConnectionException(ConnectionException):
 class HTTPConnectionException(ConnectionException):
     """
     HTTP connection failures.
-    
+
     Used for network-related issues when connecting to
     HTTP APIs and services.
     """
@@ -98,11 +99,11 @@ class HTTPConnectionException(ConnectionException):
         status_code: Optional[int] = None,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize HTTP connection exception.
-        
+
         Args:
             url: Target URL
             message: Detailed error message
@@ -112,16 +113,16 @@ class HTTPConnectionException(ConnectionException):
             original_error: Original exception
         """
         self.status_code = status_code
-        
+
         if status_code:
             message = f"HTTP {status_code}: {message}"
-        
+
         super().__init__(
             service="HTTP",
             endpoint=url,
             message=message,
             error_code=error_code or "HTTP_CONNECTION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
         self.url = url

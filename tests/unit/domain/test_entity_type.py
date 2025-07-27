@@ -3,6 +3,7 @@ Unit tests for EntityType value object.
 """
 
 import unittest
+
 from src.domain.value_objects.entity_type import EntityType
 
 
@@ -35,9 +36,9 @@ class TestEntityType(unittest.TestCase):
             ("person", "Person"),
             ("ORGANIZATION", "Organization"),
             ("  location  ", "Location"),
-            ("concept", "Concept")
+            ("concept", "Concept"),
         ]
-        
+
         for input_name, expected_name in test_cases:
             entity_type = EntityType(input_name)
             self.assertEqual(entity_type.name, expected_name)
@@ -77,7 +78,7 @@ class TestEntityType(unittest.TestCase):
         type1 = EntityType("Person")
         type2 = EntityType("person")  # Should be normalized to same value
         type3 = EntityType("Organization")
-        
+
         self.assertEqual(type1, type2)
         self.assertNotEqual(type1, type3)
 
@@ -85,9 +86,9 @@ class TestEntityType(unittest.TestCase):
         """Test that EntityType hash is consistent."""
         type1 = EntityType("Person")
         type2 = EntityType("person")  # Should be normalized to same value
-        
+
         self.assertEqual(hash(type1), hash(type2))
-        
+
         # Can be used in sets and dicts
         type_set = {type1, type2}
         self.assertEqual(len(type_set), 1)
@@ -95,7 +96,7 @@ class TestEntityType(unittest.TestCase):
     def test_immutability(self):
         """Test that EntityType is immutable."""
         entity_type = EntityType("Person")
-        
+
         # Should not be able to modify name
         with self.assertRaises(AttributeError):
             entity_type.name = "NewType"
@@ -104,10 +105,10 @@ class TestEntityType(unittest.TestCase):
         """Test that factory methods return consistent instances."""
         person1 = EntityType.person()
         person2 = EntityType.person()
-        
+
         self.assertEqual(person1, person2)
         self.assertEqual(hash(person1), hash(person2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

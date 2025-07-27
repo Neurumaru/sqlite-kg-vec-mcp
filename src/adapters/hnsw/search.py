@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from .entities import Entity, EntityManager
-from .relationships import Relationship, RelationshipManager
 from .embeddings import Embedding, EmbeddingManager
+from .entities import Entity, EntityManager
 from .hnsw import HNSWIndex
+from .relationships import Relationship, RelationshipManager
 from .text_embedder import VectorTextEmbedder, create_embedder
 
 

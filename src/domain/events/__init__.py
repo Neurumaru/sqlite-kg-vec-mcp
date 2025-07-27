@@ -10,6 +10,6 @@ from .relationship_created import RelationshipCreated
 __all__ = [
     "DomainEvent",
     "DocumentProcessed",
-    "NodeCreated", 
+    "NodeCreated",
     "RelationshipCreated",
 ]

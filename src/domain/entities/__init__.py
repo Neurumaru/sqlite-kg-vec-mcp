@@ -8,7 +8,7 @@ from .relationship import Relationship, RelationshipType
 
 __all__ = [
     "Document",
-    "DocumentStatus", 
+    "DocumentStatus",
     "DocumentType",
     "Node",
     "NodeType",

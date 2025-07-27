@@ -5,20 +5,21 @@ These exceptions handle Ollama LLM service errors and provide
 meaningful abstractions for common API failure scenarios.
 """
 
-import requests
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from ..exceptions.connection import HTTPConnectionException
-from ..exceptions.timeout import HTTPTimeoutException
-from ..exceptions.data import DataParsingException, DataValidationException
+import requests
+
 from ..exceptions.authentication import AuthenticationException
 from ..exceptions.base import InfrastructureException
+from ..exceptions.connection import HTTPConnectionException
+from ..exceptions.data import DataParsingException, DataValidationException
+from ..exceptions.timeout import HTTPTimeoutException
 
 
 class OllamaConnectionException(HTTPConnectionException):
     """
     Ollama service connection failures.
-    
+
     Handles network issues, service unavailability,
     and connection setup problems.
     """
@@ -29,11 +30,11 @@ class OllamaConnectionException(HTTPConnectionException):
         message: str,
         status_code: Optional[int] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize Ollama connection exception.
-        
+
         Args:
             base_url: Ollama server base URL
             message: Detailed error message
@@ -47,51 +48,45 @@ class OllamaConnectionException(HTTPConnectionException):
             status_code=status_code,
             error_code="OLLAMA_CONNECTION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
         self.service = "Ollama"
 
     @classmethod
     def from_requests_error(
-        cls,
-        base_url: str,
-        requests_error: requests.RequestException
+        cls, base_url: str, requests_error: requests.RequestException
     ) -> "OllamaConnectionException":
         """
         Create exception from requests error.
-        
+
         Args:
             base_url: Ollama server base URL
             requests_error: Original requests exception
-            
+
         Returns:
             OllamaConnectionException instance
         """
         if isinstance(requests_error, requests.ConnectionError):
             message = "Cannot connect to Ollama server"
         elif isinstance(requests_error, requests.HTTPError):
-            status_code = getattr(requests_error.response, 'status_code', None)
+            status_code = getattr(requests_error.response, "status_code", None)
             message = f"HTTP error {status_code}"
             return cls(
                 base_url=base_url,
                 message=message,
                 status_code=status_code,
-                original_error=requests_error
+                original_error=requests_error,
             )
         else:
             message = str(requests_error)
-        
-        return cls(
-            base_url=base_url,
-            message=message,
-            original_error=requests_error
-        )
+
+        return cls(base_url=base_url, message=message, original_error=requests_error)
 
 
 class OllamaTimeoutException(HTTPTimeoutException):
     """
     Ollama request timeouts.
-    
+
     Handles timeouts during model operations, generation,
     and API calls.
     """
@@ -102,11 +97,11 @@ class OllamaTimeoutException(HTTPTimeoutException):
         operation: str,
         timeout_duration: float,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize Ollama timeout exception.
-        
+
         Args:
             base_url: Ollama server base URL
             operation: Operation that timed out
@@ -120,7 +115,7 @@ class OllamaTimeoutException(HTTPTimeoutException):
             timeout_duration=timeout_duration,
             error_code="OLLAMA_TIMEOUT",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
         self.operation = operation
         self.service = "Ollama"
@@ -129,7 +124,7 @@ class OllamaTimeoutException(HTTPTimeoutException):
 class OllamaModelException(InfrastructureException):
     """
     Ollama model-related errors.
-    
+
     Handles model not found, model loading failures,
     and model configuration issues.
     """
@@ -141,11 +136,11 @@ class OllamaModelException(InfrastructureException):
         message: str,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize Ollama model exception.
-        
+
         Args:
             model_name: Name of the model
             operation: Operation being performed
@@ -156,21 +151,23 @@ class OllamaModelException(InfrastructureException):
         """
         self.model_name = model_name
         self.operation = operation
-        
-        full_message = f"Ollama model '{model_name}' error during {operation}: {message}"
-        
+
+        full_message = (
+            f"Ollama model '{model_name}' error during {operation}: {message}"
+        )
+
         super().__init__(
             message=full_message,
             error_code=error_code or "OLLAMA_MODEL_ERROR",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class OllamaModelNotFoundException(OllamaModelException):
     """
     Ollama model not found.
-    
+
     Raised when a requested model is not available
     on the Ollama server.
     """
@@ -180,11 +177,11 @@ class OllamaModelNotFoundException(OllamaModelException):
         model_name: str,
         available_models: Optional[list] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize model not found exception.
-        
+
         Args:
             model_name: Name of the missing model
             available_models: List of available models
@@ -192,25 +189,25 @@ class OllamaModelNotFoundException(OllamaModelException):
             original_error: Original exception
         """
         self.available_models = available_models or []
-        
+
         message = f"Model '{model_name}' not found"
         if self.available_models:
             message += f". Available models: {', '.join(self.available_models)}"
-        
+
         super().__init__(
             model_name=model_name,
             operation="model lookup",
             message=message,
             error_code="OLLAMA_MODEL_NOT_FOUND",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class OllamaGenerationException(InfrastructureException):
     """
     Ollama text generation errors.
-    
+
     Handles failures during text generation, prompt processing,
     and response parsing.
     """
@@ -222,11 +219,11 @@ class OllamaGenerationException(InfrastructureException):
         message: str,
         generation_params: Optional[Dict[str, Any]] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize generation exception.
-        
+
         Args:
             model_name: Model used for generation
             prompt: Input prompt (truncated for logging)
@@ -238,21 +235,21 @@ class OllamaGenerationException(InfrastructureException):
         self.model_name = model_name
         self.prompt = prompt[:200] + "..." if len(prompt) > 200 else prompt
         self.generation_params = generation_params or {}
-        
+
         full_message = f"Ollama generation failed with model '{model_name}': {message}"
-        
+
         super().__init__(
             message=full_message,
             error_code="OLLAMA_GENERATION_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class OllamaResponseException(DataParsingException):
     """
     Ollama response parsing errors.
-    
+
     Handles issues with parsing JSON responses,
     malformed responses, and unexpected response formats.
     """
@@ -263,11 +260,11 @@ class OllamaResponseException(DataParsingException):
         expected_format: str = "JSON",
         parsing_error: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize response parsing exception.
-        
+
         Args:
             response_text: Raw response text (truncated)
             expected_format: Expected response format
@@ -278,21 +275,21 @@ class OllamaResponseException(DataParsingException):
         message = f"Failed to parse Ollama response as {expected_format}"
         if parsing_error:
             message += f": {parsing_error}"
-        
+
         super().__init__(
             data_format=f"Ollama {expected_format}",
             message=message,
             raw_data=response_text,
             error_code="OLLAMA_RESPONSE_PARSING_FAILED",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )
 
 
 class OllamaConfigurationException(InfrastructureException):
     """
     Ollama configuration errors.
-    
+
     Handles invalid server URLs, missing configuration,
     and service setup issues.
     """
@@ -303,11 +300,11 @@ class OllamaConfigurationException(InfrastructureException):
         invalid_value: Any,
         message: str,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize configuration exception.
-        
+
         Args:
             config_parameter: Configuration parameter with issue
             invalid_value: Invalid configuration value
@@ -317,12 +314,12 @@ class OllamaConfigurationException(InfrastructureException):
         """
         self.config_parameter = config_parameter
         self.invalid_value = invalid_value
-        
+
         full_message = f"Ollama configuration error for '{config_parameter}' = '{invalid_value}': {message}"
-        
+
         super().__init__(
             message=full_message,
             error_code="OLLAMA_CONFIGURATION_ERROR",
             context=context,
-            original_error=original_error
+            original_error=original_error,
         )

@@ -13,14 +13,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from fastmcp import Context, FastMCP
 
-from src.adapters.sqlite3.connection import DatabaseConnection
-from src.adapters.sqlite3.schema import SchemaManager
-from src.adapters.sqlite3.graph.entities import Entity, EntityManager
-from src.adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
-from src.adapters.sqlite3.graph.traversal import GraphTraversal
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.hnsw.search import VectorSearch
 from src.adapters.hnsw.text_embedder import VectorTextEmbedder
+from src.adapters.sqlite3.connection import DatabaseConnection
+from src.adapters.sqlite3.graph.entities import Entity, EntityManager
+from src.adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
+from src.adapters.sqlite3.graph.traversal import GraphTraversal
+from src.adapters.sqlite3.schema import SchemaManager
 
 
 class KnowledgeGraphServer:

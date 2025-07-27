@@ -2,13 +2,13 @@
 Base infrastructure exception classes.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 class InfrastructureException(Exception):
     """
     Base exception for all infrastructure-related errors.
-    
+
     This exception represents technical failures in external systems,
     databases, APIs, and other infrastructure components. It serves
     as the root of the infrastructure exception hierarchy.
@@ -19,11 +19,11 @@ class InfrastructureException(Exception):
         message: str,
         error_code: Optional[str] = None,
         context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None
+        original_error: Optional[Exception] = None,
     ):
         """
         Initialize infrastructure exception.
-        
+
         Args:
             message: Human-readable error message
             error_code: Optional error code for categorization

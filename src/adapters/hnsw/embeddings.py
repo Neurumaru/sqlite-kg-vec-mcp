@@ -28,8 +28,8 @@ class Embedding:
     # Class-level constant for performance
     _ENTITY_ID_FIELDS = {
         "node": "node_id",
-        "edge": "edge_id", 
-        "hyperedge": "hyperedge_id"
+        "edge": "edge_id",
+        "hyperedge": "hyperedge_id",
     }
 
     @classmethod
@@ -51,7 +51,7 @@ class Embedding:
         id_field = cls._ENTITY_ID_FIELDS.get(entity_type)
         if not id_field:
             raise ValueError(f"Unsupported entity type: {entity_type}")
-        
+
         entity_id = row[id_field]
 
         return cls(
@@ -227,7 +227,11 @@ class EmbeddingManager:
         return cursor.rowcount > 0
 
     def get_all_embeddings(
-        self, entity_type: str, model_info: Optional[str] = None, batch_size: int = 1000, offset: int = 0
+        self,
+        entity_type: str,
+        model_info: Optional[str] = None,
+        batch_size: int = 1000,
+        offset: int = 0,
     ) -> List[Embedding]:
         """
         Get all embeddings of a specific type, optionally filtered by model_info.

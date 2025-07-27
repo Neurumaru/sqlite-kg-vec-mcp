@@ -264,11 +264,14 @@ class GraphTraversal:
                 # Log the error but continue with other paths
                 # Use structured logging instead of print
                 from src.common.observability import get_observable_logger
+
                 logger = get_observable_logger("graph_traversal", "adapter")
-                logger.error("neighbor_query_failed",
-                           entity_id=current.entity.id,
-                           error_type=type(e).__name__,
-                           error_message=str(e))
+                logger.error(
+                    "neighbor_query_failed",
+                    entity_id=current.entity.id,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                )
 
         return paths
 
@@ -300,11 +303,11 @@ class GraphTraversal:
 
         relation_filter = ""
         entity_filter = ""
-        
+
         # Build filter clauses and params separately for each query part
         relation_filter_params = []
         entity_filter_params = []
-        
+
         # Add relation type filter
         if relation_types:
             placeholders = ", ".join(["?"] * len(relation_types))
@@ -320,18 +323,23 @@ class GraphTraversal:
         # Build parameters based on direction
         if direction == "both":
             # Both direction needs start_id twice (outgoing and incoming base cases)
-            base_params = [start_id] + relation_filter_params + [start_id] + relation_filter_params
+            base_params = (
+                [start_id]
+                + relation_filter_params
+                + [start_id]
+                + relation_filter_params
+            )
             recursive_params = [max_depth] + relation_filter_params
         else:
             # Single direction needs start_id once
             base_params = [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
-        
+
         final_params = entity_filter_params + [limit if limit else 1000]
-        
+
         # Combine all parameters in order
         params = base_params + recursive_params + final_params
-        
+
         # Build the recursive CTE query based on direction
         if direction == "outgoing":
             recursive_query = f"""

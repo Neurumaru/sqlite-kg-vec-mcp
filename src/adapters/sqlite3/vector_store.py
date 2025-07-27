@@ -4,23 +4,26 @@ SQLite implementation of the VectorStore port using sqlite-vec extension.
 
 import json
 import sqlite3
-from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-from src.ports.vector_store import VectorStore
 from src.domain import Vector
+from src.ports.vector_store import VectorStore
+
 from .connection import DatabaseConnection
 
 
 class SQLiteVectorStore(VectorStore):
     """
     SQLite implementation of the VectorStore port.
-    
+
     This adapter provides concrete implementation of vector operations
     using SQLite with the sqlite-vec extension for vector storage and search.
     """
 
-    def __init__(self, db_path: str, table_name: str = "vectors", optimize: bool = True):
+    def __init__(
+        self, db_path: str, table_name: str = "vectors", optimize: bool = True
+    ):
         """
         Initialize SQLite vector store adapter.
 
@@ -42,7 +45,7 @@ class SQLiteVectorStore(VectorStore):
         self,
         dimension: int,
         metric: str = "cosine",
-        parameters: Optional[Dict[str, Any]] = None
+        parameters: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         Initialize the vector store.
@@ -58,15 +61,16 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 await self.connect()
-            
+
             self._dimension = dimension
             self._metric = metric
-            
+
             # Create vectors table if it doesn't exist
             cursor = self._connection.cursor()
-            
+
             # Create the main vectors table
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE TABLE IF NOT EXISTS {self.table_name} (
                     id TEXT PRIMARY KEY,
                     vector BLOB NOT NULL,
@@ -74,35 +78,43 @@ class SQLiteVectorStore(VectorStore):
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
-            
+            """
+            )
+
             # Create metadata index
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE INDEX IF NOT EXISTS idx_{self.table_name}_metadata 
                 ON {self.table_name} (metadata)
-            """)
-            
+            """
+            )
+
             # Store configuration in a metadata table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS vector_store_config (
                     table_name TEXT PRIMARY KEY,
                     dimension INTEGER NOT NULL,
                     metric TEXT NOT NULL,
                     parameters TEXT
                 )
-            """)
-            
+            """
+            )
+
             # Insert or update configuration
             config_data = json.dumps(parameters) if parameters else None
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO vector_store_config 
                 (table_name, dimension, metric, parameters)
                 VALUES (?, ?, ?, ?)
-            """, (self.table_name, dimension, metric, config_data))
-            
+            """,
+                (self.table_name, dimension, metric, config_data),
+            )
+
             self._connection.commit()
             cursor.close()
-            
+
             return True
         except Exception:
             return False
@@ -116,10 +128,10 @@ class SQLiteVectorStore(VectorStore):
         """
         try:
             self._connection = self._connection_manager.connect()
-            
+
             # Load configuration if exists
             await self._load_config()
-            
+
             return True
         except Exception:
             return False
@@ -147,7 +159,7 @@ class SQLiteVectorStore(VectorStore):
         """
         if not self._connection:
             return False
-        
+
         try:
             self._connection.execute("SELECT 1").fetchone()
             return True
@@ -156,10 +168,7 @@ class SQLiteVectorStore(VectorStore):
 
     # Vector operations
     async def add_vector(
-        self,
-        vector_id: str,
-        vector: Vector,
-        metadata: Optional[Dict[str, Any]] = None
+        self, vector_id: str, vector: Vector, metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Add a vector to the store.
@@ -175,22 +184,25 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
-            
+
             # Convert vector to blob
             vector_blob = self._vector_to_blob(vector)
             metadata_json = json.dumps(metadata) if metadata else None
-            
-            cursor.execute(f"""
+
+            cursor.execute(
+                f"""
                 INSERT OR REPLACE INTO {self.table_name} 
                 (id, vector, metadata, updated_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """, (vector_id, vector_blob, metadata_json))
-            
+            """,
+                (vector_id, vector_blob, metadata_json),
+            )
+
             self._connection.commit()
             cursor.close()
-            
+
             return True
         except Exception:
             return False
@@ -198,7 +210,7 @@ class SQLiteVectorStore(VectorStore):
     async def add_vectors(
         self,
         vectors: Dict[str, Vector],
-        metadata: Optional[Dict[str, Dict[str, Any]]] = None
+        metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> bool:
         """
         Add multiple vectors to the store in batch.
@@ -213,9 +225,9 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
-            
+
             # Prepare batch data
             batch_data = []
             for vector_id, vector in vectors.items():
@@ -223,16 +235,19 @@ class SQLiteVectorStore(VectorStore):
                 vector_metadata = metadata.get(vector_id) if metadata else None
                 metadata_json = json.dumps(vector_metadata) if vector_metadata else None
                 batch_data.append((vector_id, vector_blob, metadata_json))
-            
-            cursor.executemany(f"""
+
+            cursor.executemany(
+                f"""
                 INSERT OR REPLACE INTO {self.table_name} 
                 (id, vector, metadata, updated_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """, batch_data)
-            
+            """,
+                batch_data,
+            )
+
             self._connection.commit()
             cursor.close()
-            
+
             return True
         except Exception:
             return False
@@ -250,15 +265,18 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return None
-            
+
             cursor = self._connection.cursor()
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT vector FROM {self.table_name} WHERE id = ?
-            """, (vector_id,))
-            
+            """,
+                (vector_id,),
+            )
+
             row = cursor.fetchone()
             cursor.close()
-            
+
             if row:
                 return self._blob_to_vector(row[0])
             return None
@@ -278,34 +296,34 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return {vid: None for vid in vector_ids}
-            
+
             cursor = self._connection.cursor()
-            
+
             # Create placeholders for IN clause
             placeholders = ", ".join("?" * len(vector_ids))
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT id, vector FROM {self.table_name} 
                 WHERE id IN ({placeholders})
-            """, vector_ids)
-            
+            """,
+                vector_ids,
+            )
+
             rows = cursor.fetchall()
             cursor.close()
-            
+
             # Build result dictionary
             result = {vid: None for vid in vector_ids}
             for row in rows:
                 vector_id, vector_blob = row
                 result[vector_id] = self._blob_to_vector(vector_blob)
-            
+
             return result
         except Exception:
             return {vid: None for vid in vector_ids}
 
     async def update_vector(
-        self,
-        vector_id: str,
-        vector: Vector,
-        metadata: Optional[Dict[str, Any]] = None
+        self, vector_id: str, vector: Vector, metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Update an existing vector.
@@ -334,16 +352,19 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 DELETE FROM {self.table_name} WHERE id = ?
-            """, (vector_id,))
-            
+            """,
+                (vector_id,),
+            )
+
             success = cursor.rowcount > 0
             self._connection.commit()
             cursor.close()
-            
+
             return success
         except Exception:
             return False
@@ -361,18 +382,21 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return 0
-            
+
             cursor = self._connection.cursor()
-            
+
             placeholders = ", ".join("?" * len(vector_ids))
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 DELETE FROM {self.table_name} WHERE id IN ({placeholders})
-            """, vector_ids)
-            
+            """,
+                vector_ids,
+            )
+
             deleted_count = cursor.rowcount
             self._connection.commit()
             cursor.close()
-            
+
             return deleted_count
         except Exception:
             return 0
@@ -390,15 +414,18 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT 1 FROM {self.table_name} WHERE id = ? LIMIT 1
-            """, (vector_id,))
-            
+            """,
+                (vector_id,),
+            )
+
             exists = cursor.fetchone() is not None
             cursor.close()
-            
+
             return exists
         except Exception:
             return False
@@ -408,7 +435,7 @@ class SQLiteVectorStore(VectorStore):
         self,
         query_vector: Vector,
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None
+        filter_criteria: Optional[Dict[str, Any]] = None,
     ) -> List[Tuple[str, float]]:
         """
         Search for similar vectors using basic similarity calculation.
@@ -427,9 +454,9 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return []
-            
+
             cursor = self._connection.cursor()
-            
+
             # Build WHERE clause for filters
             where_clause = ""
             params = []
@@ -440,14 +467,17 @@ class SQLiteVectorStore(VectorStore):
                     params.append(value)
                 if conditions:
                     where_clause = f"WHERE {' AND '.join(conditions)}"
-            
-            cursor.execute(f"""
+
+            cursor.execute(
+                f"""
                 SELECT id, vector FROM {self.table_name} {where_clause}
-            """, params)
-            
+            """,
+                params,
+            )
+
             rows = cursor.fetchall()
             cursor.close()
-            
+
             # Calculate similarities
             similarities = []
             for row in rows:
@@ -456,7 +486,7 @@ class SQLiteVectorStore(VectorStore):
                 if stored_vector:
                     similarity = self._calculate_similarity(query_vector, stored_vector)
                     similarities.append((vector_id, similarity))
-            
+
             # Sort by similarity and return top k
             similarities.sort(key=lambda x: x[1], reverse=True)
             return similarities[:k]
@@ -467,7 +497,7 @@ class SQLiteVectorStore(VectorStore):
         self,
         query_vector: Vector,
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None
+        filter_criteria: Optional[Dict[str, Any]] = None,
     ) -> List[Tuple[str, Vector, float]]:
         """
         Search for similar vectors and return the vectors themselves.
@@ -483,27 +513,24 @@ class SQLiteVectorStore(VectorStore):
         try:
             # Get similar vector IDs and scores
             similar = await self.search_similar(query_vector, k, filter_criteria)
-            
+
             # Fetch the actual vectors
             vector_ids = [item[0] for item in similar]
             vectors = await self.get_vectors(vector_ids)
-            
+
             # Combine results
             result = []
             for vector_id, score in similar:
                 vector = vectors.get(vector_id)
                 if vector:
                     result.append((vector_id, vector, score))
-            
+
             return result
         except Exception:
             return []
 
     async def search_by_ids(
-        self,
-        query_vector: Vector,
-        candidate_ids: List[str],
-        k: Optional[int] = None
+        self, query_vector: Vector, candidate_ids: List[str], k: Optional[int] = None
     ) -> List[Tuple[str, float]]:
         """
         Search within a specific set of vector IDs.
@@ -519,14 +546,14 @@ class SQLiteVectorStore(VectorStore):
         try:
             # Get vectors for candidate IDs
             vectors = await self.get_vectors(candidate_ids)
-            
+
             # Calculate similarities
             similarities = []
             for vector_id, vector in vectors.items():
                 if vector:
                     similarity = self._calculate_similarity(query_vector, vector)
                     similarities.append((vector_id, similarity))
-            
+
             # Sort and limit
             similarities.sort(key=lambda x: x[1], reverse=True)
             return similarities[:k] if k else similarities
@@ -537,7 +564,7 @@ class SQLiteVectorStore(VectorStore):
         self,
         query_vectors: List[Vector],
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None
+        filter_criteria: Optional[Dict[str, Any]] = None,
     ) -> List[List[Tuple[str, float]]]:
         """
         Perform batch search for multiple query vectors.
@@ -573,26 +600,25 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return None
-            
+
             cursor = self._connection.cursor()
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 SELECT metadata FROM {self.table_name} WHERE id = ?
-            """, (vector_id,))
-            
+            """,
+                (vector_id,),
+            )
+
             row = cursor.fetchone()
             cursor.close()
-            
+
             if row and row[0]:
                 return json.loads(row[0])
             return None
         except Exception:
             return None
 
-    async def update_metadata(
-        self,
-        vector_id: str,
-        metadata: Dict[str, Any]
-    ) -> bool:
+    async def update_metadata(self, vector_id: str, metadata: Dict[str, Any]) -> bool:
         """
         Update metadata for a vector.
 
@@ -606,28 +632,29 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
             metadata_json = json.dumps(metadata)
-            
-            cursor.execute(f"""
+
+            cursor.execute(
+                f"""
                 UPDATE {self.table_name} 
                 SET metadata = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (metadata_json, vector_id))
-            
+            """,
+                (metadata_json, vector_id),
+            )
+
             success = cursor.rowcount > 0
             self._connection.commit()
             cursor.close()
-            
+
             return success
         except Exception:
             return False
 
     async def search_by_metadata(
-        self,
-        filter_criteria: Dict[str, Any],
-        limit: int = 100
+        self, filter_criteria: Dict[str, Any], limit: int = 100
     ) -> List[str]:
         """
         Search vectors by metadata criteria.
@@ -642,25 +669,28 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return []
-            
+
             cursor = self._connection.cursor()
-            
+
             # Build WHERE clause
             conditions = []
             params = []
             for key, value in filter_criteria.items():
                 conditions.append(f"json_extract(metadata, '$.{key}') = ?")
                 params.append(value)
-            
+
             where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-            
-            cursor.execute(f"""
+
+            cursor.execute(
+                f"""
                 SELECT id FROM {self.table_name} {where_clause} LIMIT ?
-            """, params + [limit])
-            
+            """,
+                params + [limit],
+            )
+
             rows = cursor.fetchall()
             cursor.close()
-            
+
             return [row[0] for row in rows]
         except Exception:
             return []
@@ -678,16 +708,16 @@ class SQLiteVectorStore(VectorStore):
                 "table_name": self.table_name,
                 "dimension": self._dimension,
                 "metric": self._metric,
-                "db_path": str(self.db_path)
+                "db_path": str(self.db_path),
             }
-            
+
             if self._connection:
                 cursor = self._connection.cursor()
                 cursor.execute(f"SELECT COUNT(*) FROM {self.table_name}")
                 row = cursor.fetchone()
                 info["vector_count"] = row[0] if row else 0
                 cursor.close()
-            
+
             return info
         except Exception:
             return {"error": "Failed to get store info"}
@@ -702,12 +732,12 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return 0
-            
+
             cursor = self._connection.cursor()
             cursor.execute(f"SELECT COUNT(*) FROM {self.table_name}")
             row = cursor.fetchone()
             cursor.close()
-            
+
             return row[0] if row else 0
         except Exception:
             return 0
@@ -731,17 +761,17 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return {"error": "Not connected"}
-            
+
             cursor = self._connection.cursor()
-            
+
             # Run VACUUM to reclaim space
             cursor.execute("VACUUM")
-            
+
             # Analyze tables for better query planning
             cursor.execute(f"ANALYZE {self.table_name}")
-            
+
             cursor.close()
-            
+
             return {"status": "optimized", "operations": ["vacuum", "analyze"]}
         except Exception as e:
             return {"error": f"Optimization failed: {str(e)}"}
@@ -759,19 +789,21 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
-            
+
             # Drop and recreate metadata index
             cursor.execute(f"DROP INDEX IF EXISTS idx_{self.table_name}_metadata")
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE INDEX idx_{self.table_name}_metadata 
                 ON {self.table_name} (metadata)
-            """)
-            
+            """
+            )
+
             self._connection.commit()
             cursor.close()
-            
+
             return True
         except Exception:
             return False
@@ -786,13 +818,13 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return False
-            
+
             cursor = self._connection.cursor()
             cursor.execute(f"DELETE FROM {self.table_name}")
-            
+
             self._connection.commit()
             cursor.close()
-            
+
             return True
         except Exception:
             return False
@@ -810,19 +842,19 @@ class SQLiteVectorStore(VectorStore):
         """
         try:
             import shutil
-            
+
             if not self._connection:
                 return False
-            
+
             # Close connection temporarily
             self._connection.close()
-            
+
             # Copy database file
             shutil.copy2(self.db_path, snapshot_path)
-            
+
             # Reconnect
             await self.connect()
-            
+
             return True
         except Exception:
             return False
@@ -839,20 +871,20 @@ class SQLiteVectorStore(VectorStore):
         """
         try:
             import shutil
-            
+
             if not Path(snapshot_path).exists():
                 return False
-            
+
             # Close connection
             if self._connection:
                 self._connection.close()
-            
+
             # Copy snapshot to database location
             shutil.copy2(snapshot_path, self.db_path)
-            
+
             # Reconnect and reload config
             await self.connect()
-            
+
             return True
         except Exception:
             return False
@@ -868,27 +900,31 @@ class SQLiteVectorStore(VectorStore):
         health = {
             "connected": await self.is_connected(),
             "table_exists": False,
-            "config_loaded": self._dimension is not None
+            "config_loaded": self._dimension is not None,
         }
-        
+
         if health["connected"]:
             try:
                 cursor = self._connection.cursor()
-                cursor.execute(f"""
+                cursor.execute(
+                    f"""
                     SELECT name FROM sqlite_master 
                     WHERE type='table' AND name='{self.table_name}'
-                """)
+                """
+                )
                 health["table_exists"] = cursor.fetchone() is not None
                 cursor.close()
             except Exception:
                 pass
-        
-        health["status"] = "healthy" if all([
-            health["connected"],
-            health["table_exists"],
-            health["config_loaded"]
-        ]) else "unhealthy"
-        
+
+        health["status"] = (
+            "healthy"
+            if all(
+                [health["connected"], health["table_exists"], health["config_loaded"]]
+            )
+            else "unhealthy"
+        )
+
         return health
 
     async def get_performance_stats(self) -> Dict[str, Any]:
@@ -900,17 +936,17 @@ class SQLiteVectorStore(VectorStore):
         """
         try:
             stats = await self.get_store_info()
-            
+
             if self._connection:
                 cursor = self._connection.cursor()
-                
+
                 # Get table size info
                 cursor.execute(f"PRAGMA table_info({self.table_name})")
                 table_info = cursor.fetchall()
                 stats["columns"] = len(table_info)
-                
+
                 cursor.close()
-            
+
             return stats
         except Exception:
             return {"error": "Failed to get performance stats"}
@@ -919,30 +955,32 @@ class SQLiteVectorStore(VectorStore):
     def _vector_to_blob(self, vector: Vector) -> bytes:
         """Convert Vector to bytes for storage."""
         import struct
-        return struct.pack(f'{len(vector)}f', *vector)
+
+        return struct.pack(f"{len(vector)}f", *vector)
 
     def _blob_to_vector(self, blob: bytes) -> Vector:
         """Convert bytes back to Vector."""
         import struct
-        return list(struct.unpack(f'{len(blob)//4}f', blob))
+
+        return list(struct.unpack(f"{len(blob)//4}f", blob))
 
     def _calculate_similarity(self, vector1: Vector, vector2: Vector) -> float:
         """Calculate cosine similarity between two vectors."""
         try:
             import math
-            
+
             # Ensure vectors have same dimension
             if len(vector1) != len(vector2):
                 return 0.0
-            
+
             # Calculate dot product and magnitudes
             dot_product = sum(a * b for a, b in zip(vector1, vector2))
             magnitude1 = math.sqrt(sum(a * a for a in vector1))
             magnitude2 = math.sqrt(sum(a * a for a in vector2))
-            
+
             if magnitude1 == 0 or magnitude2 == 0:
                 return 0.0
-            
+
             return dot_product / (magnitude1 * magnitude2)
         except Exception:
             return 0.0
@@ -952,20 +990,23 @@ class SQLiteVectorStore(VectorStore):
         try:
             if not self._connection:
                 return
-            
+
             cursor = self._connection.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT dimension, metric, parameters 
                 FROM vector_store_config 
                 WHERE table_name = ?
-            """, (self.table_name,))
-            
+            """,
+                (self.table_name,),
+            )
+
             row = cursor.fetchone()
             if row:
                 self._dimension = row[0]
                 self._metric = row[1]
                 # Parameters are stored as JSON but not used in this basic implementation
-            
+
             cursor.close()
         except Exception:
             # Config table might not exist yet

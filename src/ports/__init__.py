@@ -6,28 +6,31 @@
 """
 
 from .document_repository import DocumentRepository
+from .llm_service import (
+    KnowledgeExtractionPrompt,
+    LLMMessage,
+    LLMResponse,
+    LLMService,
+    MessageRole,
+)
 from .node_repository import NodeRepository
 from .relationship_repository import RelationshipRepository
-from .text_embedder import TextEmbedder, EmbeddingConfig, EmbeddingResult
-from .llm_service import LLMService, LLMMessage, LLMResponse, MessageRole, KnowledgeExtractionPrompt
+from .text_embedder import EmbeddingConfig, EmbeddingResult, TextEmbedder
 
 __all__ = [
     # Repository Ports
     "DocumentRepository",
-    "NodeRepository", 
+    "NodeRepository",
     "RelationshipRepository",
-    
     # Service Ports
     "TextEmbedder",
     "LLMService",
-    
     # Data Classes
     "EmbeddingConfig",
     "EmbeddingResult",
     "LLMMessage",
     "LLMResponse",
     "KnowledgeExtractionPrompt",
-    
     # Enums
     "MessageRole",
 ]

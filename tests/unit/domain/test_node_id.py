@@ -4,6 +4,7 @@ Unit tests for NodeId value object.
 
 import unittest
 import uuid
+
 from src.domain.value_objects.node_id import NodeId
 
 
@@ -34,7 +35,7 @@ class TestNodeId(unittest.TestCase):
         node_id = NodeId.generate()
         self.assertIsInstance(node_id, NodeId)
         self.assertIsInstance(node_id.value, str)
-        
+
         # Verify it's a valid UUID format
         try:
             uuid.UUID(node_id.value)
@@ -84,7 +85,7 @@ class TestNodeId(unittest.TestCase):
         id1 = NodeId(value)
         id2 = NodeId(value)
         id3 = NodeId("different-id")
-        
+
         self.assertEqual(id1, id2)
         self.assertNotEqual(id1, id3)
 
@@ -93,9 +94,9 @@ class TestNodeId(unittest.TestCase):
         value = "test-id"
         id1 = NodeId(value)
         id2 = NodeId(value)
-        
+
         self.assertEqual(hash(id1), hash(id2))
-        
+
         # Can be used in sets and dicts
         id_set = {id1, id2}
         self.assertEqual(len(id_set), 1)
@@ -103,11 +104,11 @@ class TestNodeId(unittest.TestCase):
     def test_immutability(self):
         """Test that NodeId is immutable."""
         node_id = NodeId("test-id")
-        
+
         # Should not be able to modify value
         with self.assertRaises(AttributeError):
             node_id.value = "new-value"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

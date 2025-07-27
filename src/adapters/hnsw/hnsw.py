@@ -5,30 +5,20 @@ Supports multiple backends: hnswlib and FAISS.
 
 import os
 import pickle
+from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-from enum import Enum
 
+import faiss
+import hnswlib
 import numpy as np
-
-# Optional imports
-try:
-    import hnswlib
-    HNSWLIB_AVAILABLE = True
-except ImportError:
-    HNSWLIB_AVAILABLE = False
-
-try:
-    import faiss
-    FAISS_AVAILABLE = True
-except ImportError:
-    FAISS_AVAILABLE = False
 
 from .embeddings import Embedding, EmbeddingManager
 
 
 class HNSWBackend(Enum):
     """Available HNSW backends."""
+
     HNSWLIB = "hnswlib"
     FAISS = "faiss"
 
@@ -64,17 +54,13 @@ class HNSWIndex:
         self.ef_construction = ef_construction
         self.M = M
         self.index_dir = Path(index_dir) if index_dir else None
-        
+
         # Handle backend selection
         if isinstance(backend, str):
             backend = HNSWBackend(backend.lower())
         self.backend = backend
-        
+
         # Validate backend availability
-        if self.backend == HNSWBackend.HNSWLIB and not HNSWLIB_AVAILABLE:
-            raise ImportError("hnswlib is not available. Install with: pip install hnswlib")
-        if self.backend == HNSWBackend.FAISS and not FAISS_AVAILABLE:
-            raise ImportError("faiss is not available. Install with: pip install faiss-cpu")
 
         # Initialize the backend-specific index
         self.index = None
@@ -101,7 +87,7 @@ class HNSWIndex:
                 metric = faiss.METRIC_INNER_PRODUCT
             else:  # l2
                 metric = faiss.METRIC_L2
-            
+
             self.index = faiss.IndexHNSWFlat(self.dim, self.M, metric)
             self.index.hnsw.efConstruction = self.ef_construction
 
@@ -114,11 +100,13 @@ class HNSWIndex:
         """
         if self.backend == HNSWBackend.HNSWLIB:
             self.index.init_index(
-                max_elements=max_elements, ef_construction=self.ef_construction, M=self.M
+                max_elements=max_elements,
+                ef_construction=self.ef_construction,
+                M=self.M,
             )
             # Set the search parameter
             self.index.set_ef(max(self.ef_construction, 100))
-        
+
         elif self.backend == HNSWBackend.FAISS:
             # FAISS doesn't need explicit initialization for capacity
             # It grows dynamically
@@ -164,7 +152,7 @@ class HNSWIndex:
                 self.index = faiss.read_index(str(index_path))
                 self.current_size = self.index.ntotal
                 self.current_capacity = self.current_size  # FAISS grows dynamically
-            
+
             self.is_initialized = True
 
             # Load ID mappings
@@ -270,14 +258,17 @@ class HNSWIndex:
                 return self.id_to_idx[item_key]
 
         # Check if we need to resize (only for hnswlib)
-        if self.backend == HNSWBackend.HNSWLIB and self.current_size >= self.current_capacity:
+        if (
+            self.backend == HNSWBackend.HNSWLIB
+            and self.current_size >= self.current_capacity
+        ):
             # Resize to double the capacity
             new_capacity = max(1000, self.current_capacity * 2)
             self.resize_index(new_capacity)
 
         # Prepare vector
         vector = vector.astype(np.float32)  # Ensure correct data type
-        
+
         if self.backend == HNSWBackend.HNSWLIB:
             idx = self.current_size
             self.index.add_items(vector, [idx])
@@ -317,31 +308,36 @@ class HNSWIndex:
             raise RuntimeError("Index is not initialized")
 
         if len(entity_types) != len(entity_ids) or len(entity_types) != len(vectors):
-            raise ValueError("entity_types, entity_ids, and vectors must have the same length")
+            raise ValueError(
+                "entity_types, entity_ids, and vectors must have the same length"
+            )
 
         if len(vectors) == 0:
             return []
 
         # Prepare data
         vectors = vectors.astype(np.float32)
-        item_keys = [(entity_type, entity_id) for entity_type, entity_id in zip(entity_types, entity_ids)]
-        
+        item_keys = [
+            (entity_type, entity_id)
+            for entity_type, entity_id in zip(entity_types, entity_ids)
+        ]
+
         # Filter out existing items if not replacing
         if not replace_existing:
             new_indices = []
             new_vectors_list = []
             new_item_keys = []
-            
+
             for i, item_key in enumerate(item_keys):
                 if item_key not in self.id_to_idx:
                     new_indices.append(i)
                     new_vectors_list.append(vectors[i])
                     new_item_keys.append(item_key)
-            
+
             if not new_vectors_list:
                 # All items already exist
                 return [self.id_to_idx[key] for key in item_keys]
-            
+
             vectors = np.array(new_vectors_list)
             item_keys = new_item_keys
         else:
@@ -352,10 +348,15 @@ class HNSWIndex:
                     self.remove_item(entity_type, entity_id)
 
         n_items = len(vectors)
-        
+
         # Check if we need to resize
-        if self.backend == HNSWBackend.HNSWLIB and self.current_size + n_items > self.current_capacity:
-            new_capacity = max(self.current_capacity * 2, self.current_size + n_items + 1000)
+        if (
+            self.backend == HNSWBackend.HNSWLIB
+            and self.current_size + n_items > self.current_capacity
+        ):
+            new_capacity = max(
+                self.current_capacity * 2, self.current_size + n_items + 1000
+            )
             self.resize_index(new_capacity)
 
         # Generate new indices
@@ -397,7 +398,7 @@ class HNSWIndex:
 
         if item_key in self.id_to_idx:
             idx = self.id_to_idx[item_key]
-            
+
             if self.backend == HNSWBackend.HNSWLIB:
                 self.index.mark_deleted(idx)
             elif self.backend == HNSWBackend.FAISS:
@@ -543,7 +544,7 @@ class HNSWIndex:
                     entity_type=entity_type,
                     model_info=model_info,
                     batch_size=batch_size,
-                    offset=offset
+                    offset=offset,
                 )
 
                 if not embeddings:
@@ -552,10 +553,12 @@ class HNSWIndex:
                 # Prepare batch data for efficient insertion
                 entity_types_batch = [entity_type] * len(embeddings)
                 entity_ids_batch = [emb.entity_id for emb in embeddings]
-                
+
                 # Optimized vector batch creation - stack directly instead of list->array conversion
                 if embeddings:
-                    vectors_batch = np.stack([emb.embedding for emb in embeddings]).astype(np.float32)
+                    vectors_batch = np.stack(
+                        [emb.embedding for emb in embeddings]
+                    ).astype(np.float32)
                 else:
                     vectors_batch = np.array([], dtype=np.float32)
 
@@ -564,7 +567,7 @@ class HNSWIndex:
                     entity_types=entity_types_batch,
                     entity_ids=entity_ids_batch,
                     vectors=vectors_batch,
-                    replace_existing=False  # Avoid checking for replacements during initial build
+                    replace_existing=False,  # Avoid checking for replacements during initial build
                 )
 
                 total_embeddings += len(embeddings)
@@ -639,11 +642,14 @@ class HNSWIndex:
                 # Log error but continue with other operations
                 # Use structured logging instead of print
                 from src.common.observability import get_observable_logger
+
                 logger = get_observable_logger("hnsw_index", "adapter")
-                logger.error("entity_sync_failed",
-                           entity_type=entity_type,
-                           entity_id=entity_id,
-                           error_type=type(e).__name__,
-                           error_message=str(e))
+                logger.error(
+                    "entity_sync_failed",
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                )
 
         return sync_count

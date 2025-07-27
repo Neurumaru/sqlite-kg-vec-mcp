@@ -1,7 +1,7 @@
 """
 HNSW (Hierarchical Navigable Small World) adapters for vector similarity search.
 
-This module contains HNSW-specific implementations for text embedding, 
+This module contains HNSW-specific implementations for text embedding,
 vector search, and HNSW indexing functionality using hnswlib and FAISS.
 """
 
@@ -13,9 +13,9 @@ from .text_embedder import VectorTextEmbedder, create_embedder
 __all__ = [
     "Embedding",
     "EmbeddingManager",
-    "HNSWIndex", 
+    "HNSWIndex",
     "SearchResult",
     "VectorSearch",
     "VectorTextEmbedder",
-    "create_embedder"
+    "create_embedder",
 ]

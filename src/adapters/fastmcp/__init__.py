@@ -7,6 +7,4 @@ the knowledge graph through the Model Context Protocol (MCP).
 
 from .server import KnowledgeGraphServer
 
-__all__ = [
-    "KnowledgeGraphServer"
-]
+__all__ = ["KnowledgeGraphServer"]
