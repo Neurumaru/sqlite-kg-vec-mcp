@@ -9,9 +9,9 @@ from src.domain.entities.document import Document
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
 from src.domain.services.knowledge_search import (
-    SearchCriteria, 
+    SearchCriteria,
     SearchResultCollection,
-    SearchStrategy
+    SearchStrategy,
 )
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -22,24 +22,21 @@ class KnowledgeSearchUseCase(ABC):
 
     @abstractmethod
     async def search_knowledge(
-        self, 
+        self,
         query: str,
         strategy: SearchStrategy = SearchStrategy.HYBRID,
         limit: int = 10,
         similarity_threshold: float = 0.5,
         include_documents: bool = True,
         include_nodes: bool = True,
-        include_relationships: bool = True
+        include_relationships: bool = True,
     ) -> SearchResultCollection:
         """통합 지식 검색을 수행합니다."""
         pass
 
     @abstractmethod
     async def search_documents(
-        self, 
-        query: str, 
-        limit: int = 10,
-        similarity_threshold: float = 0.5
+        self, query: str, limit: int = 10, similarity_threshold: float = 0.5
     ) -> List[Document]:
         """문서 검색을 수행합니다."""
         pass
@@ -50,7 +47,7 @@ class KnowledgeSearchUseCase(ABC):
         query: str,
         node_types: Optional[List[str]] = None,
         limit: int = 10,
-        similarity_threshold: float = 0.5
+        similarity_threshold: float = 0.5,
     ) -> List[Node]:
         """노드 검색을 수행합니다."""
         pass
@@ -61,17 +58,14 @@ class KnowledgeSearchUseCase(ABC):
         query: str,
         relationship_types: Optional[List[str]] = None,
         limit: int = 10,
-        similarity_threshold: float = 0.5
+        similarity_threshold: float = 0.5,
     ) -> List[Relationship]:
         """관계 검색을 수행합니다."""
         pass
 
     @abstractmethod
     async def semantic_search(
-        self,
-        query: str,
-        limit: int = 10,
-        similarity_threshold: float = 0.7
+        self, query: str, limit: int = 10, similarity_threshold: float = 0.7
     ) -> SearchResultCollection:
         """임베딩 기반 의미적 검색을 수행합니다."""
         pass
@@ -96,9 +90,7 @@ class KnowledgeNavigationUseCase(ABC):
         pass
 
     @abstractmethod
-    async def get_knowledge_graph_for_document(
-        self, document_id: DocumentId
-    ) -> dict:
+    async def get_knowledge_graph_for_document(self, document_id: DocumentId) -> dict:
         """문서와 관련된 지식 그래프를 조회합니다."""
         pass
 

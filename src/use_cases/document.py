@@ -34,8 +34,11 @@ class DocumentManagementUseCase(ABC):
 
     @abstractmethod
     async def update_document(
-        self, document_id: DocumentId, title: Optional[str] = None, 
-        content: Optional[str] = None, metadata: Optional[dict] = None
+        self,
+        document_id: DocumentId,
+        title: Optional[str] = None,
+        content: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> Document:
         """문서를 업데이트합니다."""
         pass
@@ -50,12 +53,16 @@ class DocumentProcessingUseCase(ABC):
     """문서 처리 Use Case 인터페이스."""
 
     @abstractmethod
-    async def process_document(self, document_id: DocumentId) -> KnowledgeExtractionResult:
+    async def process_document(
+        self, document_id: DocumentId
+    ) -> KnowledgeExtractionResult:
         """문서를 처리하여 지식을 추출합니다."""
         pass
 
     @abstractmethod
-    async def reprocess_document(self, document_id: DocumentId) -> KnowledgeExtractionResult:
+    async def reprocess_document(
+        self, document_id: DocumentId
+    ) -> KnowledgeExtractionResult:
         """문서를 재처리합니다."""
         pass
 

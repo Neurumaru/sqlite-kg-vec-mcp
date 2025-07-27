@@ -21,7 +21,7 @@ class NodeManagementUseCase(ABC):
         node_type: NodeType,
         description: Optional[str] = None,
         properties: Optional[dict] = None,
-        source_documents: Optional[List[DocumentId]] = None
+        source_documents: Optional[List[DocumentId]] = None,
     ) -> Node:
         """새 노드를 생성합니다."""
         pass
@@ -36,7 +36,7 @@ class NodeManagementUseCase(ABC):
         self,
         node_type: Optional[NodeType] = None,
         limit: Optional[int] = None,
-        offset: Optional[int] = None
+        offset: Optional[int] = None,
     ) -> List[Node]:
         """노드 목록을 조회합니다."""
         pass
@@ -47,7 +47,7 @@ class NodeManagementUseCase(ABC):
         node_id: NodeId,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        properties: Optional[dict] = None
+        properties: Optional[dict] = None,
     ) -> Node:
         """노드를 업데이트합니다."""
         pass

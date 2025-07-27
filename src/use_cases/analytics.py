@@ -46,7 +46,9 @@ class KnowledgeGraphAnalyticsUseCase(ABC):
         pass
 
     @abstractmethod
-    async def get_most_connected_nodes(self, limit: int = 10) -> List[tuple[NodeId, int]]:
+    async def get_most_connected_nodes(
+        self, limit: int = 10
+    ) -> List[tuple[NodeId, int]]:
         """가장 많이 연결된 노드들을 조회합니다."""
         pass
 
@@ -83,9 +85,7 @@ class SearchAnalyticsUseCase(ABC):
         pass
 
     @abstractmethod
-    async def analyze_search_patterns(
-        self, period_days: int = 30
-    ) -> Dict[str, Any]:
+    async def analyze_search_patterns(self, period_days: int = 30) -> Dict[str, Any]:
         """검색 패턴을 분석합니다."""
         pass
 
@@ -99,7 +99,9 @@ class QualityAnalyticsUseCase(ABC):
         pass
 
     @abstractmethod
-    async def detect_duplicate_nodes(self, similarity_threshold: float = 0.9) -> List[tuple[NodeId, NodeId, float]]:
+    async def detect_duplicate_nodes(
+        self, similarity_threshold: float = 0.9
+    ) -> List[tuple[NodeId, NodeId, float]]:
         """중복 노드를 탐지합니다."""
         pass
 

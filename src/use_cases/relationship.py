@@ -22,13 +22,15 @@ class RelationshipManagementUseCase(ABC):
         relationship_type: RelationshipType,
         label: str,
         properties: Optional[dict] = None,
-        weight: float = 1.0
+        weight: float = 1.0,
     ) -> Relationship:
         """새 관계를 생성합니다."""
         pass
 
     @abstractmethod
-    async def get_relationship(self, relationship_id: RelationshipId) -> Optional[Relationship]:
+    async def get_relationship(
+        self, relationship_id: RelationshipId
+    ) -> Optional[Relationship]:
         """관계를 조회합니다."""
         pass
 
@@ -39,7 +41,7 @@ class RelationshipManagementUseCase(ABC):
         source_node_id: Optional[NodeId] = None,
         target_node_id: Optional[NodeId] = None,
         limit: Optional[int] = None,
-        offset: Optional[int] = None
+        offset: Optional[int] = None,
     ) -> List[Relationship]:
         """관계 목록을 조회합니다."""
         pass
@@ -50,7 +52,7 @@ class RelationshipManagementUseCase(ABC):
         relationship_id: RelationshipId,
         label: Optional[str] = None,
         properties: Optional[dict] = None,
-        weight: Optional[float] = None
+        weight: Optional[float] = None,
     ) -> Relationship:
         """관계를 업데이트합니다."""
         pass
@@ -79,9 +81,7 @@ class RelationshipAnalysisUseCase(ABC):
         pass
 
     @abstractmethod
-    async def get_node_neighbors(
-        self, node_id: NodeId, depth: int = 1
-    ) -> List[NodeId]:
+    async def get_node_neighbors(self, node_id: NodeId, depth: int = 1) -> List[NodeId]:
         """노드의 이웃 노드들을 조회합니다."""
         pass
 
@@ -111,7 +111,9 @@ class RelationshipEmbeddingUseCase(ABC):
     """관계 임베딩 관련 Use Case 인터페이스."""
 
     @abstractmethod
-    async def generate_relationship_embedding(self, relationship_id: RelationshipId) -> Vector:
+    async def generate_relationship_embedding(
+        self, relationship_id: RelationshipId
+    ) -> Vector:
         """관계의 임베딩을 생성합니다."""
         pass
 
