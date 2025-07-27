@@ -32,26 +32,23 @@ dependencies = [
     # Core dependencies
     "numpy>=1.24.0",
     "python-dotenv>=1.0.0",
-    
     # MCP Server dependencies
     "fastmcp>=2.3.0",
     "mcp>=1.8.0",
     "exceptiongroup>=1.2.2",
     "httpx>=0.28.1",
-    
     # Vector search and embeddings
     "hnswlib>=0.7.0",
     "sentence-transformers>=2.2.0",
     "torch>=2.0.0",
-    
     # LLM and integrations
     "ollama>=0.3.0",
     "langfuse>=2.0.0",
-    
     # HTTP and utilities
     "requests>=2.25.0",
     "aiofiles>=23.0.0",
     "pydantic>=2.0.0",
+    "openai>=1.97.1",
 ]
 
 [project.optional-dependencies]
