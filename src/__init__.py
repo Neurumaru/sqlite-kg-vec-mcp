@@ -27,15 +27,15 @@ __version__ = "0.1.0"
 
 from .adapters.hnsw.embeddings import Embedding, EmbeddingManager
 from .adapters.hnsw.hnsw import HNSWIndex
-from .adapters.hnsw.search import SearchResult, VectorSearch
-from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder
+# from .adapters.hnsw.search import SearchResult, VectorSearch  # TODO: Fix dependencies
+# from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder  # TODO: Implement text_embedder
 
-# Export main classes
-from .adapters.sqlite3.connection import DatabaseConnection
-from .adapters.sqlite3.graph.entities import Entity, EntityManager
-from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
-from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
-from .adapters.sqlite3.schema import SchemaManager
+# Export main classes - avoid direct imports to prevent circular dependencies
+# from .adapters.sqlite3.connection import DatabaseConnection
+# from .adapters.sqlite3.graph.entities import Entity, EntityManager
+# from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
+# from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
+# from .adapters.sqlite3.schema import SchemaManager
 
 # Import server API conditionally
 # try:
@@ -77,6 +77,13 @@ class KnowledgeGraph:
             embedder_type: Type of embedder to create if text_embedder is None
             embedder_kwargs: Arguments for embedder creation
         """
+        # Use delayed imports to avoid circular dependencies
+        from .adapters.sqlite3.connection import DatabaseConnection
+        from .adapters.sqlite3.schema import SchemaManager
+        from .adapters.sqlite3.graph.entities import EntityManager
+        from .adapters.sqlite3.graph.relationships import RelationshipManager
+        from .adapters.sqlite3.graph.traversal import GraphTraversal
+
         # Initialize database
         self.db_connection = DatabaseConnection(db_path)
         self.conn = self.db_connection.connect()
@@ -95,14 +102,15 @@ class KnowledgeGraph:
         self.relationship_manager = RelationshipManager(self.conn)
         self.embedding_manager = EmbeddingManager(self.conn)
         self.graph_traversal = GraphTraversal(self.conn)
-        self.vector_search = VectorSearch(
-            connection=self.conn,
-            index_dir=vector_index_dir,
-            embedding_dim=embedding_dim,
-            text_embedder=text_embedder,
-            embedder_type=embedder_type,
-            embedder_kwargs=embedder_kwargs,
-        )
+        # TODO: Re-enable when VectorSearch dependencies are fixed
+        # self.vector_search = VectorSearch(
+        #     connection=self.conn,
+        #     index_dir=vector_index_dir,
+        #     embedding_dim=embedding_dim,
+        #     text_embedder=text_embedder,
+        #     embedder_type=embedder_type,
+        #     embedder_kwargs=embedder_kwargs,
+        # )
 
     # Entity methods
     def create_node(self, type, name=None, properties=None):
@@ -199,34 +207,34 @@ class KnowledgeGraph:
             start_id, end_id, max_depth, relation_types, entity_types
         )
 
-    # Vector search methods
-    def search_similar_nodes(
-        self,
-        query_vector=None,
-        node_id=None,
-        limit=10,
-        entity_types=None,
-        include_entities=True,
-    ):
-        """Search for similar nodes."""
-        if node_id is not None:
-            return self.vector_search.search_similar_to_entity(
-                "node", node_id, limit, entity_types, include_entities
-            )
-        elif query_vector is not None:
-            return self.vector_search.search_similar(
-                query_vector, limit, entity_types, include_entities
-            )
-        else:
-            raise ValueError("Either query_vector or node_id must be provided")
+    # TODO: Vector search methods - re-enable when VectorSearch is fixed
+    # def search_similar_nodes(
+    #     self,
+    #     query_vector=None,
+    #     node_id=None,
+    #     limit=10,
+    #     entity_types=None,
+    #     include_entities=True,
+    # ):
+    #     """Search for similar nodes."""
+    #     if node_id is not None:
+    #         return self.vector_search.search_similar_to_entity(
+    #             "node", node_id, limit, entity_types, include_entities
+    #         )
+    #     elif query_vector is not None:
+    #         return self.vector_search.search_similar(
+    #             query_vector, limit, entity_types, include_entities
+    #         )
+    #     else:
+    #         raise ValueError("Either query_vector or node_id must be provided")
 
-    def search_by_text(
-        self, query_text, limit=10, entity_types=None, include_entities=True
-    ):
-        """Search using text query."""
-        return self.vector_search.search_by_text(
-            query_text, limit, entity_types, include_entities
-        )
+    # def search_by_text(
+    #     self, query_text, limit=10, entity_types=None, include_entities=True
+    # ):
+    #     """Search using text query."""
+    #     return self.vector_search.search_by_text(
+    #         query_text, limit, entity_types, include_entities
+    #     )
 
     def close(self):
         """Close the database connection."""
