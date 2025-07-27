@@ -22,6 +22,7 @@ from .exceptions.document_exceptions import (
     DocumentAlreadyExistsException,
     DocumentNotFoundException,
     InvalidDocumentException,
+    ConcurrentModificationError,
 )
 from .exceptions.node_exceptions import (
     InvalidNodeException,
@@ -58,6 +59,7 @@ __all__ = [
     "DocumentNotFoundException",
     "DocumentAlreadyExistsException",
     "InvalidDocumentException",
+    "ConcurrentModificationError",
     "NodeNotFoundException",
     "InvalidNodeException",
     "RelationshipNotFoundException",

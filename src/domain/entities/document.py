@@ -46,6 +46,7 @@ class Document:
     doc_type: DocumentType
     status: DocumentStatus = DocumentStatus.PENDING
     metadata: Dict[str, Any] = field(default_factory=dict)
+    version: int = 1
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     processed_at: Optional[datetime] = None
@@ -121,6 +122,19 @@ class Document:
         """메타데이터 업데이트."""
         self.metadata[key] = value
         self.updated_at = datetime.now()
+
+    def increment_version(self) -> None:
+        """버전을 증가시킵니다."""
+        self.version += 1
+        self.updated_at = datetime.now()
+
+    def get_version(self) -> int:
+        """현재 버전을 반환합니다."""
+        return self.version
+
+    def set_version(self, version: int) -> None:
+        """버전을 설정합니다."""
+        self.version = version
 
     def __str__(self) -> str:
         return (

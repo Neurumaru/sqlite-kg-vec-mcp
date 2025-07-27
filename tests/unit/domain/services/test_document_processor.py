@@ -311,6 +311,155 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stats["avg_nodes_per_document"], 1.0)
         self.assertEqual(stats["avg_relationships_per_document"], 0.5)
 
+    async def test_process_document_with_repository_success(self):
+        """Repository를 사용한 문서 처리 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        mock_document_repository = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        sample_node = Node(
+            id=NodeId.generate(), 
+            name="테스트 노드", 
+            node_type=NodeType.PERSON
+        )
+        
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([sample_node], [])
+        )
+        mock_document_repository.exists = AsyncMock(return_value=False)
+        mock_document_repository.save = AsyncMock(return_value=document)
+        mock_document_repository.update_with_knowledge = AsyncMock(return_value=document)
+
+        # When
+        result = await processor.process_document(document)
+
+        # Then
+        self.assertIsInstance(result, KnowledgeExtractionResult)
+        self.assertEqual(len(result.nodes), 1)
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        
+        # Repository 메서드들이 호출되었는지 확인
+        mock_document_repository.save.assert_called_once_with(document)
+        mock_document_repository.update_with_knowledge.assert_called_once()
+
+    async def test_process_document_with_repository_failure(self):
+        """Repository를 사용한 문서 처리 실패 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        mock_document_repository = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        error_message = "추출 실패"
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            side_effect=Exception(error_message)
+        )
+        mock_document_repository.exists = AsyncMock(return_value=False)
+        mock_document_repository.save = AsyncMock(return_value=document)
+        mock_document_repository.update = AsyncMock(return_value=document)
+
+        # When & Then
+        with self.assertRaises(Exception):
+            await processor.process_document(document)
+
+        self.assertEqual(document.status, DocumentStatus.FAILED)
+        self.assertEqual(document.metadata["error"], error_message)
+        
+        # 실패 상태 업데이트가 호출되었는지 확인
+        mock_document_repository.update.assert_called_once_with(document)
+
+    async def test_process_document_without_repository(self):
+        """Repository 없이 문서 처리 테스트 (기존 동작)."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)  # Repository 없음
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        sample_node = Node(
+            id=NodeId.generate(), 
+            name="테스트 노드", 
+            node_type=NodeType.PERSON
+        )
+        
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([sample_node], [])
+        )
+
+        # When
+        result = await processor.process_document(document)
+
+        # Then
+        self.assertIsInstance(result, KnowledgeExtractionResult)
+        self.assertEqual(len(result.nodes), 1)
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        
+        # Repository 관련 호출은 없어야 함
+        self.assertIsNone(processor.document_repository)
+
+    async def test_reprocess_document_with_repository(self):
+        """Repository를 사용한 문서 재처리 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        mock_document_repository = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        # 기존 처리 상태로 설정
+        document.mark_as_processed()
+        document.add_connected_node(NodeId.generate())
+        
+        sample_node = Node(
+            id=NodeId.generate(), 
+            name="재처리 노드", 
+            node_type=NodeType.CONCEPT
+        )
+        
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([sample_node], [])
+        )
+        mock_document_repository.exists = AsyncMock(return_value=True)
+        mock_document_repository.update = AsyncMock(return_value=document)
+        mock_document_repository.save = AsyncMock(return_value=document)
+        mock_document_repository.update_with_knowledge = AsyncMock(return_value=document)
+
+        # When
+        result = await processor.reprocess_document(document)
+
+        # Then
+        self.assertIsInstance(result, KnowledgeExtractionResult)
+        self.assertEqual(len(result.nodes), 1)
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        
+        # 상태 초기화를 위한 update와 재처리를 위한 update_with_knowledge 호출 확인
+        self.assertEqual(mock_document_repository.update.call_count, 2)  # 상태 초기화 + 재처리 중 상태 업데이트
+        mock_document_repository.update_with_knowledge.assert_called_once()  # 재처리 완료
+
 
 class TestKnowledgeExtractionResult(unittest.TestCase):
     """KnowledgeExtractionResult 테스트."""

@@ -14,7 +14,7 @@ class SchemaManager:
     Manages the database schema for the knowledge graph and vector storage.
     """
 
-    CURRENT_SCHEMA_VERSION = 2  # Current schema version
+    CURRENT_SCHEMA_VERSION = 3  # Current schema version
 
     def __init__(self, db_path: Union[str, Path]):
         """
@@ -34,6 +34,7 @@ class SchemaManager:
             self._create_entity_tables(conn)
             self._create_edge_tables(conn)
             self._create_hyperedge_tables(conn)
+            self._create_document_tables(conn)
             self._create_observation_tables(conn)
             self._create_embedding_tables(conn)
             self._create_sync_tables(conn)
@@ -156,6 +157,55 @@ class SchemaManager:
         FOR EACH ROW
         BEGIN
             UPDATE hyperedges SET updated_at = datetime('now')
+            WHERE id = NEW.id;
+        END;
+        """
+        )
+
+    def _create_document_tables(self, conn: sqlite3.Connection) -> None:
+        """Create document related tables."""
+        conn.executescript(
+            """
+        -- Documents table
+        CREATE TABLE IF NOT EXISTS documents (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            doc_type TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            metadata JSON,
+            version INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now')),
+            processed_at TEXT,
+            connected_nodes JSON DEFAULT '[]',
+            connected_relationships JSON DEFAULT '[]'
+        );
+        
+        -- Indices for document table
+        CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
+        CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(doc_type);
+        CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(title);
+        CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
+        CREATE INDEX IF NOT EXISTS idx_documents_processed_at ON documents(processed_at);
+        CREATE INDEX IF NOT EXISTS idx_documents_version ON documents(version);
+        
+        -- TODO: 성능 최적화 - 추가 인덱스 검토 필요
+        -- 1. 복합 인덱스: (status, created_at) - 미처리 문서 조회 최적화
+        -- 2. 복합 인덱스: (doc_type, status) - 타입별 상태 조회 최적화
+        -- 3. FTS 인덱스: title, content 전문 검색 성능 향상
+        -- CREATE INDEX IF NOT EXISTS idx_documents_status_created ON documents(status, created_at);
+        -- CREATE INDEX IF NOT EXISTS idx_documents_type_status ON documents(doc_type, status);
+        -- CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(title, content, content='documents', content_rowid='rowid');
+        
+        -- Trigger to update the updated_at timestamp and increment version
+        CREATE TRIGGER IF NOT EXISTS trg_documents_updated_at
+        AFTER UPDATE ON documents
+        FOR EACH ROW
+        BEGIN
+            UPDATE documents SET 
+                updated_at = datetime('now'),
+                version = NEW.version + 1
             WHERE id = NEW.id;
         END;
         """
@@ -401,6 +451,10 @@ class SchemaManager:
         elif version == 2:
             # Add generated columns for JSON optimization (if not already added)
             self._add_json_optimization_columns(conn)
+
+        elif version == 3:
+            # Add documents table
+            self._create_document_tables(conn)
 
         else:
             raise ValueError(f"Unknown migration version: {version}")

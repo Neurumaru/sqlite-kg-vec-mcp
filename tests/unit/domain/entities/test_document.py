@@ -382,6 +382,116 @@ class TestDocument(unittest.TestCase):
         self.assertIn(document.doc_type.value, repr_str)
         self.assertIn(document.status.value, repr_str)
 
+    def test_increment_version_success(self):
+        """버전 증가 성공 테스트."""
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT
+        )
+        original_version = document.version
+        original_updated_at = document.updated_at
+
+        # When
+        import time
+        time.sleep(0.001)  # 타이밍 차이 보장
+        document.increment_version()
+
+        # Then
+        self.assertEqual(document.version, original_version + 1)
+        self.assertGreater(document.updated_at, original_updated_at)
+
+    def test_get_version_success(self):
+        """버전 조회 성공 테스트."""
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT
+        )
+
+        # When
+        version = document.get_version()
+
+        # Then
+        self.assertEqual(version, document.version)
+        self.assertEqual(version, 1)  # 기본값
+
+    def test_set_version_success(self):
+        """버전 설정 성공 테스트."""
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT
+        )
+
+        # When
+        document.set_version(5)
+
+        # Then
+        self.assertEqual(document.version, 5)
+
+    def test_version_field_in_document_creation(self):
+        """문서 생성 시 버전 필드 테스트."""
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+            version=3
+        )
+
+        # Then
+        self.assertEqual(document.version, 3)
+
+    def test_version_field_default_value(self):
+        """문서 생성 시 버전 필드 기본값 테스트."""
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT
+        )
+
+        # Then
+        self.assertEqual(document.version, 1)
+
+    def test_concurrent_modification_scenario(self):
+        """동시 수정 시나리오 시뮬레이션 테스트."""
+        # Given: 동일한 문서의 두 인스턴스
+        doc_id = DocumentId.generate()
+        
+        document1 = Document(
+            id=doc_id,
+            title="원본 문서",
+            content="원본 내용",
+            doc_type=DocumentType.TEXT,
+            version=1
+        )
+        
+        document2 = Document(
+            id=doc_id,
+            title="원본 문서",
+            content="원본 내용",
+            doc_type=DocumentType.TEXT,
+            version=1
+        )
+
+        # When: 첫 번째 문서 수정
+        document1.title = "수정된 문서 1"
+        document1.increment_version()
+
+        # 두 번째 문서도 수정 시도
+        document2.title = "수정된 문서 2"
+        document2.increment_version()
+
+        # Then: 버전이 다름 (실제 Repository에서 충돌 감지해야 함)
+        self.assertEqual(document1.version, 2)
+        self.assertEqual(document2.version, 2)
+        self.assertNotEqual(document1.title, document2.title)
+
 
 if __name__ == "__main__":
     unittest.main()
