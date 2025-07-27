@@ -7,15 +7,16 @@ vector search, and HNSW indexing functionality using hnswlib and FAISS.
 
 from .embeddings import Embedding, EmbeddingManager
 from .exceptions import (
-    VectorException,
     EmbeddingGenerationException,
     VectorDimensionException,
-    VectorSearchException,
+    VectorException,
     VectorIndexException,
-    VectorStorageException,
     VectorNormalizationException,
+    VectorSearchException,
+    VectorStorageException,
 )
 from .hnsw import HNSWIndex
+
 # from .search import SearchResult, VectorSearch  # TODO: Fix search dependencies
 # from .text_embedder import VectorTextEmbedder, create_embedder  # TODO: Implement text_embedder module
 
@@ -24,7 +25,7 @@ __all__ = [
     "EmbeddingManager",
     "VectorException",
     "EmbeddingGenerationException",
-    "VectorDimensionException", 
+    "VectorDimensionException",
     "VectorSearchException",
     "VectorIndexException",
     "VectorStorageException",

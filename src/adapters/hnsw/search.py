@@ -9,10 +9,68 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from .embeddings import Embedding, EmbeddingManager
+
 # from .entities import Entity, EntityManager  # TODO: Implement entities module
 from .hnsw import HNSWIndex
+
 # from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
-from .text_embedder import VectorTextEmbedder, create_embedder
+import hashlib
+from abc import ABC, abstractmethod
+
+
+class VectorTextEmbedder(ABC):
+    """Synchronous text embedder interface for HNSW search."""
+    
+    @abstractmethod
+    def embed(self, text: str) -> np.ndarray:
+        """Generate embedding for text."""
+        pass
+    
+    @property
+    @abstractmethod
+    def dimension(self) -> int:
+        """Return embedding dimension."""
+        pass
+
+
+class SyncRandomTextEmbedder(VectorTextEmbedder):
+    """Synchronous random text embedder for testing."""
+    
+    def __init__(self, dimension: int = 128):
+        self._dimension = dimension
+    
+    def embed(self, text: str) -> np.ndarray:
+        """Generate deterministic random embedding."""
+        seed = int(hashlib.md5(text.encode()).hexdigest()[:8], 16) % (2**32)
+        np.random.seed(seed)
+        embedding = np.random.randn(self._dimension).astype(np.float32)
+        return embedding / np.linalg.norm(embedding)
+    
+    @property
+    def dimension(self) -> int:
+        return self._dimension
+
+
+def create_embedder(embedder_type: str, **kwargs) -> VectorTextEmbedder:
+    """
+    Factory function to create text embedders.
+    
+    Args:
+        embedder_type: Type of embedder to create
+        **kwargs: Additional arguments for embedder creation
+        
+    Returns:
+        VectorTextEmbedder instance
+    """
+    if embedder_type == "random":
+        dimension = kwargs.get("dimension", 128)
+        return SyncRandomTextEmbedder(dimension=dimension)
+    elif embedder_type == "sentence-transformers":
+        # Fallback to random for now
+        dimension = kwargs.get("dimension", 384)
+        return SyncRandomTextEmbedder(dimension=dimension)
+    else:
+        raise ValueError(f"Unknown embedder type: {embedder_type}")
 
 
 @dataclass
@@ -22,7 +80,9 @@ class SearchResult:
     entity_type: str
     entity_id: int
     distance: float
-    entity: Optional[Any] = None  # TODO: Type properly when Entity/Relationship classes are available
+    entity: Optional[Any] = (
+        None  # TODO: Type properly when Entity/Relationship classes are available
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
@@ -34,12 +94,12 @@ class SearchResult:
 
         if self.entity:
             # TODO: Implement proper entity serialization when Entity/Relationship classes are available
-            if hasattr(self.entity, 'id'):
+            if hasattr(self.entity, "id"):
                 result["entity"] = {
-                    "id": getattr(self.entity, 'id', None),
-                    "name": getattr(self.entity, 'name', None),
-                    "type": getattr(self.entity, 'type', None),
-                    "properties": getattr(self.entity, 'properties', None),
+                    "id": getattr(self.entity, "id", None),
+                    "name": getattr(self.entity, "name", None),
+                    "type": getattr(self.entity, "type", None),
+                    "properties": getattr(self.entity, "properties", None),
                 }
 
         return result
