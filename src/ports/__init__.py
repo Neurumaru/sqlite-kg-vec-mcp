@@ -9,11 +9,8 @@
 from .database import Database
 from .document_repository import DocumentRepository
 from .knowledge_extractor import KnowledgeExtractor
-from .node_repository import NodeRepository
-from .relationship_repository import RelationshipRepository
-from .vector_store import VectorStore
 
-# Service Ports  
+# Service Ports
 from .llm_service import (
     KnowledgeExtractionPrompt,
     LLMMessage,
@@ -21,12 +18,15 @@ from .llm_service import (
     LLMService,
     MessageRole,
 )
+from .node_repository import NodeRepository
+from .relationship_repository import RelationshipRepository
 from .text_embedder import EmbeddingConfig, EmbeddingResult, TextEmbedder
+from .vector_store import VectorStore
 
 __all__ = [
     # Repository Ports
     "DocumentRepository",
-    "NodeRepository", 
+    "NodeRepository",
     "RelationshipRepository",
     # Service Ports
     "Database",

@@ -10,7 +10,7 @@ from typing import Any, AsyncContextManager, Dict, List, Optional
 class Database(ABC):
     """
     데이터베이스 포트.
-    
+
     데이터베이스 연결, 트랜잭션, 쿼리 실행 등의 기능을 제공합니다.
     """
 

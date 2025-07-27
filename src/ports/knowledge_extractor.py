@@ -13,7 +13,7 @@ from src.domain.entities.relationship import Relationship
 class KnowledgeExtractor(ABC):
     """
     지식 추출 포트.
-    
+
     문서로부터 노드(개체)와 관계를 추출하는 기능을 제공합니다.
     """
 

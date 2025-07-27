@@ -11,7 +11,7 @@ from src.domain.value_objects.vector import Vector
 class VectorStore(ABC):
     """
     벡터 저장소 포트.
-    
+
     벡터 저장, 검색, 메타데이터 관리 등의 기능을 제공합니다.
     """
 

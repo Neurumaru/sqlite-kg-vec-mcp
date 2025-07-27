@@ -27,6 +27,7 @@ __version__ = "0.1.0"
 
 from .adapters.hnsw.embeddings import Embedding, EmbeddingManager
 from .adapters.hnsw.hnsw import HNSWIndex
+
 # from .adapters.hnsw.search import SearchResult, VectorSearch  # TODO: Fix dependencies
 # from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder  # TODO: Implement text_embedder
 
@@ -79,10 +80,10 @@ class KnowledgeGraph:
         """
         # Use delayed imports to avoid circular dependencies
         from .adapters.sqlite3.connection import DatabaseConnection
-        from .adapters.sqlite3.schema import SchemaManager
         from .adapters.sqlite3.graph.entities import EntityManager
         from .adapters.sqlite3.graph.relationships import RelationshipManager
         from .adapters.sqlite3.graph.traversal import GraphTraversal
+        from .adapters.sqlite3.schema import SchemaManager
 
         # Initialize database
         self.db_connection = DatabaseConnection(db_path)

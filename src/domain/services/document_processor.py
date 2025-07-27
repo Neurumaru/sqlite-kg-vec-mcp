@@ -96,7 +96,9 @@ class DocumentProcessor:
 
         지식 추출 포트를 사용하여 문서에서 개체와 관계를 추출합니다.
         """
-        nodes, relationships = await self.knowledge_extractor.extract_knowledge(document)
+        nodes, relationships = await self.knowledge_extractor.extract_knowledge(
+            document
+        )
         return KnowledgeExtractionResult(nodes, relationships)
 
     def _link_document_to_knowledge(
