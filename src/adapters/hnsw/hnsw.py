@@ -9,8 +9,18 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-import faiss
-import hnswlib
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+
+try:
+    import hnswlib
+    HNSWLIB_AVAILABLE = True
+except ImportError:
+    HNSWLIB_AVAILABLE = False
+
 import numpy as np
 
 from .embeddings import Embedding, EmbeddingManager
@@ -61,6 +71,10 @@ class HNSWIndex:
         self.backend = backend
 
         # Validate backend availability
+        if self.backend == HNSWBackend.HNSWLIB and not HNSWLIB_AVAILABLE:
+            raise ImportError("hnswlib is not available. Install with: pip install hnswlib")
+        if self.backend == HNSWBackend.FAISS and not FAISS_AVAILABLE:
+            raise ImportError("faiss is not available. Install with: pip install faiss-cpu")
 
         # Initialize the backend-specific index
         self.index = None

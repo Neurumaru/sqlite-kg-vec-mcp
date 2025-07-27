@@ -16,8 +16,8 @@ from .exceptions import (
     VectorNormalizationException,
 )
 from .hnsw import HNSWIndex
-from .search import SearchResult, VectorSearch
-from .text_embedder import VectorTextEmbedder, create_embedder
+# from .search import SearchResult, VectorSearch  # TODO: Fix search dependencies
+# from .text_embedder import VectorTextEmbedder, create_embedder  # TODO: Implement text_embedder module
 
 __all__ = [
     "Embedding",
@@ -30,8 +30,8 @@ __all__ = [
     "VectorStorageException",
     "VectorNormalizationException",
     "HNSWIndex",
-    "SearchResult",
-    "VectorSearch",
-    "VectorTextEmbedder",
-    "create_embedder",
+    # "SearchResult",  # TODO: Re-enable when dependencies are fixed
+    # "VectorSearch",  # TODO: Re-enable when dependencies are fixed
+    # "VectorTextEmbedder",  # TODO: Re-enable when text_embedder is implemented
+    # "create_embedder",  # TODO: Re-enable when text_embedder is implemented
 ]

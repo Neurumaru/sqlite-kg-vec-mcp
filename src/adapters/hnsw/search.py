@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from .embeddings import Embedding, EmbeddingManager
-from .entities import Entity, EntityManager
+# from .entities import Entity, EntityManager  # TODO: Implement entities module
 from .hnsw import HNSWIndex
-from .relationships import Relationship, RelationshipManager
+# from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
 from .text_embedder import VectorTextEmbedder, create_embedder
 
 
@@ -22,7 +22,7 @@ class SearchResult:
     entity_type: str
     entity_id: int
     distance: float
-    entity: Optional[Union[Entity, Relationship]] = None
+    entity: Optional[Any] = None  # TODO: Type properly when Entity/Relationship classes are available
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
@@ -33,36 +33,14 @@ class SearchResult:
         }
 
         if self.entity:
-            if isinstance(self.entity, Entity):
+            # TODO: Implement proper entity serialization when Entity/Relationship classes are available
+            if hasattr(self.entity, 'id'):
                 result["entity"] = {
-                    "id": self.entity.id,
-                    "uuid": self.entity.uuid,
-                    "name": self.entity.name,
-                    "type": self.entity.type,
-                    "properties": self.entity.properties,
+                    "id": getattr(self.entity, 'id', None),
+                    "name": getattr(self.entity, 'name', None),
+                    "type": getattr(self.entity, 'type', None),
+                    "properties": getattr(self.entity, 'properties', None),
                 }
-            elif isinstance(self.entity, Relationship):
-                result["entity"] = {
-                    "id": self.entity.id,
-                    "source_id": self.entity.source_id,
-                    "target_id": self.entity.target_id,
-                    "relation_type": self.entity.relation_type,
-                    "properties": self.entity.properties,
-                }
-
-                # Include source and target if loaded
-                if self.entity.source:
-                    result["source"] = {
-                        "id": self.entity.source.id,
-                        "name": self.entity.source.name,
-                        "type": self.entity.source.type,
-                    }
-                if self.entity.target:
-                    result["target"] = {
-                        "id": self.entity.target.id,
-                        "name": self.entity.target.name,
-                        "type": self.entity.target.type,
-                    }
 
         return result
 
@@ -96,8 +74,9 @@ class VectorSearch:
         """
         self.connection = connection
         self.embedding_manager = EmbeddingManager(connection)
-        self.entity_manager = EntityManager(connection)
-        self.relationship_manager = RelationshipManager(connection)
+        # TODO: Initialize managers when classes are available
+        # self.entity_manager = EntityManager(connection)
+        # self.relationship_manager = RelationshipManager(connection)
 
         # Initialize the index
         self.index = HNSWIndex(
@@ -197,15 +176,15 @@ class VectorSearch:
                 entity_type=entity_type, entity_id=entity_id, distance=distance
             )
 
-            # Include entity details if requested
-            if include_entities:
-                if entity_type == "node":
-                    result.entity = self.entity_manager.get_entity(entity_id)
-                elif entity_type == "edge":
-                    result.entity = self.relationship_manager.get_relationship(
-                        entity_id, include_entities=True
-                    )
-                # Note: hyperedge handling would be added here
+            # TODO: Include entity details when managers are available
+            # if include_entities:
+            #     if entity_type == "node":
+            #         result.entity = self.entity_manager.get_entity(entity_id)
+            #     elif entity_type == "edge":
+            #         result.entity = self.relationship_manager.get_relationship(
+            #             entity_id, include_entities=True
+            #         )
+            #     # Note: hyperedge handling would be added here
 
             results.append(result)
 

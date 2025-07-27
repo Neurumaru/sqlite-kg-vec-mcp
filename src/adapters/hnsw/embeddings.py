@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from .transactions import UnitOfWork
+# from .transactions import UnitOfWork  # TODO: Implement transactions module
 
 
 @dataclass
@@ -79,7 +79,7 @@ class EmbeddingManager:
             connection: SQLite database connection
         """
         self.connection = connection
-        self.unit_of_work = UnitOfWork(connection)
+        # self.unit_of_work = UnitOfWork(connection)  # TODO: Implement UnitOfWork
 
     def store_embedding(
         self,
@@ -123,47 +123,50 @@ class EmbeddingManager:
         embedding_blob = embedding.astype(np.float32).tobytes()
         dimensions = len(embedding)
 
-        with self.unit_of_work.begin() as conn:
-            cursor = conn.cursor()
+        # TODO: Implement proper unit of work pattern
+        # with self.unit_of_work.begin() as conn:
+        #     cursor = conn.cursor()
+        cursor = self.connection.cursor()
 
-            # Check if embedding already exists
-            cursor.execute(f"SELECT 1 FROM {table} WHERE {id_column} = ?", (entity_id,))
+        # Check if embedding already exists
+        cursor.execute(f"SELECT 1 FROM {table} WHERE {id_column} = ?", (entity_id,))
 
-            if cursor.fetchone():
-                # Update existing embedding
-                cursor.execute(
-                    f"""
-                    UPDATE {table} 
-                    SET embedding = ?, dimensions = ?, model_info = ?, 
-                        embedding_version = ?
-                    WHERE {id_column} = ?
-                    """,
-                    (
-                        embedding_blob,
-                        dimensions,
-                        model_info,
-                        embedding_version,
-                        entity_id,
-                    ),
-                )
-            else:
-                # Insert new embedding
-                cursor.execute(
-                    f"""
-                    INSERT INTO {table} 
-                    ({id_column}, embedding, dimensions, model_info, embedding_version)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        entity_id,
-                        embedding_blob,
-                        dimensions,
-                        model_info,
-                        embedding_version,
-                    ),
-                )
+        if cursor.fetchone():
+            # Update existing embedding
+            cursor.execute(
+                f"""
+                UPDATE {table} 
+                SET embedding = ?, dimensions = ?, model_info = ?, 
+                    embedding_version = ?
+                WHERE {id_column} = ?
+                """,
+                (
+                    embedding_blob,
+                    dimensions,
+                    model_info,
+                    embedding_version,
+                    entity_id,
+                ),
+            )
+        else:
+            # Insert new embedding
+            cursor.execute(
+                f"""
+                INSERT INTO {table} 
+                ({id_column}, embedding, dimensions, model_info, embedding_version)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    entity_id,
+                    embedding_blob,
+                    dimensions,
+                    model_info,
+                    embedding_version,
+                ),
+            )
 
-            return cursor.rowcount > 0
+        self.connection.commit()
+        return cursor.rowcount > 0
 
     def get_embedding(self, entity_type: str, entity_id: int) -> Optional[Embedding]:
         """
