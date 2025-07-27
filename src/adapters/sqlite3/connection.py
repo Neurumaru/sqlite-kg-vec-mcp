@@ -7,6 +7,8 @@ import sqlite3
 from pathlib import Path
 from typing import Optional, Union
 
+from src.common.observability import get_observable_logger, with_observability
+
 
 # Define custom timestamp converter functions for Python 3.12 compatibility
 def adapt_datetime(dt: datetime.datetime) -> str:
@@ -48,6 +50,7 @@ class DatabaseConnection:
         self.db_path = Path(db_path)
         self.connection: Optional[sqlite3.Connection] = None
         self.optimize = optimize
+        self.logger = get_observable_logger("database_connection", "adapter")
 
     def connect(self) -> sqlite3.Connection:
         """

@@ -3,11 +3,12 @@ Ollama client for LLM integration with SQLite KG Vec MCP.
 """
 
 import json
-import logging
 import time
 from typing import Dict, List, Optional, Any, Tuple
 import requests
 from dataclasses import dataclass
+
+from src.common.observability import get_observable_logger, with_observability
 # Langfuse integration removed - using fallback prompts
 
 
@@ -42,6 +43,7 @@ class OllamaClient:
         self.model = model
         self.timeout = timeout
         self.session = requests.Session()
+        self.logger = get_observable_logger("ollama_client", "adapter")
         
         # Test connection
         self._test_connection()
@@ -54,23 +56,34 @@ class OllamaClient:
             return True
         except requests.ConnectionError as e:
             from .exceptions import OllamaConnectionException
-            # Instead of silent failure, could raise exception if needed
-            # raise OllamaConnectionException.from_requests_error(self.base_url, e)
-            logging.warning(f"Cannot connect to Ollama server at {self.base_url}: {e}")
+            self.logger.warning("ollama_connection_failed",
+                              base_url=self.base_url,
+                              error_type="connection_error",
+                              error_message=str(e))
             return False
         except requests.Timeout as e:
             from .exceptions import OllamaTimeoutException
-            # Optional: raise timeout exception instead of silent failure
-            logging.warning(f"Ollama server connection timed out: {e}")
+            self.logger.warning("ollama_connection_timeout",
+                              base_url=self.base_url,
+                              timeout_duration=5,
+                              error_message=str(e))
             return False
         except requests.HTTPError as e:
             from .exceptions import OllamaConnectionException
-            logging.warning(f"Ollama server HTTP error: {e}")
+            status_code = getattr(e.response, 'status_code', None)
+            self.logger.warning("ollama_http_error",
+                              base_url=self.base_url,
+                              status_code=status_code,
+                              error_message=str(e))
             return False
         except Exception as e:
-            logging.warning(f"Unexpected error connecting to Ollama server: {e}")
+            self.logger.warning("ollama_unexpected_error",
+                              base_url=self.base_url,
+                              error_type=type(e).__name__,
+                              error_message=str(e))
             return False
     
+    @with_observability(operation="llm_generate", include_args=True, include_result=True)
     def generate(
         self, 
         prompt: str, 

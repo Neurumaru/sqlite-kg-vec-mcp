@@ -262,7 +262,13 @@ class GraphTraversal:
                         visited.add(neighbor_entity.id)
             except Exception as e:
                 # Log the error but continue with other paths
-                print(f"Error getting neighbors for entity {current.entity.id}: {e}")
+                # Use structured logging instead of print
+                from src.common.observability import get_observable_logger
+                logger = get_observable_logger("graph_traversal", "adapter")
+                logger.error("neighbor_query_failed",
+                           entity_id=current.entity.id,
+                           error_type=type(e).__name__,
+                           error_message=str(e))
 
         return paths
 

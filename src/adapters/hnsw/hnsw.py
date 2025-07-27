@@ -637,6 +637,13 @@ class HNSWIndex:
 
             except Exception as e:
                 # Log error but continue with other operations
-                print(f"Error syncing {entity_type} {entity_id}: {e}")
+                # Use structured logging instead of print
+                from src.common.observability import get_observable_logger
+                logger = get_observable_logger("hnsw_index", "adapter")
+                logger.error("entity_sync_failed",
+                           entity_type=entity_type,
+                           entity_id=entity_id,
+                           error_type=type(e).__name__,
+                           error_message=str(e))
 
         return sync_count
