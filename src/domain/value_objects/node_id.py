@@ -1,53 +1,39 @@
 """
-NodeId value object for representing unique entity identifiers.
+노드 식별자 값 객체.
 """
 
-import uuid
 from dataclasses import dataclass
-from typing import Union
+import uuid
 
 
 @dataclass(frozen=True)
 class NodeId:
-    """Immutable identifier for graph nodes/entities."""
-
+    """
+    노드의 고유 식별자.
+    
+    지식 그래프의 노드를 유일하게 식별하는 값 객체입니다.
+    """
+    
     value: str
-
+    
     def __post_init__(self):
         if not self.value:
-            raise ValueError("NodeId value cannot be empty")
+            raise ValueError("NodeId cannot be empty")
         if not isinstance(self.value, str):
-            raise ValueError("NodeId value must be a string")
-
+            raise ValueError("NodeId must be a string")
+    
     @classmethod
     def generate(cls) -> "NodeId":
-        """Generate a new UUID-based NodeId."""
+        """새로운 노드 ID 생성."""
         return cls(str(uuid.uuid4()))
-
+    
     @classmethod
-    def from_int(cls, int_id: int) -> "NodeId":
-        """Create NodeId from integer (for backward compatibility)."""
-        return cls(str(int_id))
-
-    @classmethod
-    def from_uuid(cls, uuid_str: str) -> "NodeId":
-        """Create NodeId from UUID string."""
-        # Validate UUID format
-        try:
-            uuid.UUID(uuid_str)
-        except ValueError:
-            raise ValueError(f"Invalid UUID format: {uuid_str}")
-        return cls(uuid_str)
-
-    def to_int(self) -> Union[int, None]:
-        """Convert to integer if possible (for backward compatibility)."""
-        try:
-            return int(self.value)
-        except ValueError:
-            return None
-
+    def from_string(cls, value: str) -> "NodeId":
+        """문자열로부터 노드 ID 생성."""
+        return cls(value)
+    
     def __str__(self) -> str:
         return self.value
-
-    def __hash__(self) -> int:
-        return hash(self.value)
+    
+    def __repr__(self) -> str:
+        return f"NodeId('{self.value}')"

@@ -1,43 +1,33 @@
 """
-Ports for the knowledge graph system.
+포트 인터페이스들.
 
-This module contains both primary ports (driving ports) that define how 
-external systems can interact with the domain, and secondary ports 
-(driven ports) that define how the domain interacts with external systems.
+헥사고널 아키텍처의 포트들을 정의합니다.
+이 인터페이스들은 도메인과 외부 어댑터 간의 계약을 정의합니다.
 """
 
-from .knowledge_graph_use_cases import KnowledgeGraphUseCases
-from .search_use_cases import SearchUseCases
-from .admin_use_cases import AdminUseCases
-from .llm_service import LLMService
-from .knowledge_extractor import KnowledgeExtractor
-from .text_embedder import TextEmbedder
-from .vector_store import VectorStore
-from .database import Database
-from .prompt_manager import PromptManager
-from .observability import ObservabilityService
-
-# Import repository interfaces for convenience
-from .repositories import (
-    EntityRepository,
-    EmbeddingRepository,
-    RelationshipRepository,
-    VectorIndexRepository
-)
+from .document_repository import DocumentRepository
+from .node_repository import NodeRepository
+from .relationship_repository import RelationshipRepository
+from .text_embedder import TextEmbedder, EmbeddingConfig, EmbeddingResult
+from .llm_service import LLMService, LLMMessage, LLMResponse, MessageRole, KnowledgeExtractionPrompt
 
 __all__ = [
-    "KnowledgeGraphUseCases",
-    "SearchUseCases", 
-    "AdminUseCases",
-    "LLMService",
-    "KnowledgeExtractor",
+    # Repository Ports
+    "DocumentRepository",
+    "NodeRepository", 
+    "RelationshipRepository",
+    
+    # Service Ports
     "TextEmbedder",
-    "VectorStore",
-    "Database",
-    "PromptManager",
-    "ObservabilityService",
-    "EntityRepository",
-    "EmbeddingRepository",
-    "RelationshipRepository", 
-    "VectorIndexRepository"
+    "LLMService",
+    
+    # Data Classes
+    "EmbeddingConfig",
+    "EmbeddingResult",
+    "LLMMessage",
+    "LLMResponse",
+    "KnowledgeExtractionPrompt",
+    
+    # Enums
+    "MessageRole",
 ]

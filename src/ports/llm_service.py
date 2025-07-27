@@ -1,267 +1,263 @@
 """
-LLM service port for language model interactions.
+LLM 서비스 포트.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any, AsyncGenerator
+from typing import List, Dict, Any, Optional, AsyncGenerator
+from dataclasses import dataclass
 from enum import Enum
 
-# Note: SearchResult should be imported where needed to avoid circular dependencies
-# For now using Any type as placeholder
-SearchResult = Any
+
+class MessageRole(Enum):
+    """메시지 역할."""
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
 
 
-class SearchStrategy(Enum):
-    """Search strategy options for LLM guidance."""
-    SEMANTIC = "semantic"
-    STRUCTURAL = "structural"
-    HYBRID = "hybrid"
-    STOP = "stop"
+@dataclass
+class LLMMessage:
+    """LLM 메시지."""
+    role: MessageRole
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class LLMResponse:
+    """LLM 응답."""
+    content: str
+    model_name: str
+    token_usage: Optional[Dict[str, int]] = None
+    response_time_ms: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class KnowledgeExtractionPrompt:
+    """지식 추출 프롬프트."""
+    system_prompt: str
+    user_prompt_template: str
+    expected_format: str
+    examples: Optional[List[Dict[str, str]]] = None
 
 
 class LLMService(ABC):
     """
-    Secondary port for LLM service interactions.
-
-    This interface defines how the domain interacts with language models
-    for search guidance, knowledge extraction, and analysis.
+    LLM 서비스 포트.
+    
+    문서에서 지식을 추출하기 위한 LLM 기능을 제공합니다.
     """
-
-    # Interactive search guidance
+    
     @abstractmethod
-    async def analyze_query(
-        self,
-        query: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def generate_response(self, messages: List[LLMMessage], 
+                              temperature: float = 0.7,
+                              max_tokens: Optional[int] = None) -> LLMResponse:
         """
-        Analyze a search query to determine optimal search strategy.
-
+        메시지들을 기반으로 응답을 생성합니다.
+        
         Args:
-            query: User's search query
-            context: Optional context information
-
+            messages: 대화 메시지들
+            temperature: 생성 온도
+            max_tokens: 최대 토큰 수
+            
         Returns:
-            Analysis results with search strategy recommendations
+            LLM 응답
         """
         pass
-
+    
     @abstractmethod
-    async def guide_search_navigation(
-        self,
-        current_results: List[SearchResult],
-        original_query: str,
-        search_history: List[Dict[str, Any]],
-        step_number: int
-    ) -> Dict[str, Any]:
+    async def extract_entities(self, text: str, 
+                             entity_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
-        Guide the next step in interactive search navigation.
-
+        텍스트에서 엔티티를 추출합니다.
+        
         Args:
-            current_results: Current search results
-            original_query: Original user query
-            search_history: History of search steps
-            step_number: Current step number
-
+            text: 추출할 텍스트
+            entity_types: 추출할 엔티티 타입들
+            
         Returns:
-            Navigation guidance with next search strategy
+            추출된 엔티티들
         """
         pass
-
+    
     @abstractmethod
-    async def evaluate_search_results(
-        self,
-        results: List[SearchResult],
-        query: str,
-        search_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def extract_relationships(self, text: str, 
+                                  entities: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         """
-        Evaluate search results quality and relevance.
-
+        텍스트에서 관계를 추출합니다.
+        
         Args:
-            results: Search results to evaluate
-            query: Original search query
-            search_context: Search context information
-
+            text: 추출할 텍스트
+            entities: 이미 추출된 엔티티들
+            
         Returns:
-            Evaluation results with quality metrics
+            추출된 관계들
         """
         pass
-
-    # Knowledge extraction
+    
     @abstractmethod
-    async def extract_knowledge_from_text(
-        self,
-        text: str,
-        extraction_schema: Optional[Dict[str, Any]] = None,
-        context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def extract_knowledge(self, text: str) -> Dict[str, Any]:
         """
-        Extract structured knowledge from unstructured text.
-
+        텍스트에서 지식(엔티티 + 관계)을 통합 추출합니다.
+        
         Args:
-            text: Text to extract knowledge from
-            extraction_schema: Optional schema for extraction
-            context: Optional context information
-
+            text: 추출할 텍스트
+            
         Returns:
-            Extracted knowledge with entities and relationships
+            추출된 지식 {"entities": [...], "relationships": [...]}
         """
         pass
-
+    
     @abstractmethod
-    async def generate_entity_summary(
-        self,
-        entity_data: Dict[str, Any],
-        related_entities: Optional[List[Dict[str, Any]]] = None
-    ) -> str:
+    async def summarize_text(self, text: str, max_length: Optional[int] = None) -> str:
         """
-        Generate a summary for an entity based on its data and relationships.
-
+        텍스트를 요약합니다.
+        
         Args:
-            entity_data: Entity data and properties
-            related_entities: Optional related entity information
-
+            text: 요약할 텍스트
+            max_length: 최대 요약 길이
+            
         Returns:
-            Generated entity summary
+            요약된 텍스트
         """
         pass
-
+    
     @abstractmethod
-    async def suggest_relationships(
-        self,
-        source_entity: Dict[str, Any],
-        target_entities: List[Dict[str, Any]],
-        context: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    async def classify_text(self, text: str, categories: List[str]) -> Dict[str, float]:
         """
-        Suggest potential relationships between entities.
-
+        텍스트를 분류합니다.
+        
         Args:
-            source_entity: Source entity data
-            target_entities: Potential target entities
-            context: Optional context for relationship suggestion
-
+            text: 분류할 텍스트
+            categories: 분류 카테고리들
+            
         Returns:
-            List of suggested relationships with confidence scores
+            카테고리별 점수
         """
         pass
-
-    # Query enhancement
+    
     @abstractmethod
-    async def expand_query(
-        self,
-        original_query: str,
-        search_context: Optional[Dict[str, Any]] = None
-    ) -> List[str]:
+    async def generate_questions(self, text: str, num_questions: int = 5) -> List[str]:
         """
-        Expand a query with related terms and concepts.
-
+        텍스트를 기반으로 질문을 생성합니다.
+        
         Args:
-            original_query: Original search query
-            search_context: Optional context information
-
+            text: 기반 텍스트
+            num_questions: 생성할 질문 수
+            
         Returns:
-            List of expanded query terms
+            생성된 질문들
         """
         pass
-
+    
     @abstractmethod
-    async def generate_search_suggestions(
-        self,
-        partial_query: str,
-        search_history: Optional[List[str]] = None
-    ) -> List[str]:
+    async def answer_question(self, question: str, context: str) -> str:
         """
-        Generate search suggestions for partial queries.
-
+        컨텍스트를 기반으로 질문에 답변합니다.
+        
         Args:
-            partial_query: Partial search query
-            search_history: Optional search history
-
+            question: 질문
+            context: 컨텍스트
+            
         Returns:
-            List of search suggestions
+            답변
         """
         pass
-
-    # Content analysis
+    
     @abstractmethod
-    async def classify_content(
-        self,
-        content: str,
-        classification_schema: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def stream_response(self, messages: List[LLMMessage],
+                            temperature: float = 0.7) -> AsyncGenerator[str, None]:
         """
-        Classify content according to a given schema.
-
+        스트리밍 방식으로 응답을 생성합니다.
+        
         Args:
-            content: Content to classify
-            classification_schema: Classification schema
-
-        Returns:
-            Classification results with confidence scores
-        """
-        pass
-
-    @abstractmethod
-    async def detect_language(self, text: str) -> str:
-        """
-        Detect the language of given text.
-
-        Args:
-            text: Text to analyze
-
-        Returns:
-            Detected language code
-        """
-        pass
-
-    # Streaming responses
-    @abstractmethod
-    async def stream_analysis(
-        self,
-        prompt: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> AsyncGenerator[str, None]:
-        """
-        Stream analysis results for real-time processing.
-
-        Args:
-            prompt: Analysis prompt
-            context: Optional context information
-
+            messages: 대화 메시지들
+            temperature: 생성 온도
+            
         Yields:
-            Analysis results in chunks
+            응답 청크들
         """
         pass
-
-    # Configuration and health
+    
     @abstractmethod
-    async def get_model_info(self) -> Dict[str, Any]:
+    def get_model_name(self) -> str:
         """
-        Get information about the current LLM model.
-
+        사용 중인 모델명을 반환합니다.
+        
         Returns:
-            Model information and capabilities
+            모델명
         """
         pass
-
+    
     @abstractmethod
-    async def health_check(self) -> Dict[str, Any]:
+    def get_max_context_length(self) -> int:
         """
-        Check the health status of the LLM service.
-
+        모델의 최대 컨텍스트 길이를 반환합니다.
+        
         Returns:
-            Health status information
+            최대 컨텍스트 길이
         """
         pass
-
+    
     @abstractmethod
-    async def get_usage_stats(self) -> Dict[str, Any]:
+    async def is_available(self) -> bool:
         """
-        Get usage statistics for the LLM service.
-
+        LLM 서비스가 사용 가능한지 확인합니다.
+        
         Returns:
-            Usage statistics and metrics
+            사용 가능 여부
+        """
+        pass
+    
+    @abstractmethod
+    def estimate_tokens(self, text: str) -> int:
+        """
+        텍스트의 토큰 수를 추정합니다.
+        
+        Args:
+            text: 추정할 텍스트
+            
+        Returns:
+            추정 토큰 수
+        """
+        pass
+    
+    @abstractmethod
+    def truncate_to_token_limit(self, text: str, max_tokens: int) -> str:
+        """
+        토큰 제한에 맞게 텍스트를 자릅니다.
+        
+        Args:
+            text: 원본 텍스트
+            max_tokens: 최대 토큰 수
+            
+        Returns:
+            잘린 텍스트
+        """
+        pass
+    
+    @abstractmethod
+    async def get_usage_statistics(self) -> Dict[str, Any]:
+        """
+        사용량 통계를 반환합니다.
+        
+        Returns:
+            사용량 통계
+        """
+        pass
+    
+    @abstractmethod
+    async def validate_response_format(self, response: str, 
+                                     expected_format: str) -> bool:
+        """
+        응답 형식이 예상과 일치하는지 검증합니다.
+        
+        Args:
+            response: 검증할 응답
+            expected_format: 예상 형식
+            
+        Returns:
+            형식 일치 여부
         """
         pass

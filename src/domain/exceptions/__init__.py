@@ -1,29 +1,41 @@
 """
-Domain exceptions for the knowledge graph system.
+도메인 예외들.
 """
 
 from .base import DomainException
-from .entity_exceptions import (
-    EntityNotFoundException,
-    EntityAlreadyExistsException,
-    InvalidEntityException,
+from .document_exceptions import (
+    DocumentNotFoundException,
+    DocumentAlreadyExistsException,
+    InvalidDocumentException,
+    DocumentProcessingException,
+)
+from .node_exceptions import (
+    NodeNotFoundException,
+    NodeAlreadyExistsException,
+    InvalidNodeException,
+    NodeEmbeddingException,
 )
 from .relationship_exceptions import (
     RelationshipNotFoundException,
+    RelationshipAlreadyExistsException,
     InvalidRelationshipException,
-)
-from .search_exceptions import (
-    InvalidSearchCriteriaException,
-    SearchFailedException,
+    RelationshipEmbeddingException,
+    CircularRelationshipException,
 )
 
 __all__ = [
     "DomainException",
-    "EntityNotFoundException",
-    "EntityAlreadyExistsException",
-    "InvalidEntityException",
+    "DocumentNotFoundException",
+    "DocumentAlreadyExistsException",
+    "InvalidDocumentException",
+    "DocumentProcessingException",
+    "NodeNotFoundException",
+    "NodeAlreadyExistsException", 
+    "InvalidNodeException",
+    "NodeEmbeddingException",
     "RelationshipNotFoundException",
+    "RelationshipAlreadyExistsException",
     "InvalidRelationshipException",
-    "InvalidSearchCriteriaException",
-    "SearchFailedException",
+    "RelationshipEmbeddingException",
+    "CircularRelationshipException",
 ]

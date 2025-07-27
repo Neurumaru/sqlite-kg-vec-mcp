@@ -1,18 +1,17 @@
 """
-Domain entities for the knowledge graph system.
+도메인 엔티티들.
 """
 
-from .entity import Entity
-from .relationship import Relationship
-from .embedding import Embedding
-from .search_result import SearchResult, SearchResultCollection
-from .knowledge_graph import KnowledgeGraph
+from .document import Document, DocumentStatus, DocumentType
+from .node import Node, NodeType
+from .relationship import Relationship, RelationshipType
 
 __all__ = [
-    "Entity",
+    "Document",
+    "DocumentStatus", 
+    "DocumentType",
+    "Node",
+    "NodeType",
     "Relationship",
-    "Embedding",
-    "SearchResult",
-    "SearchResultCollection",
-    "KnowledgeGraph",
+    "RelationshipType",
 ]

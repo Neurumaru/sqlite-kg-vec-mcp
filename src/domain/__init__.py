@@ -1,74 +1,68 @@
 """
-Domain layer for the SQLite Knowledge Graph Vector MCP system.
+새로운 문서 기반 지식 그래프 도메인.
 
-This package contains the core business logic and domain models
-following Domain-Driven Design principles.
+이 패키지는 문서를 기반으로 노드와 관계를 생성하고,
+문서와 노드/관계 간의 연결을 관리하는 도메인 로직을 포함합니다.
 """
 
-# Value Objects - direct imports to avoid circular dependencies during testing
+# Value Objects
+from .value_objects.document_id import DocumentId
 from .value_objects.node_id import NodeId
+from .value_objects.relationship_id import RelationshipId
 from .value_objects.vector import Vector
-from .value_objects.search_criteria import SearchCriteria
-from .value_objects.entity_type import EntityType
-from .value_objects.relationship_type import RelationshipType
 
-# Temporarily comment out complex imports for testing
-# from .entities import (
-#     Entity,
-#     Relationship,
-#     Embedding,
-#     SearchResult,
-#     SearchResultCollection,
-#     KnowledgeGraph,
-# )
+# Entities
+from .entities.document import Document
+from .entities.node import Node
+from .entities.relationship import Relationship
 
-# from .events import (
-#     DomainEvent,
-#     EntityCreated,
-#     RelationshipCreated,
-#     SearchCompleted,
-# )
+# Domain Events
+from .events.base import DomainEvent
+from .events.document_processed import DocumentProcessed
+from .events.node_created import NodeCreated
+from .events.relationship_created import RelationshipCreated
 
-# from .exceptions import (
-#     DomainException,
-#     EntityNotFoundException,
-#     EntityAlreadyExistsException,
-#     InvalidEntityException,
-#     RelationshipNotFoundException,
-#     InvalidRelationshipException,
-#     InvalidSearchCriteriaException,
-#     SearchFailedException,
-# )
+# Domain Exceptions
+from .exceptions.base import DomainException
+from .exceptions.document_exceptions import (
+    DocumentNotFoundException,
+    DocumentAlreadyExistsException,
+    InvalidDocumentException,
+)
+from .exceptions.node_exceptions import (
+    NodeNotFoundException,
+    InvalidNodeException,
+)
+from .exceptions.relationship_exceptions import (
+    RelationshipNotFoundException,
+    InvalidRelationshipException,
+)
 
 __all__ = [
     # Value Objects
-    "NodeId",
+    "DocumentId",
+    "NodeId", 
+    "RelationshipId",
     "Vector",
-    "SearchCriteria",
-    "EntityType",
-    "RelationshipType",
-
+    
     # Entities
-    "Entity",
+    "Document",
+    "Node",
     "Relationship",
-    "Embedding",
-    "SearchResult",
-    "SearchResultCollection",
-    "KnowledgeGraph",
-
+    
     # Events
     "DomainEvent",
-    "EntityCreated",
+    "DocumentProcessed",
+    "NodeCreated",
     "RelationshipCreated",
-    "SearchCompleted",
-
+    
     # Exceptions
     "DomainException",
-    "EntityNotFoundException",
-    "EntityAlreadyExistsException",
-    "InvalidEntityException",
+    "DocumentNotFoundException",
+    "DocumentAlreadyExistsException", 
+    "InvalidDocumentException",
+    "NodeNotFoundException",
+    "InvalidNodeException",
     "RelationshipNotFoundException",
     "InvalidRelationshipException",
-    "InvalidSearchCriteriaException",
-    "SearchFailedException",
 ]

@@ -1,275 +1,231 @@
 """
-Relationship domain model for the knowledge graph.
+관계 도메인 엔티티.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Dict, Any, Optional, List
+from enum import Enum
 
+from src.domain.value_objects.relationship_id import RelationshipId
 from src.domain.value_objects.node_id import NodeId
-from src.domain.value_objects.relationship_type import RelationshipType
-from src.domain.exceptions.relationship_exceptions import InvalidRelationshipException
+from src.domain.value_objects.document_id import DocumentId
+from src.domain.value_objects.vector import Vector
+
+
+class RelationshipType(Enum):
+    """관계 타입."""
+    WORKS_AT = "works_at"
+    LOCATED_IN = "located_in"
+    COLLABORATES_WITH = "collaborates_with"
+    PART_OF = "part_of"
+    LEADS = "leads"
+    CREATES = "creates"
+    USES = "uses"
+    SIMILAR_TO = "similar_to"
+    CAUSED_BY = "caused_by"
+    INFLUENCES = "influences"
+    CONTAINS = "contains"
+    OTHER = "other"
 
 
 @dataclass
 class Relationship:
     """
-    Rich domain entity representing a relationship between entities in the knowledge graph.
-
-    This encapsulates business logic for relationships and ensures invariants.
+    관계 도메인 엔티티.
+    
+    지식 그래프의 관계를 나타냅니다.
+    두 노드 간의 관계를 표현하며,
+    원본 문서와의 연결 정보를 유지합니다.
     """
-
-    id: NodeId
-    source_id: NodeId
-    target_id: NodeId
+    
+    id: RelationshipId
+    source_node_id: NodeId
+    target_node_id: NodeId
     relationship_type: RelationshipType
+    label: str  # 관계를 설명하는 자연어 레이블
     properties: Dict[str, Any] = field(default_factory=dict)
+    confidence: float = 1.0  # 관계 추출 신뢰도 (0.0 ~ 1.0)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-
+    
+    # 문서 연결 정보
+    source_documents: List[DocumentId] = field(default_factory=list)
+    
+    # 임베딩 정보
+    embedding: Optional[Vector] = None
+    embedding_model: Optional[str] = None
+    embedding_created_at: Optional[datetime] = None
+    
+    # 추출 정보 (문서 내에서의 컨텍스트, 문장 등)
+    extraction_metadata: Dict[str, Any] = field(default_factory=dict)
+    
     def __post_init__(self):
-        """Validate relationship invariants."""
-        self._validate()
-
-    def _validate(self):
-        """Validate business rules and invariants."""
-        if not self.id:
-            raise InvalidRelationshipException("Relationship must have an ID")
-
-        if not self.source_id:
-            raise InvalidRelationshipException("Relationship must have a source ID")
-
-        if not self.target_id:
-            raise InvalidRelationshipException("Relationship must have a target ID")
-
-        if not self.relationship_type:
-            raise InvalidRelationshipException("Relationship must have a type")
-
-        # Business rule: Cannot create self-referencing relationships for certain types
-        if self.source_id == self.target_id:
-            disallowed_self_ref = ["WORKS_FOR", "LOCATED_IN", "PART_OF"]
-            if self.relationship_type.name in disallowed_self_ref:
-                raise InvalidRelationshipException(
-                    f"Self-referencing {self.relationship_type.name} relationships are not allowed"
-                )
-
-        # Business rule: Properties should not contain reserved keys
-        reserved_keys = {"id", "source_id", "target_id", "type", "created_at", "updated_at"}
-        if any(key in reserved_keys for key in self.properties.keys()):
-            raise InvalidRelationshipException("Properties cannot contain reserved keys")
-
-    @classmethod
-    def create(
-        cls,
-        source_id: NodeId,
-        target_id: NodeId,
-        relationship_type: RelationshipType,
-        properties: Optional[Dict[str, Any]] = None
-    ) -> "Relationship":
-        """
-        Factory method to create a new relationship with generated ID.
-
-        Args:
-            source_id: ID of the source entity
-            target_id: ID of the target entity
-            relationship_type: Type of the relationship
-            properties: Optional properties dictionary
-
-        Returns:
-            New relationship instance
-        """
-        return cls(
-            id=NodeId.generate(),
-            source_id=source_id,
-            target_id=target_id,
-            relationship_type=relationship_type,
-            properties=properties or {}
-        )
-
-    @classmethod
-    def restore(
-        cls,
-        id: NodeId,
-        source_id: NodeId,
-        target_id: NodeId,
-        relationship_type: RelationshipType,
-        properties: Optional[Dict[str, Any]] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None
-    ) -> "Relationship":
-        """
-        Restore a relationship from persistence.
-
-        Args:
-            id: Relationship ID
-            source_id: Source entity ID
-            target_id: Target entity ID
-            relationship_type: Type of the relationship
-            properties: Optional properties
-            created_at: Creation timestamp
-            updated_at: Last update timestamp
-
-        Returns:
-            Restored relationship instance
-        """
-        now = datetime.now()
-        return cls(
-            id=id,
-            source_id=source_id,
-            target_id=target_id,
-            relationship_type=relationship_type,
-            properties=properties or {},
-            created_at=created_at or now,
-            updated_at=updated_at or now
-        )
-
-    def update_property(self, key: str, value: Any):
-        """
-        Update a single property with validation.
-
-        Args:
-            key: Property key
-            value: Property value
-        """
-        reserved_keys = {"id", "source_id", "target_id", "type", "created_at", "updated_at"}
-        if key in reserved_keys:
-            raise InvalidRelationshipException(f"Cannot update reserved property: {key}")
-
+        if not self.label.strip():
+            raise ValueError("Relationship label cannot be empty")
+        if self.confidence < 0.0 or self.confidence > 1.0:
+            raise ValueError("Confidence must be between 0.0 and 1.0")
+        if self.source_node_id == self.target_node_id:
+            raise ValueError("Source and target nodes cannot be the same")
+    
+    def add_source_document(self, document_id: DocumentId, context: Optional[str] = None, 
+                           sentence: Optional[str] = None) -> None:
+        """소스 문서 추가."""
+        if document_id not in self.source_documents:
+            self.source_documents.append(document_id)
+            if context or sentence:
+                self.add_extraction_context(document_id, context, sentence)
+            self.updated_at = datetime.now()
+    
+    def remove_source_document(self, document_id: DocumentId) -> None:
+        """소스 문서 제거."""
+        if document_id in self.source_documents:
+            self.source_documents.remove(document_id)
+            # 관련 추출 메타데이터도 제거
+            key_to_remove = f"context_{document_id}"
+            if key_to_remove in self.extraction_metadata:
+                del self.extraction_metadata[key_to_remove]
+            self.updated_at = datetime.now()
+    
+    def add_extraction_context(self, document_id: DocumentId, context: Optional[str] = None,
+                              sentence: Optional[str] = None) -> None:
+        """문서 내 추출 컨텍스트 추가."""
+        self.extraction_metadata[f"context_{document_id}"] = {
+            "context": context,
+            "sentence": sentence,
+            "extracted_at": datetime.now().isoformat()
+        }
+        self.updated_at = datetime.now()
+    
+    def get_extraction_context(self, document_id: DocumentId) -> Optional[Dict[str, str]]:
+        """특정 문서에서의 추출 컨텍스트 조회."""
+        return self.extraction_metadata.get(f"context_{document_id}")
+    
+    def set_embedding(self, embedding: Vector, model_name: str) -> None:
+        """관계 임베딩 설정."""
+        self.embedding = embedding
+        self.embedding_model = model_name
+        self.embedding_created_at = datetime.now()
+        self.updated_at = datetime.now()
+    
+    def has_embedding(self) -> bool:
+        """임베딩이 설정되어 있는지 확인."""
+        return self.embedding is not None
+    
+    def calculate_similarity(self, other: "Relationship") -> float:
+        """다른 관계와의 유사도 계산."""
+        if not self.has_embedding() or not other.has_embedding():
+            raise ValueError("Both relationships must have embeddings for similarity calculation")
+        
+        return self.embedding.cosine_similarity(other.embedding)
+    
+    def update_property(self, key: str, value: Any) -> None:
+        """속성 업데이트."""
         self.properties[key] = value
         self.updated_at = datetime.now()
-
-    def update_properties(self, new_properties: Dict[str, Any]):
-        """
-        Update multiple properties with validation.
-
-        Args:
-            new_properties: Dictionary of properties to update
-        """
-        reserved_keys = {"id", "source_id", "target_id", "type", "created_at", "updated_at"}
-        invalid_keys = set(new_properties.keys()) & reserved_keys
-        if invalid_keys:
-            raise InvalidRelationshipException(f"Cannot update reserved properties: {invalid_keys}")
-
-        self.properties.update(new_properties)
-        self.updated_at = datetime.now()
-
-    def remove_property(self, key: str):
-        """
-        Remove a property.
-
-        Args:
-            key: Property key to remove
-        """
+    
+    def remove_property(self, key: str) -> None:
+        """속성 제거."""
         if key in self.properties:
             del self.properties[key]
             self.updated_at = datetime.now()
-
-    def get_property(self, key: str, default: Any = None) -> Any:
-        """
-        Get a property value.
-
-        Args:
-            key: Property key
-            default: Default value if key not found
-
-        Returns:
-            Property value or default
-        """
-        return self.properties.get(key, default)
-
-    def has_property(self, key: str) -> bool:
-        """
-        Check if relationship has a property.
-
-        Args:
-            key: Property key
-
-        Returns:
-            True if property exists
-        """
-        return key in self.properties
-
-    def is_bidirectional(self) -> bool:
-        """
-        Check if this relationship type is typically bidirectional.
-
-        Returns:
-            True if relationship is bidirectional
-        """
-        bidirectional_types = ["COLLABORATES_WITH", "RELATED_TO", "CONNECTED_TO"]
-        return self.relationship_type.name in bidirectional_types
-
-    def get_reverse_type(self) -> Optional[RelationshipType]:
-        """
-        Get the reverse relationship type if applicable.
-
-        Returns:
-            Reverse relationship type or None
-        """
-        reverse_mapping = {
-            "WORKS_FOR": "EMPLOYS",
-            "LOCATED_IN": "CONTAINS",
-            "PART_OF": "HAS_PART",
-            "FOUNDED": "FOUNDED_BY",
-        }
-
-        reverse_name = reverse_mapping.get(self.relationship_type.name)
-        if reverse_name:
-            return RelationshipType(reverse_name)
+    
+    def update_confidence(self, confidence: float) -> None:
+        """신뢰도 업데이트."""
+        if confidence < 0.0 or confidence > 1.0:
+            raise ValueError("Confidence must be between 0.0 and 1.0")
+        self.confidence = confidence
+        self.updated_at = datetime.now()
+    
+    def get_all_contexts(self) -> Dict[str, Dict[str, str]]:
+        """모든 문서의 추출 컨텍스트 조회."""
+        contexts = {}
+        for key, value in self.extraction_metadata.items():
+            if key.startswith("context_"):
+                doc_id = key.replace("context_", "")
+                contexts[doc_id] = value
+        return contexts
+    
+    def is_from_document(self, document_id: DocumentId) -> bool:
+        """특정 문서에서 추출된 관계인지 확인."""
+        return document_id in self.source_documents
+    
+    def get_document_count(self) -> int:
+        """연결된 문서 수 반환."""
+        return len(self.source_documents)
+    
+    def involves_node(self, node_id: NodeId) -> bool:
+        """특정 노드가 이 관계에 포함되는지 확인."""
+        return self.source_node_id == node_id or self.target_node_id == node_id
+    
+    def get_other_node_id(self, node_id: NodeId) -> Optional[NodeId]:
+        """주어진 노드의 상대 노드 ID 반환."""
+        if self.source_node_id == node_id:
+            return self.target_node_id
+        elif self.target_node_id == node_id:
+            return self.source_node_id
         return None
-
-    def involves_entity(self, entity_id: NodeId) -> bool:
-        """
-        Check if this relationship involves a specific entity.
-
-        Args:
-            entity_id: Entity ID to check
-
-        Returns:
-            True if entity is source or target
-        """
-        return self.source_id == entity_id or self.target_id == entity_id
-
-    def get_other_entity_id(self, entity_id: NodeId) -> Optional[NodeId]:
-        """
-        Get the other entity ID in this relationship.
-
-        Args:
-            entity_id: Known entity ID
-
-        Returns:
-            Other entity ID or None if entity not involved
-        """
-        if self.source_id == entity_id:
-            return self.target_id
-        elif self.target_id == entity_id:
-            return self.source_id
-        return None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert relationship to dictionary representation.
-
-        Returns:
-            Dictionary representation
-        """
-        return {
-            "id": str(self.id),
-            "source_id": str(self.source_id),
-            "target_id": str(self.target_id),
-            "type": str(self.relationship_type),
-            "properties": self.properties.copy(),
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
-        }
-
+    
+    def reverse(self) -> "Relationship":
+        """관계의 방향을 반대로 한 새로운 관계 생성."""
+        reversed_rel = Relationship(
+            id=RelationshipId.generate(),
+            source_node_id=self.target_node_id,
+            target_node_id=self.source_node_id,
+            relationship_type=self.relationship_type,
+            label=f"reverse_of_{self.label}",
+            properties=self.properties.copy(),
+            confidence=self.confidence,
+            source_documents=self.source_documents.copy(),
+            embedding=self.embedding,
+            embedding_model=self.embedding_model,
+            embedding_created_at=self.embedding_created_at,
+            extraction_metadata=self.extraction_metadata.copy()
+        )
+        return reversed_rel
+    
+    def merge_with(self, other: "Relationship") -> None:
+        """다른 관계와 병합 (중복 제거)."""
+        # 같은 노드 간 관계인지 확인
+        if not ((self.source_node_id == other.source_node_id and self.target_node_id == other.target_node_id) or
+                (self.source_node_id == other.target_node_id and self.target_node_id == other.source_node_id)):
+            raise ValueError("Cannot merge relationships between different nodes")
+        
+        # 소스 문서 병합
+        for doc_id in other.source_documents:
+            if doc_id not in self.source_documents:
+                self.source_documents.append(doc_id)
+        
+        # 속성 병합 (기존 속성 우선)
+        for key, value in other.properties.items():
+            if key not in self.properties:
+                self.properties[key] = value
+        
+        # 추출 메타데이터 병합
+        for key, value in other.extraction_metadata.items():
+            if key not in self.extraction_metadata:
+                self.extraction_metadata[key] = value
+        
+        # 더 높은 신뢰도 사용
+        if other.confidence > self.confidence:
+            self.confidence = other.confidence
+        
+        # 더 나은 임베딩이 있다면 업데이트
+        if not self.has_embedding() and other.has_embedding():
+            self.embedding = other.embedding
+            self.embedding_model = other.embedding_model
+            self.embedding_created_at = other.embedding_created_at
+        
+        self.updated_at = datetime.now()
+    
+    def get_textual_representation(self) -> str:
+        """관계의 텍스트 표현 생성 (임베딩용)."""
+        return f"{self.label} (type: {self.relationship_type.value}, confidence: {self.confidence})"
+    
     def __str__(self) -> str:
-        return f"{self.source_id} -[{self.relationship_type}]-> {self.target_id}"
-
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, Relationship):
-            return False
-        return self.id == other.id
-
-    def __hash__(self) -> int:
-        return hash(self.id)
+        return f"Relationship(id={self.id}, {self.source_node_id} --[{self.label}]--> {self.target_node_id})"
+    
+    def __repr__(self) -> str:
+        return (f"Relationship(id={self.id!r}, source={self.source_node_id!r}, "
+                f"target={self.target_node_id!r}, type={self.relationship_type.value}, "
+                f"label={self.label!r}, confidence={self.confidence})")

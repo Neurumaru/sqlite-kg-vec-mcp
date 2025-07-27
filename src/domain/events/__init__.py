@@ -1,15 +1,15 @@
 """
-Domain events for the knowledge graph system.
+도메인 이벤트들.
 """
 
 from .base import DomainEvent
-from .entity_created import EntityCreated
+from .document_processed import DocumentProcessed
+from .node_created import NodeCreated
 from .relationship_created import RelationshipCreated
-from .search_completed import SearchCompleted
 
 __all__ = [
     "DomainEvent",
-    "EntityCreated",
+    "DocumentProcessed",
+    "NodeCreated", 
     "RelationshipCreated",
-    "SearchCompleted",
 ]

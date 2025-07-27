@@ -1,30 +1,44 @@
 """
-Base domain event classes.
+도메인 이벤트 기본 클래스.
 """
 
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict
+import uuid
 
 
-@dataclass(frozen=True)
+@dataclass
 class DomainEvent(ABC):
-    """Base class for all domain events."""
+    """
+    도메인 이벤트 기본 클래스.
+    
+    도메인에서 발생하는 중요한 사건들을 나타냅니다.
+    """
+    
+    event_id: str
+    occurred_at: datetime
+    event_type: str
+    aggregate_id: str
+    version: int = 1
+    metadata: Dict[str, Any] = None
     
     def __post_init__(self):
-        # Add occurred_at if not present
-        if not hasattr(self, 'occurred_at'):
-            object.__setattr__(self, 'occurred_at', datetime.now())
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert event to dictionary representation."""
-        result = {}
-        for key, value in self.__dict__.items():
-            if hasattr(value, 'to_dict'):
-                result[key] = value.to_dict()
-            elif hasattr(value, '__dict__'):
-                result[key] = str(value)
-            else:
-                result[key] = value
-        return result
+        if self.metadata is None:
+            self.metadata = {}
+    
+    @classmethod
+    def create(cls, aggregate_id: str, **kwargs) -> "DomainEvent":
+        """새로운 도메인 이벤트 생성."""
+        event_id = str(uuid.uuid4())
+        occurred_at = datetime.now()
+        event_type = cls.__name__
+        
+        return cls(
+            event_id=event_id,
+            occurred_at=occurred_at,
+            event_type=event_type,
+            aggregate_id=aggregate_id,
+            **kwargs
+        )
