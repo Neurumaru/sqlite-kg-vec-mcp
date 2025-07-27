@@ -48,7 +48,6 @@ class TestNodeId(unittest.TestCase):
         id2 = NodeId.generate()
         self.assertNotEqual(id1.value, id2.value)
 
-
     def test_equality(self):
         """Test NodeId equality comparison."""
         value = "test-id"

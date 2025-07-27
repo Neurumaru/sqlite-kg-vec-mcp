@@ -3,129 +3,335 @@ DocumentProcessor 도메인 서비스 단위 테스트.
 """
 
 import unittest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
 from src.domain.entities.node import Node, NodeType
 from src.domain.entities.relationship import Relationship, RelationshipType
-from src.domain.services.document_processor import DocumentProcessor, KnowledgeExtractionResult
+from src.domain.services.document_processor import (
+    DocumentProcessor,
+    KnowledgeExtractionResult,
+)
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
 
 
-class TestDocumentProcessor(unittest.TestCase):
-    """DocumentProcessor 테스트 케이스."""
+class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
+    """DocumentProcessor 도메인 서비스 테스트."""
 
-    def setUp(self):
-        """테스트 픽스처 설정."""
-        self.mock_knowledge_extractor = Mock()
-        self.processor = DocumentProcessor(self.mock_knowledge_extractor)
+    async def test_process_document_success(self):
+        """문서 처리 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
         
-        self.document = Document(
+        document = Document(
             id=DocumentId.generate(),
             title="테스트 문서",
             content="테스트 내용",
-            doc_type=DocumentType.TEXT
+            doc_type=DocumentType.TEXT,
         )
         
-        self.sample_node = Node(
-            id=NodeId.generate(),
-            name="테스트 노드",
+        sample_node = Node(
+            id=NodeId.generate(), 
+            name="테스트 노드", 
             node_type=NodeType.PERSON
         )
         
-        self.sample_relationship = Relationship(
+        sample_relationship = Relationship(
             id=RelationshipId.generate(),
             source_node_id=NodeId.generate(),
             target_node_id=NodeId.generate(),
             relationship_type=RelationshipType.WORKS_AT,
-            label="근무"
+            label="근무",
         )
         
-    async def test_process_document_success(self):
-        """문서 처리 성공 테스트."""
-        # Mock 설정
-        self.mock_knowledge_extractor.extract_knowledge = AsyncMock(
-            return_value=([self.sample_node], [self.sample_relationship])
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([sample_node], [sample_relationship])
         )
-        
-        # 실행
-        result = await self.processor.process_document(self.document)
-        
-        # 검증
+
+        # When
+        result = await processor.process_document(document)
+
+        # Then
         self.assertIsInstance(result, KnowledgeExtractionResult)
         self.assertEqual(len(result.nodes), 1)
         self.assertEqual(len(result.relationships), 1)
-        self.assertEqual(self.document.status, DocumentStatus.PROCESSED)
-        self.assertIn(self.sample_node.id, self.document.connected_nodes)
-        
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        self.assertIn(sample_node.id, document.connected_nodes)
+        self.assertIn(sample_relationship.id, document.connected_relationships)
+        self.assertIsNotNone(document.processed_at)
+        mock_knowledge_extractor.extract_knowledge.assert_called_once_with(document)
+
     async def test_process_document_failure(self):
         """문서 처리 실패 테스트."""
-        # Mock 설정 - 예외 발생
-        self.mock_knowledge_extractor.extract_knowledge = AsyncMock(
-            side_effect=Exception("추출 실패")
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
         )
         
-        # 실행 및 검증
+        error_message = "추출 실패"
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            side_effect=Exception(error_message)
+        )
+
+        # When & Then
         with self.assertRaises(Exception):
-            await self.processor.process_document(self.document)
-            
-        self.assertEqual(self.document.status, DocumentStatus.FAILED)
-        self.assertEqual(self.document.metadata["error"], "추출 실패")
+            await processor.process_document(document)
+
+        self.assertEqual(document.status, DocumentStatus.FAILED)
+        self.assertEqual(document.metadata["error"], error_message)
+
+    async def test_process_document_empty_extraction_result(self):
+        """빈 추출 결과로 문서 처리 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
         
-    def test_validate_document_for_processing(self):
-        """문서 처리 가능성 검증 테스트."""
-        # 유효한 문서
-        valid_document = Document(
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([], [])
+        )
+
+        # When
+        result = await processor.process_document(document)
+
+        # Then
+        self.assertIsInstance(result, KnowledgeExtractionResult)
+        self.assertTrue(result.is_empty())
+        self.assertEqual(len(result.nodes), 0)
+        self.assertEqual(len(result.relationships), 0)
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        self.assertEqual(len(document.connected_nodes), 0)
+        self.assertEqual(len(document.connected_relationships), 0)
+
+    def test_validate_document_for_processing_success(self):
+        """문서 처리 가능성 검증 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
+        
+        document = Document(
             id=DocumentId.generate(),
             title="유효한 문서",
             content="내용이 있는 문서",
-            doc_type=DocumentType.TEXT
+            doc_type=DocumentType.TEXT,
         )
-        self.assertTrue(self.processor.validate_document_for_processing(valid_document))
+
+        # When
+        result = processor.validate_document_for_processing(document)
+
+        # Then
+        self.assertTrue(result)
+
+    def test_validate_document_for_processing_already_processing(self):
+        """이미 처리 중인 문서 검증 실패 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
         
-        # 이미 처리 중인 문서
-        processing_document = Document(
+        document = Document(
             id=DocumentId.generate(),
             title="처리 중인 문서",
             content="내용",
-            doc_type=DocumentType.TEXT
+            doc_type=DocumentType.TEXT,
         )
-        processing_document.mark_as_processing()
-        self.assertFalse(self.processor.validate_document_for_processing(processing_document))
+        document.mark_as_processing()
+
+        # When
+        result = processor.validate_document_for_processing(document)
+
+        # Then
+        self.assertFalse(result)
+
+    def test_validate_document_for_processing_already_processed(self):
+        """이미 처리 완료된 문서 검증 실패 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
         
-        # 내용이 없는 문서는 생성자에서 예외가 발생하므로 try-except로 처리
-        try:
-            empty_document = Document(
-                id=DocumentId.generate(),
-                title="빈 문서",
-                content="",
-                doc_type=DocumentType.TEXT
-            )
-            # 여기 도달하면 안됨
-            self.fail("빈 content로 Document 생성이 허용되면 안됨")
-        except ValueError:
-            # 예상된 동작 - 빈 content는 Document 생성 시 예외 발생
-            pass
+        document = Document(
+            id=DocumentId.generate(),
+            title="처리된 문서",
+            content="내용",
+            doc_type=DocumentType.TEXT,
+        )
+        document.mark_as_processed()
+
+        # When
+        result = processor.validate_document_for_processing(document)
+
+        # Then
+        self.assertFalse(result)
+
+    def test_update_document_links_success(self):
+        """문서 링크 업데이트 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        node_id_1 = NodeId.generate()
+        node_id_2 = NodeId.generate()
+        rel_id_1 = RelationshipId.generate()
+        rel_id_2 = RelationshipId.generate()
+        
+        # 기존 연결 추가
+        document.add_connected_node(node_id_1)
+        document.add_connected_relationship(rel_id_1)
+
+        # When
+        processor.update_document_links(
+            document,
+            added_nodes=[node_id_2],
+            removed_nodes=[node_id_1],
+            added_relationships=[rel_id_2],
+            removed_relationships=[rel_id_1]
+        )
+
+        # Then
+        self.assertNotIn(node_id_1, document.connected_nodes)
+        self.assertIn(node_id_2, document.connected_nodes)
+        self.assertNotIn(rel_id_1, document.connected_relationships)
+        self.assertIn(rel_id_2, document.connected_relationships)
+
+    async def test_reprocess_document_success(self):
+        """문서 재처리 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
+        
+        document = Document(
+            id=DocumentId.generate(),
+            title="테스트 문서",
+            content="테스트 내용",
+            doc_type=DocumentType.TEXT,
+        )
+        
+        # 기존 처리 상태로 설정
+        document.mark_as_processed()
+        document.add_connected_node(NodeId.generate())
+        document.add_connected_relationship(RelationshipId.generate())
+        
+        sample_node = Node(
+            id=NodeId.generate(), 
+            name="재처리 노드", 
+            node_type=NodeType.CONCEPT
+        )
+        
+        mock_knowledge_extractor.extract_knowledge = AsyncMock(
+            return_value=([sample_node], [])
+        )
+
+        # When
+        result = await processor.reprocess_document(document)
+
+        # Then
+        self.assertIsInstance(result, KnowledgeExtractionResult)
+        self.assertEqual(len(result.nodes), 1)
+        self.assertEqual(document.status, DocumentStatus.PROCESSED)
+        self.assertEqual(len(document.connected_nodes), 1)
+        self.assertIn(sample_node.id, document.connected_nodes)
+
+    def test_get_processing_statistics_success(self):
+        """문서 처리 통계 계산 성공 테스트."""
+        # Given
+        mock_knowledge_extractor = Mock()
+        processor = DocumentProcessor(mock_knowledge_extractor)
+        
+        # 다양한 상태의 문서들 생성
+        doc1 = Document(
+            id=DocumentId.generate(),
+            title="처리된 문서1",
+            content="내용1",
+            doc_type=DocumentType.TEXT,
+        )
+        doc1.mark_as_processed()
+        doc1.add_connected_node(NodeId.generate())
+        doc1.add_connected_relationship(RelationshipId.generate())
+        
+        doc2 = Document(
+            id=DocumentId.generate(),
+            title="처리된 문서2",
+            content="내용2",
+            doc_type=DocumentType.TEXT,
+        )
+        doc2.mark_as_processed()
+        doc2.add_connected_node(NodeId.generate())
+        
+        doc3 = Document(
+            id=DocumentId.generate(),
+            title="처리 중인 문서",
+            content="내용3",
+            doc_type=DocumentType.TEXT,
+        )
+        doc3.mark_as_processing()
+        
+        doc4 = Document(
+            id=DocumentId.generate(),
+            title="실패한 문서",
+            content="내용4",
+            doc_type=DocumentType.TEXT,
+        )
+        doc4.mark_as_failed("오류")
+        
+        documents = [doc1, doc2, doc3, doc4]
+
+        # When
+        stats = processor.get_processing_statistics(documents)
+
+        # Then
+        self.assertEqual(stats["total_documents"], 4)
+        self.assertEqual(stats["processed"], 2)
+        self.assertEqual(stats["processing"], 1)
+        self.assertEqual(stats["failed"], 1)
+        self.assertEqual(stats["pending"], 0)
+        self.assertEqual(stats["processing_rate"], 0.5)
+        self.assertEqual(stats["total_extracted_nodes"], 2)
+        self.assertEqual(stats["total_extracted_relationships"], 1)
+        self.assertEqual(stats["avg_nodes_per_document"], 1.0)
+        self.assertEqual(stats["avg_relationships_per_document"], 0.5)
 
 
 class TestKnowledgeExtractionResult(unittest.TestCase):
-    """KnowledgeExtractionResult 테스트 케이스."""
-    
-    def test_empty_result(self):
-        """빈 결과 테스트."""
+    """KnowledgeExtractionResult 테스트."""
+
+    def test_create_empty_result(self):
+        """빈 결과 생성 테스트."""
+        # When
         result = KnowledgeExtractionResult([], [])
-        
+
+        # Then
         self.assertTrue(result.is_empty())
         self.assertEqual(result.get_node_count(), 0)
         self.assertEqual(result.get_relationship_count(), 0)
-        
-    def test_non_empty_result(self):
-        """비어있지 않은 결과 테스트."""
+        self.assertIsNotNone(result.extracted_at)
+
+    def test_create_non_empty_result(self):
+        """비어있지 않은 결과 생성 테스트."""
+        # Given
         node = Node(
-            id=NodeId.generate(),
-            name="테스트 노드",
+            id=NodeId.generate(), 
+            name="테스트 노드", 
             node_type=NodeType.PERSON
         )
         relationship = Relationship(
@@ -133,14 +339,18 @@ class TestKnowledgeExtractionResult(unittest.TestCase):
             source_node_id=NodeId.generate(),
             target_node_id=NodeId.generate(),
             relationship_type=RelationshipType.WORKS_AT,
-            label="근무"
+            label="근무",
         )
-        
+
+        # When
         result = KnowledgeExtractionResult([node], [relationship])
-        
+
+        # Then
         self.assertFalse(result.is_empty())
         self.assertEqual(result.get_node_count(), 1)
         self.assertEqual(result.get_relationship_count(), 1)
+        self.assertEqual(result.nodes[0], node)
+        self.assertEqual(result.relationships[0], relationship)
 
 
 if __name__ == "__main__":
