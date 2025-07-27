@@ -7,20 +7,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Union
 
 import numpy as np
-
-try:
-    from sentence_transformers import SentenceTransformer
-
-    SENTENCE_TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    SENTENCE_TRANSFORMERS_AVAILABLE = False
-
-try:
-    import openai
-
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
+import openai
+from sentence_transformers import SentenceTransformer
 
 
 class VectorTextEmbedder(ABC):
@@ -56,11 +44,6 @@ class SentenceTransformerEmbedder(VectorTextEmbedder):
                 - "all-mpnet-base-v2": Higher quality, 768-dimensional
                 - "paraphrase-multilingual-MiniLM-L12-v2": Multilingual, 384-dimensional
         """
-        if not SENTENCE_TRANSFORMERS_AVAILABLE:
-            raise ImportError(
-                "sentence-transformers is not installed. "
-                "Install it with: pip install sentence-transformers"
-            )
 
         self.model = SentenceTransformer(model_name)
         self._dimension = self.model.get_sentence_embedding_dimension()
