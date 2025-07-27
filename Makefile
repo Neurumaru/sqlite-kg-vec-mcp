@@ -48,11 +48,13 @@ flake8:
 # Testing
 test:
 	@echo "🧪 Running tests..."
-	$(UV) run pytest tests/
+	$(PYTHON) -m unittest discover -s tests -p "test_*.py"
 
 test-cov:
 	@echo "🧪 Running tests with coverage..."
-	$(UV) run pytest tests/ --cov=src --cov-report=html --cov-report=term
+	$(UV) run coverage run -m unittest discover -s tests -p "test_*.py"
+	$(UV) run coverage report
+	$(UV) run coverage html
 
 # Development utilities
 clean:
