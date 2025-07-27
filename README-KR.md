@@ -1,18 +1,19 @@
 # SQLite KG Vec MCP
 
-MCP 서버 인터페이스를 통한 통합 지식 그래프 및 벡터 데이터베이스.
+**헥사고날 아키텍처 기반 문서 처리 및 지식 그래프 시스템**
 
-이 프로젝트는 SQLite 기반 지식 그래프와 벡터 저장소(선택적으로 HNSW 인덱스 사용)를 결합하여 
-MCP(Model Context Protocol) 서버를 통한 인터페이스를 제공합니다.
+문서를 처리하고, 지식 엔티티와 관계를 추출하며, 깔끔한 헥사고날 아키텍처를 통해 의미 검색 기능을 제공하는 포괄적인 지식 관리 시스템입니다.
 
 *Read this in other languages: [English](README.md), [한국어](README-KR.md)*
 
 ## 주요 기능
 
-- 노드와 엣지를 사용한 지식 그래프 저장
-- 지식 그래프의 노드와 엣지에 대한 벡터 임베딩을 통한 의미적 유사도 검색
-- 단일 SQLite 파일에 모든 데이터 저장
-- 간단한 MCP(Model Context Protocol)을 통한 그래프 조작
+- **문서 처리**: 문서에서 엔티티와 관계를 자동으로 추출
+- **지식 그래프**: 완전한 출처 정보와 함께 노드(엔티티)와 관계 저장 및 관리
+- **의미 검색**: 다양한 임베딩 제공자를 사용한 벡터 기반 유사도 검색
+- **헥사고날 아키텍처**: 도메인 로직, 포트, 어댑터의 깔끔한 분리
+- **다중 어댑터**: SQLite, Ollama, OpenAI, HuggingFace 등 지원
+- **MCP 통합**: AI 어시스턴트 통합을 위한 Model Context Protocol 서버 인터페이스
 
 ## 설치
 
@@ -60,36 +61,69 @@ EMBEDDING_DIMENSION=768
 ## 빠른 시작
 
 ```python
-from src import KnowledgeGraphServer
+from src.adapters.sqlite3.database import SQLiteDatabase
+from src.adapters.ollama.ollama_knowledge_extractor import OllamaKnowledgeExtractor
+from src.adapters.openai.text_embedder import OpenAITextEmbedder
+from src.domain.services.document_processor import DocumentProcessor
+from src.domain.entities.document import Document
+from src.domain.value_objects.document_id import DocumentId
 
-# SQLite 데이터베이스 파일로 서버 초기화
-server = KnowledgeGraphServer(db_path="knowledge_graph.db")
+# 어댑터 초기화
+database = SQLiteDatabase("knowledge_graph.db")
+embedder = OpenAITextEmbedder(api_key="your-openai-key")
+knowledge_extractor = OllamaKnowledgeExtractor()
 
-# MCP 서버 시작
-server.start(host="127.0.0.1", port=8080)
+# 의존성 주입으로 도메인 서비스 초기화
+processor = DocumentProcessor(knowledge_extractor)
+
+# 문서 처리
+document = Document(
+    id=DocumentId.generate(),
+    title="샘플 문서",
+    content="이것은 인공지능과 머신러닝에 관한 샘플 문서입니다."
+)
+
+result = await processor.process_document(document)
+print(f"추출된 노드 {result.get_node_count()}개, 관계 {result.get_relationship_count()}개")
 ```
 
-## 프로젝트 구조
+## 아키텍처
+
+이 프로젝트는 관심사의 깔끔한 분리를 위해 **헥사고날 아키텍처**(포트와 어댑터)를 따릅니다:
 
 ```
-sqlite-kg-vec-mcp/
-├── src/                    # 소스 코드 디렉토리
-├── tests/                  # 테스트 스위트
-├── examples/               # 사용 예제
-├── pyproject.toml          # 프로젝트 메타데이터 및 의존성
-├── LICENSE                 # MIT 라이센스
-└── README.md               # 영문 설명서
+src/
+├── domain/                 # 🏛️ 핵심 비즈니스 로직 (프레임워크 독립적)
+│   ├── entities/          # 비즈니스 엔티티: Document, Node, Relationship
+│   ├── value_objects/     # 불변 값: ID들, Vector
+│   ├── events/            # 통신을 위한 도메인 이벤트
+│   ├── exceptions/        # 도메인 특화 예외
+│   └── services/          # 비즈니스 로직 조율
+├── ports/                 # 🔌 추상 인터페이스 (계약)
+│   ├── repositories/      # 데이터 영속성 계약
+│   ├── services/          # 외부 서비스 계약
+│   └── use_cases/         # 애플리케이션 유스케이스 계약
+├── adapters/              # 🔧 기술별 구현체
+│   ├── sqlite3/          # SQLite 데이터베이스 어댑터
+│   ├── ollama/           # Ollama LLM 서비스 어댑터
+│   ├── openai/           # OpenAI 서비스 어댑터
+│   ├── huggingface/      # HuggingFace 모델 어댑터
+│   ├── hnsw/             # HNSW 벡터 검색 어댑터
+│   └── testing/          # 테스트 구현체
+├── common/               # 🛠️ 공유 유틸리티
+├── tests/                # 🧪 포괄적 테스트 스위트
+├── examples/             # 📚 사용 예제
+└── docs/                 # 📖 문서
 ```
 
-### 주요 구성 요소
+### 핵심 장점
 
-- **db/**: SQLite 연결 관리, 스키마 정의, 트랜잭션 처리, 데이터베이스 마이그레이션 등 데이터베이스 관련 코드
+- **🎯 테스트 가능성**: 순수한 도메인 로직, 모킹 가능한 의존성
+- **🔄 유연성**: 비즈니스 로직 변경 없이 구현체 교체 가능
+- **🧩 유지보수성**: 명확한 관심사 분리
+- **📈 확장성**: 새로운 어댑터와 서비스 추가가 용이
 
-- **graph/**: 엔티티/노드 작업, 관계/엣지 관리, 하이퍼엣지 처리, 그래프 순회 알고리즘 등 지식 그래프 구현
-
-- **vector/**: 벡터 임베딩 관리, HNSW/Faiss 인덱스 작업, 유사도 검색 알고리즘, 벡터-데이터베이스 동기화 등 벡터 저장 및 검색 기능
-
-- **server/**: API 엔드포인트, 요청 핸들러, WebSocket 통신 등 MCP 서버 구현
+자세한 아키텍처 설명은 [ARCHITECTURE-KR.md](docs/ARCHITECTURE-KR.md)를 참조하세요.
 
 ## 개발
 

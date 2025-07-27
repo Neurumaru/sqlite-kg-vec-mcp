@@ -1,18 +1,19 @@
 # SQLite KG Vec MCP
 
-Integrated Knowledge Graph and Vector Database with MCP Server Interface.
+**Document Processing and Knowledge Graph System with Hexagonal Architecture**
 
-This project combines a SQLite-based knowledge graph with vector storage (optionally using HNSW index) 
-and provides an interface through an MCP (Model Context Protocol) server.
+A comprehensive knowledge management system that processes documents, extracts knowledge entities and relationships, and provides semantic search capabilities through a clean hexagonal architecture.
 
 *Read this in other languages: [English](README.md), [한국어](README-KR.md)*
 
 ## Key Features
 
-- Knowledge graph storage using nodes and edges
-- Semantic similarity search through vector embeddings of graph nodes and edges
-- All data stored in a single SQLite file
-- Simple graph manipulation through MCP (Model Context Protocol)
+- **Document Processing**: Automated extraction of entities and relationships from documents
+- **Knowledge Graph**: Store and manage nodes (entities) and relationships with full provenance
+- **Semantic Search**: Vector-based similarity search using multiple embedding providers
+- **Hexagonal Architecture**: Clean separation of domain logic, ports, and adapters
+- **Multiple Adapters**: Support for SQLite, Ollama, OpenAI, HuggingFace, and more
+- **MCP Integration**: Model Context Protocol server interface for AI assistant integration
 
 ## Installation
 
@@ -31,43 +32,69 @@ uv pip install -e ".[dev]"
 ## Quick Start
 
 ```python
-from src import KnowledgeGraphServer
+from src.adapters.sqlite3.database import SQLiteDatabase
+from src.adapters.ollama.ollama_knowledge_extractor import OllamaKnowledgeExtractor
+from src.adapters.openai.text_embedder import OpenAITextEmbedder
+from src.domain.services.document_processor import DocumentProcessor
+from src.domain.entities.document import Document
+from src.domain.value_objects.document_id import DocumentId
 
-# Initialize the server with a SQLite database file
-server = KnowledgeGraphServer(
-    db_path="knowledge_graph.db",
-    vector_index_dir="vector_indexes/",  # Optional directory for storing vector indexes
-    embedding_dim=128,                   # Dimension for vector embeddings
-    vector_similarity="cosine",          # Similarity metric for vector search
-    server_name="Knowledge Graph Server", # MCP server name
-    server_instructions="SQLite-based knowledge graph with vector search capabilities" # MCP server instructions
+# Initialize adapters
+database = SQLiteDatabase("knowledge_graph.db")
+embedder = OpenAITextEmbedder(api_key="your-openai-key")
+knowledge_extractor = OllamaKnowledgeExtractor()
+
+# Initialize domain service with dependency injection
+processor = DocumentProcessor(knowledge_extractor)
+
+# Process a document
+document = Document(
+    id=DocumentId.generate(),
+    title="Sample Document",
+    content="This is a sample document about artificial intelligence and machine learning."
 )
 
-# Start the MCP server
-server.start(host="127.0.0.1", port=8080, transport="sse")
+result = await processor.process_document(document)
+print(f"Extracted {result.get_node_count()} nodes and {result.get_relationship_count()} relationships")
 ```
 
-## Project Structure
+## Architecture
+
+This project follows **Hexagonal Architecture** (Ports and Adapters) for clean separation of concerns:
 
 ```
-sqlite-kg-vec-mcp/
-├── src/                    # Source code directory
-├── tests/                  # Test suite
-├── examples/               # Usage examples
-├── pyproject.toml          # Project metadata and dependencies
-├── LICENSE                 # MIT License
-└── README.md               # This file
+src/
+├── domain/                 # 🏛️ Core business logic (framework-independent)
+│   ├── entities/          # Business entities: Document, Node, Relationship
+│   ├── value_objects/     # Immutable values: IDs, Vector
+│   ├── events/            # Domain events for communication
+│   ├── exceptions/        # Domain-specific exceptions
+│   └── services/          # Business logic orchestration
+├── ports/                 # 🔌 Abstract interfaces (contracts)
+│   ├── repositories/      # Data persistence contracts
+│   ├── services/          # External service contracts  
+│   └── use_cases/         # Application use case contracts
+├── adapters/              # 🔧 Technology-specific implementations
+│   ├── sqlite3/          # SQLite database adapters
+│   ├── ollama/           # Ollama LLM service adapters
+│   ├── openai/           # OpenAI service adapters
+│   ├── huggingface/      # HuggingFace model adapters
+│   ├── hnsw/             # HNSW vector search adapters
+│   └── testing/          # Test implementations
+├── common/               # 🛠️ Shared utilities
+├── tests/                # 🧪 Comprehensive test suite
+├── examples/             # 📚 Usage examples
+└── docs/                 # 📖 Documentation
 ```
 
-### Main Components
+### Core Benefits
 
-- **db/**: Database-related code for SQLite connection management, schema definitions, transaction handling, and database migrations
-  
-- **graph/**: Knowledge graph implementation including entity/node operations, relationship/edge management, hyperedge handling, and graph traversal algorithms
-  
-- **vector/**: Vector storage and search functionality including vector embeddings management, HNSW/Faiss index operations, similarity search algorithms, and vector-database synchronization
-  
-- **server/**: MCP server implementation with API endpoints, request handlers, and WebSocket communications
+- **🎯 Testability**: Pure domain logic, mockable dependencies
+- **🔄 Flexibility**: Swap implementations without changing business logic  
+- **🧩 Maintainability**: Clear separation of concerns
+- **📈 Scalability**: Easy to add new adapters and services
+
+For detailed architecture explanation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Development
 
@@ -103,129 +130,110 @@ pytest --cov=src
 
 ## Usage Examples
 
-### Creating Nodes and Relationships
+### Basic Document Processing
 
 ```python
-from src import KnowledgeGraph
+from src.adapters.sqlite3.database import SQLiteDatabase
+from src.adapters.ollama.ollama_knowledge_extractor import OllamaKnowledgeExtractor
+from src.domain.services.document_processor import DocumentProcessor
+from src.domain.entities.document import Document
+from src.domain.value_objects.document_id import DocumentId
 
-# Open or create a knowledge graph
-kg = KnowledgeGraph("example.db")
+# Initialize components using dependency injection
+database = SQLiteDatabase("example.db")
+await database.connect()
 
-# Create nodes
-person_node = kg.create_node(
-    name="John Doe",
-    type="Person",
-    properties={"age": 30, "occupation": "Engineer"}
+knowledge_extractor = OllamaKnowledgeExtractor()
+processor = DocumentProcessor(knowledge_extractor)
+
+# Process a document
+document = Document(
+    id=DocumentId.generate(),
+    title="AI Research Paper",
+    content="Recent advances in machine learning have enabled..."
 )
 
-company_node = kg.create_node(
-    name="TechCorp",
-    type="Company",
-    properties={"founded": 2010, "industry": "Technology"}
-)
+# Extract knowledge
+result = await processor.process_document(document)
 
-# Create relationship
-kg.create_edge(
-    source_id=person_node.id,
-    target_id=company_node.id,
-    relation_type="WORKS_FOR",
-    properties={"since": 2020, "position": "Senior Engineer"}
-)
-
-# Vector search
-similar_engineers = kg.search_similar_nodes(
-    query_vector=person_node.embedding,
-    limit=5,
-    node_types=["Person"]
-)
+print(f"Document processing completed:")
+print(f"- Nodes extracted: {result.get_node_count()}")
+print(f"- Relationships extracted: {result.get_relationship_count()}")
+print(f"- Status: {document.status}")
 ```
 
-### Text Embedding and Semantic Search
+### Working with Different Embedders
 
 ```python
-from src import KnowledgeGraph
+from src.adapters.openai.text_embedder import OpenAITextEmbedder
+from src.adapters.huggingface.text_embedder import HuggingFaceTextEmbedder
+from src.adapters.testing.text_embedder import RandomTextEmbedder
 
-# Initialize with sentence-transformers (default)
-kg = KnowledgeGraph(
-    "example.db",
-    embedding_dim=384,  # MiniLM-L6-v2 dimension
-    embedder_type='sentence-transformers',
-    embedder_kwargs={'model_name': 'all-MiniLM-L6-v2'}
-)
+# Using OpenAI embeddings
+openai_embedder = OpenAITextEmbedder(api_key="your-key")
+vector = await openai_embedder.embed_text("Hello world")
+print(f"OpenAI embedding dimension: {openai_embedder.get_embedding_dimension()}")
 
-# Create nodes with text content
-alice = kg.create_node(
-    type="Person",
-    name="Alice",
-    properties={
-        "bio": "A data scientist working on machine learning and deep learning projects"
-    }
-)
+# Using HuggingFace embeddings
+hf_embedder = HuggingFaceTextEmbedder(model_name="all-MiniLM-L6-v2")
+vector = await hf_embedder.embed_text("Hello world")
+print(f"HuggingFace embedding dimension: {hf_embedder.get_embedding_dimension()}")
 
-bob = kg.create_node(
-    type="Person",
-    name="Bob",
-    properties={
-        "bio": "A software engineer specializing in cloud computing and microservices"
-    }
-)
-
-# Search by text - finds semantically similar content
-results = kg.search_by_text("artificial intelligence", limit=5)
-for result in results:
-    print(f"{result.entity.name}: {result.distance:.4f}")
-
-# Alternative: Use OpenAI embeddings
-kg_openai = KnowledgeGraph(
-    "openai_example.db",
-    embedding_dim=1536,  # OpenAI ada-002 dimension
-    embedder_type='openai',
-    embedder_kwargs={'model': 'text-embedding-ada-002'}
-)
+# Using test embeddings (for development)
+test_embedder = RandomTextEmbedder(dimension=384)
+vector = await test_embedder.embed_text("Hello world")
+print(f"Test embedding dimension: {test_embedder.get_embedding_dimension()}")
 ```
 
-### MCP Server API Usage
-
-Connect to the MCP server using the FastMCP client:
+### Database Operations
 
 ```python
-from fastmcp import Context as MCPContext
-from mcp import Client as MCPClient
+from src.adapters.sqlite3.database import SQLiteDatabase
 
-# Connect to the MCP server
-client = MCPClient("http://localhost:8080")
+# Initialize database
+db = SQLiteDatabase("knowledge_graph.db")
+await db.connect()
 
-# Create a node
-response = client.create_node(
-    type="Product",
-    name="Product X",
-    properties={"price": 99.99, "category": "Electronics"}
+# Create tables
+schema = {
+    "id": "INTEGER PRIMARY KEY",
+    "name": "TEXT NOT NULL",
+    "properties": "JSON"
+}
+await db.create_table("entities", schema)
+
+# Execute queries
+entities = await db.execute_query(
+    "SELECT * FROM entities WHERE name LIKE ?",
+    {"name": "%AI%"}
 )
 
-# Query the graph
-neighbors = client.get_neighbors(
-    node_id=response["node_id"],
-    relation_types=["MANUFACTURES", "SELLS"],
-    direction="incoming"
-)
+# Health check
+health = await db.health_check()
+print(f"Database status: {health['status']}")
 ```
 
-Starting the server:
+### Vector Store Operations
 
 ```python
-from src import KnowledgeGraphServer
+from src.adapters.sqlite3.vector_store import SQLiteVectorStore
+from src.domain.value_objects.vector import Vector
 
-# Initialize the server with a SQLite database file
-server = KnowledgeGraphServer(
-    db_path="knowledge_graph.db",
-    server_name="Knowledge Graph Server",
-    server_instructions="SQLite-based knowledge graph with vector search capabilities",
-    embedding_dim=384,  # Match the embedder dimension
-    embedder_type='sentence-transformers'  # Use real embeddings
-)
+# Initialize vector store
+vector_store = SQLiteVectorStore("vectors.db")
+await vector_store.connect()
+await vector_store.initialize_store(dimension=384)
 
-# Start the MCP server
-server.start(host="127.0.0.1", port=8080, transport="sse")
+# Add vectors
+vector = Vector([0.1, 0.2, 0.3] * 128)  # 384-dimensional
+await vector_store.add_vector("doc1", vector, {"title": "Sample Document"})
+
+# Search for similar vectors
+query_vector = Vector([0.2, 0.1, 0.4] * 128)
+results = await vector_store.search_similar(query_vector, k=5)
+
+for vector_id, similarity in results:
+    print(f"Vector {vector_id}: similarity = {similarity:.4f}")
 ```
 
 ## Design Considerations
@@ -327,16 +335,31 @@ These design considerations aim to leverage SQLite's relational strengths and pe
 
 ## Dependencies
 
-- `numpy`: For efficient array operations on vector embeddings
-- `fastmcp (>=2.3.0)`: Python implementation of the Model Context Protocol for server and client communication
-- `mcp (>=1.8.0)`: Core Model Context Protocol library
-- SQLite: Built-in database for storage (no additional installation required)
-- `sentence-transformers (>=2.2.0)`: For creating text embeddings from natural language
-- `torch (>=2.0.0)`: PyTorch framework required by sentence-transformers
+### Core Dependencies
+- **Python 3.8+**: Core runtime
+- **SQLite**: Built-in database (no installation required)
+- **numpy**: Efficient array operations for vectors
 
-Optional dependencies:
-- `hnswlib`: For efficient approximate nearest neighbor search using Hierarchical Navigable Small World graphs
-- `openai`: For using OpenAI's text embedding API as an alternative to local models
+### Adapter Dependencies
+- **Text Embeddings**:
+  - `sentence-transformers`: HuggingFace embeddings
+  - `openai`: OpenAI API embeddings  
+  - `torch`: PyTorch framework (for sentence-transformers)
+- **LLM Services**:
+  - `requests`: HTTP client for Ollama
+  - `openai`: OpenAI API client
+- **Vector Search**:
+  - `hnswlib`: Hierarchical Navigable Small World graphs
+- **MCP Integration**:
+  - `fastmcp`: Model Context Protocol implementation
+
+### Development Dependencies
+- `pytest`: Testing framework
+- `black`: Code formatting
+- `isort`: Import sorting
+- `mypy`: Type checking
+
+All dependencies are optional except core ones - you only install what you need based on which adapters you use.
 
 ## Contributing
 
