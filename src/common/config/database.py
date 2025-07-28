@@ -92,7 +92,9 @@ class DatabaseConfig(BaseSettings):
             return str(path)
         return v
 
-    class Config:
-        env_prefix = "DB_"
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        "env_prefix": "DB_",
+        "env_file": ".env",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }

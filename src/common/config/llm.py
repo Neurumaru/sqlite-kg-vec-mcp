@@ -5,7 +5,7 @@ LLM (Large Language Model) configuration settings.
 from typing import Dict, Optional
 
 from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 
 class OllamaConfig(BaseSettings):
@@ -41,22 +41,26 @@ class OllamaConfig(BaseSettings):
         description="Maximum tokens for responses"
     )
 
-    @validator("port")
+    @field_validator("port")
+    @classmethod
     def validate_port(cls, v):
         """Validate port number."""
         if not 1 <= v <= 65535:
             raise ValueError("Port must be between 1 and 65535")
         return v
     
-    @validator("temperature")
+    @field_validator("temperature")
+    @classmethod
     def validate_temperature(cls, v):
         """Validate temperature range."""
         if not 0.0 <= v <= 2.0:
             raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
 
-    class Config:
-        env_prefix = "OLLAMA_"
+    model_config = {
+        "env_prefix": "OLLAMA_",
+        "extra": "ignore"
+    }
 
 
 class OpenAIConfig(BaseSettings):
@@ -97,22 +101,26 @@ class OpenAIConfig(BaseSettings):
         description="Request timeout in seconds"
     )
 
-    @validator("temperature")
+    @field_validator("temperature")
+    @classmethod
     def validate_temperature(cls, v):
         """Validate temperature range."""
         if not 0.0 <= v <= 2.0:
             raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
     
-    @validator("embedding_dimension")
+    @field_validator("embedding_dimension")
+    @classmethod
     def validate_embedding_dimension(cls, v):
         """Validate embedding dimension."""
         if v is not None and v <= 0:
             raise ValueError("Embedding dimension must be positive")
         return v
 
-    class Config:
-        env_prefix = "OPENAI_"
+    model_config = {
+        "env_prefix": "OPENAI_",
+        "extra": "ignore"
+    }
 
 
 class AnthropicConfig(BaseSettings):
@@ -143,15 +151,18 @@ class AnthropicConfig(BaseSettings):
         description="Request timeout in seconds"
     )
 
-    @validator("temperature")
+    @field_validator("temperature")
+    @classmethod
     def validate_temperature(cls, v):
         """Validate temperature range."""
         if not 0.0 <= v <= 1.0:
             raise ValueError("Temperature must be between 0.0 and 1.0")
         return v
 
-    class Config:
-        env_prefix = "ANTHROPIC_"
+    model_config = {
+        "env_prefix": "ANTHROPIC_",
+        "extra": "ignore"
+    }
 
 
 class LLMConfig(BaseSettings):
@@ -194,7 +205,8 @@ class LLMConfig(BaseSettings):
         description="Base delay between retries in seconds"
     )
 
-    @validator("default_provider")
+    @field_validator("default_provider")
+    @classmethod
     def validate_default_provider(cls, v):
         """Validate default provider."""
         valid_providers = {"ollama", "openai", "anthropic"}
@@ -202,6 +214,8 @@ class LLMConfig(BaseSettings):
             raise ValueError(f"Provider must be one of {valid_providers}")
         return v
 
-    class Config:
-        env_prefix = "LLM_"
-        env_file = ".env"
+    model_config = {
+        "env_prefix": "LLM_",
+        "env_file": ".env",
+        "extra": "ignore"
+    }

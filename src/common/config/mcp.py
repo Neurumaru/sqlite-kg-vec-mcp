@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 
 class MCPConfig(BaseSettings):
@@ -108,21 +108,24 @@ class MCPConfig(BaseSettings):
         description="Allowed CORS origins"
     )
 
-    @validator("port")
+    @field_validator("port")
+    @classmethod
     def validate_port(cls, v):
         """Validate port number."""
         if not 1 <= v <= 65535:
             raise ValueError("Port must be between 1 and 65535")
         return v
     
-    @validator("embedding_dim")
+    @field_validator("embedding_dim")
+    @classmethod
     def validate_embedding_dim(cls, v):
         """Validate embedding dimension."""
         if v <= 0:
             raise ValueError("Embedding dimension must be positive")
         return v
     
-    @validator("vector_similarity")
+    @field_validator("vector_similarity")
+    @classmethod
     def validate_vector_similarity(cls, v):
         """Validate vector similarity metric."""
         valid_metrics = {"cosine", "euclidean", "dot", "l2"}
@@ -130,14 +133,16 @@ class MCPConfig(BaseSettings):
             raise ValueError(f"Vector similarity must be one of {valid_metrics}")
         return v
     
-    @validator("search_threshold")
+    @field_validator("search_threshold")
+    @classmethod
     def validate_search_threshold(cls, v):
         """Validate search threshold."""
         if not 0.0 <= v <= 1.0:
             raise ValueError("Search threshold must be between 0.0 and 1.0")
         return v
     
-    @validator("log_level")
+    @field_validator("log_level")
+    @classmethod
     def validate_log_level(cls, v):
         """Validate log level."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -145,7 +150,8 @@ class MCPConfig(BaseSettings):
             raise ValueError(f"Log level must be one of {valid_levels}")
         return v.upper()
     
-    @validator("vector_index_dir")
+    @field_validator("vector_index_dir")
+    @classmethod
     def validate_vector_index_dir(cls, v):
         """Validate and create vector index directory."""
         if v is not None:
@@ -154,7 +160,9 @@ class MCPConfig(BaseSettings):
             return str(path)
         return v
 
-    class Config:
-        env_prefix = "MCP_"
-        env_file = ".env"
-        case_sensitive = False
+    model_config = {
+        "env_prefix": "MCP_",
+        "env_file": ".env",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }

@@ -139,7 +139,9 @@ class AppConfig(BaseSettings):
         """Check if running in development environment."""
         return self.environment == "development"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        validate_assignment = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": False,
+        "validate_assignment": True,
+        "extra": "ignore"
+    }

@@ -5,7 +5,7 @@ Observability and monitoring configuration settings.
 from typing import Dict, Optional
 
 from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 
 class LangfuseConfig(BaseSettings):
@@ -46,8 +46,10 @@ class LangfuseConfig(BaseSettings):
         description="Enable debug logging for Langfuse"
     )
 
-    class Config:
-        env_prefix = "LANGFUSE_"
+    model_config = {
+        "env_prefix": "LANGFUSE_",
+        "extra": "ignore"
+    }
 
 
 class PrometheusConfig(BaseSettings):
@@ -83,15 +85,18 @@ class PrometheusConfig(BaseSettings):
         description="Job name for metrics"
     )
 
-    @validator("port")
+    @field_validator("port")
+    @classmethod
     def validate_port(cls, v):
         """Validate port number."""
         if not 1 <= v <= 65535:
             raise ValueError("Port must be between 1 and 65535")
         return v
 
-    class Config:
-        env_prefix = "PROMETHEUS_"
+    model_config = {
+        "env_prefix": "PROMETHEUS_",
+        "extra": "ignore"
+    }
 
 
 class OpenTelemetryConfig(BaseSettings):
@@ -137,8 +142,10 @@ class OpenTelemetryConfig(BaseSettings):
         description="Use insecure connection for tracing"
     )
 
-    class Config:
-        env_prefix = "OTEL_"
+    model_config = {
+        "env_prefix": "OTEL_",
+        "extra": "ignore"
+    }
 
 
 class LoggingObservabilityConfig(BaseSettings):
@@ -179,7 +186,8 @@ class LoggingObservabilityConfig(BaseSettings):
         description="Sanitize sensitive data in logs"
     )
 
-    @validator("level")
+    @field_validator("level")
+    @classmethod
     def validate_level(cls, v):
         """Validate log level."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -187,7 +195,8 @@ class LoggingObservabilityConfig(BaseSettings):
             raise ValueError(f"Level must be one of {valid_levels}")
         return v.upper()
     
-    @validator("format")
+    @field_validator("format")
+    @classmethod
     def validate_format(cls, v):
         """Validate log format."""
         valid_formats = {"json", "text"}
@@ -195,8 +204,10 @@ class LoggingObservabilityConfig(BaseSettings):
             raise ValueError(f"Format must be one of {valid_formats}")
         return v
 
-    class Config:
-        env_prefix = "LOG_"
+    model_config = {
+        "env_prefix": "LOG_",
+        "extra": "ignore"
+    }
 
 
 class ObservabilityConfig(BaseSettings):
@@ -260,14 +271,16 @@ class ObservabilityConfig(BaseSettings):
         description="Metrics collection interval in seconds"
     )
 
-    @validator("trace_sampling_ratio")
+    @field_validator("trace_sampling_ratio")
+    @classmethod
     def validate_trace_sampling_ratio(cls, v):
         """Validate trace sampling ratio."""
         if not 0.0 <= v <= 1.0:
             raise ValueError("Trace sampling ratio must be between 0.0 and 1.0")
         return v
     
-    @validator("environment")
+    @field_validator("environment")
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment."""
         valid_envs = {"development", "staging", "production"}
@@ -275,6 +288,8 @@ class ObservabilityConfig(BaseSettings):
             raise ValueError(f"Environment must be one of {valid_envs}")
         return v
 
-    class Config:
-        env_prefix = "OBSERVABILITY_"
-        env_file = ".env"
+    model_config = {
+        "env_prefix": "OBSERVABILITY_",
+        "env_file": ".env",
+        "extra": "ignore"
+    }
