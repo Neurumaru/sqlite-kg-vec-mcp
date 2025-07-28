@@ -17,7 +17,7 @@ from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
 from src.ports.database import Database
-from src.ports.document_repository import DocumentRepository
+from src.ports.repositories.document import DocumentRepository
 
 
 class SQLiteDocumentRepository(DocumentRepository):

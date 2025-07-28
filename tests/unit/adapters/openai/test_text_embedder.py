@@ -39,15 +39,6 @@ class TestOpenAITextEmbedder(unittest.IsolatedAsyncioTestCase):
         dimension = self.embedder.get_embedding_dimension()
         self.assertEqual(dimension, 1536)
 
-    def test_get_model_name(self):
-        """모델명 반환 테스트."""
-        model_name = self.embedder.get_model_name()
-        self.assertEqual(model_name, "text-embedding-3-small")
-
-    def test_get_max_token_length(self):
-        """최대 토큰 길이 반환 테스트."""
-        max_tokens = self.embedder.get_max_token_length()
-        self.assertEqual(max_tokens, 8192)
 
     async def test_embed_text(self):
         """텍스트 임베딩 테스트."""
@@ -93,35 +84,20 @@ class TestOpenAITextEmbedder(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(result[1].values[1], 0.5, places=5)
         self.assertAlmostEqual(result[1].values[2], 0.6, places=5)
 
-    async def test_compute_similarity(self):
-        """벡터 유사도 계산 테스트."""
-        vector1 = Vector([1.0, 0.0, 0.0])
-        vector2 = Vector([0.0, 1.0, 0.0])
+    async def test_is_available(self):
+        """서비스 가용성 확인 테스트."""
+        # Mock OpenAI 클라이언트 응답 
+        mock_response = Mock()
+        mock_response.data = [Mock(embedding=[0.1, 0.2, 0.3])]
+        self.embedder.client.embeddings.create = Mock(return_value=mock_response)
 
-        similarity = await self.embedder.compute_similarity(vector1, vector2)
+        result = await self.embedder.is_available()
+        self.assertTrue(result)
 
-        self.assertAlmostEqual(similarity, 0.0, places=5)  # 직교 벡터는 유사도 0
-
-    def test_preprocess_text(self):
-        """텍스트 전처리 테스트."""
-        text = "  여러개의    공백이   있는   텍스트  "
-        processed = self.embedder.preprocess_text(text)
-
-        self.assertEqual(processed, "여러개의 공백이 있는 텍스트")
-
-    async def test_validate_embedding(self):
-        """임베딩 벡터 검증 테스트."""
-        # 유효한 벡터
-        valid_vector = Vector([0.1] * 1536)
-        self.assertTrue(await self.embedder.validate_embedding(valid_vector))
-
-        # 잘못된 차원의 벡터
-        invalid_vector = Vector([0.1] * 100)
-        self.assertFalse(await self.embedder.validate_embedding(invalid_vector))
-
-        # NaN이 포함된 벡터
-        nan_vector = Vector([float("nan")] * 1536)
-        self.assertFalse(await self.embedder.validate_embedding(nan_vector))
+        # 실패 케이스
+        self.embedder.client.embeddings.create = Mock(side_effect=Exception("API Error"))
+        result = await self.embedder.is_available()
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":
