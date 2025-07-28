@@ -5,9 +5,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from src.domain.entities.document import Document
-from src.domain.entities.node import Node
-from src.domain.entities.relationship import Relationship
+from src.dto import DocumentData, NodeData, RelationshipData
 
 
 class KnowledgeExtractor(ABC):
@@ -18,46 +16,17 @@ class KnowledgeExtractor(ABC):
     """
 
     @abstractmethod
-    async def extract_entities(self, document: Document) -> List[Node]:
+    async def extract(
+        self, document: DocumentData
+    ) -> tuple[List[NodeData], List[RelationshipData]]:
         """
-        문서에서 개체(노드)를 추출합니다.
+        문서에서 지식(노드와 관계)을 추출합니다.
 
         Args:
-            document: 분석할 문서
+            document: 분석할 문서 데이터
 
         Returns:
-            추출된 노드 리스트
-        """
-        pass
-
-    @abstractmethod
-    async def extract_relationships(
-        self, document: Document, nodes: List[Node]
-    ) -> List[Relationship]:
-        """
-        문서에서 관계를 추출합니다.
-
-        Args:
-            document: 분석할 문서
-            nodes: 문서에서 추출된 노드들
-
-        Returns:
-            추출된 관계 리스트
-        """
-        pass
-
-    @abstractmethod
-    async def extract_knowledge(
-        self, document: Document
-    ) -> tuple[List[Node], List[Relationship]]:
-        """
-        문서에서 전체 지식(노드와 관계)을 추출합니다.
-
-        Args:
-            document: 분석할 문서
-
-        Returns:
-            (노드 리스트, 관계 리스트) 튜플
+            (노드 데이터 리스트, 관계 데이터 리스트) 튜플
         """
         pass
 
