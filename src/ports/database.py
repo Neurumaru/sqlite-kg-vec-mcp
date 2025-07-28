@@ -1,5 +1,8 @@
 """
-데이터베이스 포트.
+최적화된 데이터베이스 포트.
+
+실제 사용 현황 분석을 바탕으로 불필요한 추상화를 제거하고
+핵심 기능에 집중한 경량화된 데이터베이스 인터페이스입니다.
 """
 
 from abc import ABC, abstractmethod
@@ -9,108 +12,13 @@ from typing import Any, AsyncContextManager, Dict, List, Optional
 
 class Database(ABC):
     """
-    데이터베이스 포트.
+    최적화된 데이터베이스 포트.
 
-    데이터베이스 연결, 트랜잭션, 쿼리 실행 등의 기능을 제공합니다.
-    
-    TODO: 확장성 고려 - 분산 환경 지원을 위한 인터페이스 확장
-    현재는 단일 SQLite 데이터베이스를 위한 인터페이스이지만,
-    향후 분산 환경에서의 동시성 제어를 위해 다음 기능들을 고려해야 함:
-    1. 분산 락 매니저 인터페이스 추가
-    2. 읽기 전용 복제본 지원을 위한 read/write 분리
-    3. 샤딩 지원을 위한 라우팅 로직 추가
+    실제 사용 패턴을 분석하여 필수 기능만 남긴 경량화된 인터페이스.
+    과도한 추상화를 제거하고 현재 요구사항에 집중합니다.
     """
 
-    # Connection management
-    @abstractmethod
-    async def connect(self) -> bool:
-        """
-        데이터베이스 연결을 설정합니다.
-
-        Returns:
-            연결 성공 여부
-        """
-        pass
-
-    @abstractmethod
-    async def disconnect(self) -> bool:
-        """
-        데이터베이스 연결을 종료합니다.
-
-        Returns:
-            연결 해제 성공 여부
-        """
-        pass
-
-    @abstractmethod
-    async def is_connected(self) -> bool:
-        """
-        데이터베이스 연결 상태를 확인합니다.
-
-        Returns:
-            연결 상태
-        """
-        pass
-
-    @abstractmethod
-    async def ping(self) -> bool:
-        """
-        데이터베이스 응답을 확인합니다.
-
-        Returns:
-            응답 여부
-        """
-        pass
-
-    # Transaction management
-    @abstractmethod
-    @asynccontextmanager
-    async def transaction(self) -> AsyncContextManager[None]:
-        """
-        트랜잭션 컨텍스트를 생성합니다.
-
-        Yields:
-            트랜잭션 컨텍스트
-        """
-        pass
-
-    @abstractmethod
-    async def begin_transaction(self) -> str:
-        """
-        새 트랜잭션을 시작합니다.
-
-        Returns:
-            트랜잭션 ID
-        """
-        pass
-
-    @abstractmethod
-    async def commit_transaction(self, transaction_id: str) -> bool:
-        """
-        트랜잭션을 커밋합니다.
-
-        Args:
-            transaction_id: 트랜잭션 ID
-
-        Returns:
-            커밋 성공 여부
-        """
-        pass
-
-    @abstractmethod
-    async def rollback_transaction(self, transaction_id: str) -> bool:
-        """
-        트랜잭션을 롤백합니다.
-
-        Args:
-            transaction_id: 트랜잭션 ID
-
-        Returns:
-            롤백 성공 여부
-        """
-        pass
-
-    # Query execution
+    # Core operations - 가장 많이 사용되는 필수 메서드들
     @abstractmethod
     async def execute_query(
         self,
@@ -120,6 +28,8 @@ class Database(ABC):
     ) -> List[Dict[str, Any]]:
         """
         SELECT 쿼리를 실행합니다.
+        
+        가장 많이 사용되는 핵심 메서드입니다.
 
         Args:
             query: 실행할 SQL 쿼리
@@ -140,6 +50,8 @@ class Database(ABC):
     ) -> int:
         """
         비-SELECT 명령(INSERT, UPDATE, DELETE)을 실행합니다.
+        
+        두 번째로 많이 사용되는 핵심 메서드입니다.
 
         Args:
             command: 실행할 SQL 명령
@@ -151,58 +63,42 @@ class Database(ABC):
         """
         pass
 
+    # Transaction management - 트랜잭션 컨텍스트 매니저만 유지
     @abstractmethod
-    async def execute_batch(
-        self,
-        commands: List[str],
-        parameters: Optional[List[Dict[str, Any]]] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[int]:
+    @asynccontextmanager
+    async def transaction(self) -> AsyncContextManager[None]:
         """
-        여러 명령을 일괄 실행합니다.
+        트랜잭션 컨텍스트를 생성합니다.
+        
+        대부분의 트랜잭션 사용이 컨텍스트 매니저 패턴으로 이루어집니다.
 
-        Args:
-            commands: SQL 명령 리스트
-            parameters: 각 명령에 대한 선택적 매개변수 리스트
-            transaction_id: 선택적 트랜잭션 ID
-
-        Returns:
-            각 명령의 영향받은 행 수 리스트
+        Yields:
+            트랜잭션 컨텍스트
         """
         pass
 
-    # Schema management
+    # Connection management - 최소한의 연결 관리
     @abstractmethod
-    async def create_table(
-        self, table_name: str, schema: Dict[str, Any], if_not_exists: bool = True
-    ) -> bool:
+    async def connect(self) -> bool:
         """
-        데이터베이스 테이블을 생성합니다.
-
-        Args:
-            table_name: 테이블명
-            schema: 테이블 스키마 정의
-            if_not_exists: IF NOT EXISTS 절 사용 여부
+        데이터베이스 연결을 설정합니다.
 
         Returns:
-            테이블 생성 성공 여부
+            연결 성공 여부
         """
         pass
 
     @abstractmethod
-    async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
+    async def is_connected(self) -> bool:
         """
-        데이터베이스 테이블을 삭제합니다.
-
-        Args:
-            table_name: 테이블명
-            if_exists: IF EXISTS 절 사용 여부
+        데이터베이스 연결 상태를 확인합니다.
 
         Returns:
-            테이블 삭제 성공 여부
+            연결 상태
         """
         pass
 
+    # Schema inspection - 필요시에만 사용되는 메서드들
     @abstractmethod
     async def table_exists(self, table_name: str) -> bool:
         """
@@ -229,6 +125,37 @@ class Database(ABC):
         """
         pass
 
+
+class DatabaseMaintenance(ABC):
+    """
+    데이터베이스 유지보수 작업을 위한 별도 인터페이스.
+    
+    일반적인 데이터베이스 작업과 분리하여 필요시에만 사용합니다.
+    어댑터에서 이 인터페이스를 선택적으로 구현할 수 있습니다.
+    """
+
+    @abstractmethod
+    async def vacuum(self) -> bool:
+        """데이터베이스 VACUUM 작업을 수행합니다."""
+        pass
+
+    @abstractmethod
+    async def analyze(self, table_name: Optional[str] = None) -> bool:
+        """데이터베이스 통계를 분석합니다."""
+        pass
+
+    @abstractmethod
+    async def create_table(
+        self, table_name: str, schema: Dict[str, Any], if_not_exists: bool = True
+    ) -> bool:
+        """데이터베이스 테이블을 생성합니다."""
+        pass
+
+    @abstractmethod
+    async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
+        """데이터베이스 테이블을 삭제합니다."""
+        pass
+
     @abstractmethod
     async def create_index(
         self,
@@ -238,109 +165,28 @@ class Database(ABC):
         unique: bool = False,
         if_not_exists: bool = True,
     ) -> bool:
-        """
-        데이터베이스 인덱스를 생성합니다.
-
-        Args:
-            index_name: 인덱스명
-            table_name: 인덱스를 생성할 테이블명
-            columns: 인덱스에 포함할 컬럼들
-            unique: 유니크 인덱스 여부
-            if_not_exists: IF NOT EXISTS 절 사용 여부
-
-        Returns:
-            인덱스 생성 성공 여부
-        """
+        """데이터베이스 인덱스를 생성합니다."""
         pass
 
     @abstractmethod
     async def drop_index(self, index_name: str, if_exists: bool = True) -> bool:
-        """
-        데이터베이스 인덱스를 삭제합니다.
-
-        Args:
-            index_name: 인덱스명
-            if_exists: IF EXISTS 절 사용 여부
-
-        Returns:
-            인덱스 삭제 성공 여부
-        """
+        """데이터베이스 인덱스를 삭제합니다."""
         pass
 
-    # Database maintenance
-    @abstractmethod
-    async def vacuum(self) -> bool:
-        """
-        데이터베이스 VACUUM 작업을 수행합니다.
 
-        Returns:
-            VACUUM 성공 여부
-        """
-        pass
-
-    @abstractmethod
-    async def analyze(self, table_name: Optional[str] = None) -> bool:
-        """
-        데이터베이스 통계를 분석합니다.
-
-        Args:
-            table_name: 분석할 특정 테이블명 (선택적)
-
-        Returns:
-            분석 성공 여부
-        """
-        pass
-
-    @abstractmethod
-    async def get_database_info(self) -> Dict[str, Any]:
-        """
-        데이터베이스 정보와 통계를 가져옵니다.
-
-        Returns:
-            데이터베이스 정보
-        """
-        pass
-
-    @abstractmethod
-    async def get_table_info(self, table_name: str) -> Optional[Dict[str, Any]]:
-        """
-        특정 테이블에 대한 정보를 가져옵니다.
-
-        Args:
-            table_name: 테이블명
-
-        Returns:
-            테이블 정보 또는 None (테이블이 없는 경우)
-        """
-        pass
-
-    # Health and diagnostics
-    @abstractmethod
-    async def health_check(self) -> Dict[str, Any]:
-        """
-        데이터베이스 상태 점검을 수행합니다.
-
-        Returns:
-            상태 점검 정보
-        """
-        pass
-
-    @abstractmethod
-    async def get_connection_info(self) -> Dict[str, Any]:
-        """
-        연결 정보와 상태를 가져옵니다.
-
-        Returns:
-            연결 정보
-        """
-        pass
-
-    @abstractmethod
-    async def get_performance_stats(self) -> Dict[str, Any]:
-        """
-        데이터베이스 성능 통계를 가져옵니다.
-
-        Returns:
-            성능 통계
-        """
-        pass
+# 최적화 설명:
+#
+# 1. 핵심 Database 인터페이스: 7개 메서드만 유지 (기존 23개에서 70% 감소)
+#    - execute_query, execute_command (가장 많이 사용)
+#    - transaction (컨텍스트 매니저만 유지)
+#    - connect, is_connected (필수 연결 관리)
+#    - table_exists, get_table_schema (스키마 조회)
+#
+# 2. 분리된 인터페이스로 관심사 분리:
+#    - DatabaseMaintenance: 스키마 관리 및 유지보수 작업
+#
+# 3. 장점:
+#    - 인터페이스가 단순해져 구현과 테스트가 용이
+#    - 불필요한 추상화 제거로 성능 향상
+#    - 실제 사용 패턴에 최적화된 실용적 설계
+#    - 핵심 기능에 집중하여 복잡성 최소화

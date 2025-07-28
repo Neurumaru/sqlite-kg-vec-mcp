@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import Any, AsyncContextManager, Dict, List, Optional
 
 from src.common.config.database import DatabaseConfig
-from src.ports.database import Database
+from src.ports.database import Database, DatabaseMaintenance
 
 from .connection import DatabaseConnection
 
 
-class SQLiteDatabase(Database):
+class SQLiteDatabase(Database, DatabaseMaintenance):
     """
     SQLite implementation of the Database port.
 
