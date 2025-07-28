@@ -5,7 +5,8 @@ MCP (Model Context Protocol) server configuration settings.
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, validator
 
 
 class MCPConfig(BaseSettings):

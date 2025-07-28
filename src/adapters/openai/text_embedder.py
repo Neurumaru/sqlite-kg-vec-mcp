@@ -2,7 +2,6 @@
 OpenAI 텍스트 임베딩 어댑터.
 """
 
-import os
 from typing import Any, Dict, List, Optional
 
 try:
@@ -14,6 +13,7 @@ except ImportError:
 
 import numpy as np
 
+from src.common.config.llm import OpenAIConfig
 from src.domain.value_objects.vector import Vector
 from src.ports.text_embedder import EmbeddingConfig, EmbeddingResult, TextEmbedder
 
@@ -23,32 +23,40 @@ class OpenAITextEmbedder(TextEmbedder):
 
     def __init__(
         self,
+        config: Optional[OpenAIConfig] = None,
         api_key: Optional[str] = None,
-        model: str = "text-embedding-3-small",
+        model: Optional[str] = None,
         dimension: Optional[int] = None,
     ):
         """
         OpenAI 임베딩 어댑터를 초기화합니다.
 
         Args:
-            api_key: OpenAI API 키 (None인 경우 OPENAI_API_KEY 환경변수 사용)
-            model: 임베딩 모델명
-            dimension: 임베딩 차원 (지원하는 모델의 경우)
+            config: OpenAI 설정 객체
+            api_key: OpenAI API 키 (deprecated, config 사용 권장)
+            model: 임베딩 모델명 (deprecated, config 사용 권장)
+            dimension: 임베딩 차원 (deprecated, config 사용 권장)
         """
         if not OPENAI_AVAILABLE:
             raise ImportError(
                 "openai가 설치되지 않았습니다. 'pip install openai'로 설치해주세요."
             )
 
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        # Use config if provided, otherwise fall back to individual parameters
+        if config is None:
+            config = OpenAIConfig()
+        
+        # Override config with individual parameters if provided (for backward compatibility)
+        self.api_key = api_key or config.api_key
         if not self.api_key:
             raise ValueError(
                 "OpenAI API 키가 제공되지 않았고 OPENAI_API_KEY 환경변수도 없습니다."
             )
 
         self.client = openai.OpenAI(api_key=self.api_key)
-        self.model = model
-        self.custom_dimension = dimension
+        self.model = model or config.embedding_model
+        self.custom_dimension = dimension or config.embedding_dimension
+        self.timeout = config.timeout
 
         # 알려진 모델의 기본 차원
         self._default_dimensions = {

@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncContextManager, Dict, List, Optional
 
+from src.common.config.database import DatabaseConfig
 from src.ports.database import Database
 
 from .connection import DatabaseConnection
@@ -21,17 +22,26 @@ class SQLiteDatabase(Database):
     using SQLite as the underlying storage engine.
     """
 
-    def __init__(self, db_path: str, optimize: bool = True):
+    def __init__(self, config: Optional[DatabaseConfig] = None, db_path: Optional[str] = None, optimize: Optional[bool] = None):
         """
         Initialize SQLite database adapter.
 
         Args:
-            db_path: Path to the SQLite database file
-            optimize: Whether to apply optimization PRAGMAs
+            config: Database 설정 객체
+            db_path: Path to the SQLite database file (deprecated, config 사용 권장)
+            optimize: Whether to apply optimization PRAGMAs (deprecated, config 사용 권장)
         """
-        self.db_path = Path(db_path)
-        self.optimize = optimize
-        self._connection_manager = DatabaseConnection(db_path, optimize)
+        if config is None:
+            config = DatabaseConfig()
+        
+        # Override config with individual parameters if provided (for backward compatibility)
+        self.db_path = Path(db_path or config.db_path)
+        self.optimize = optimize if optimize is not None else config.optimize
+        self.timeout = config.timeout
+        self.check_same_thread = config.check_same_thread
+        self.max_connections = config.max_connections
+        
+        self._connection_manager = DatabaseConnection(str(self.db_path), self.optimize)
         self._connection: Optional[sqlite3.Connection] = None
         self._active_transactions: Dict[str, sqlite3.Connection] = {}
 

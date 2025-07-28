@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional
 
 import structlog
 
+from ..config.observability import LoggingObservabilityConfig
+
 
 class LogLevel(Enum):
     """Supported log levels."""
@@ -39,14 +41,26 @@ class LoggingConfig:
     sanitize_sensitive_data: bool = True
 
 
-def configure_structured_logging(config: Optional[LoggingConfig] = None) -> None:
+def configure_structured_logging(config: Optional[LoggingConfig] = None, observability_config: Optional[LoggingObservabilityConfig] = None) -> None:
     """
     Configure structured logging for the application.
 
     Args:
-        config: Logging configuration (uses defaults if None)
+        config: Logging configuration (uses defaults if None, deprecated)
+        observability_config: New observability logging configuration
     """
-    if config is None:
+    if observability_config is not None:
+        # Convert observability config to logging config
+        config = LoggingConfig(
+            level=LogLevel(observability_config.level),
+            format=observability_config.format,
+            output=observability_config.output,
+            file_path=observability_config.file_path,
+            include_trace=observability_config.include_trace,
+            include_caller=observability_config.include_caller,
+            sanitize_sensitive_data=observability_config.sanitize_sensitive_data,
+        )
+    elif config is None:
         config = LoggingConfig()
 
     _configure_structlog(config)
@@ -202,6 +216,8 @@ class _JSONFormatter(object):
 def get_logging_config_from_env() -> LoggingConfig:
     """
     Get logging configuration from environment variables.
+    
+    Deprecated: Use LoggingObservabilityConfig.from_env() instead.
 
     Environment variables:
     - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
@@ -224,3 +240,13 @@ def get_logging_config_from_env() -> LoggingConfig:
         include_caller=os.getenv("LOG_INCLUDE_CALLER", "false").lower() == "true",
         sanitize_sensitive_data=os.getenv("LOG_SANITIZE", "true").lower() == "true",
     )
+
+
+def get_observability_logging_config_from_env() -> LoggingObservabilityConfig:
+    """
+    Get observability logging configuration from environment variables.
+    
+    Returns:
+        LoggingObservabilityConfig instance
+    """
+    return LoggingObservabilityConfig()

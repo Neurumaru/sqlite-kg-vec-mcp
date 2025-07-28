@@ -4,7 +4,8 @@ LLM (Large Language Model) configuration settings.
 
 from typing import Dict, Optional
 
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, validator
 
 
 class OllamaConfig(BaseSettings):

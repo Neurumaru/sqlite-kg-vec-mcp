@@ -5,7 +5,8 @@ Database configuration settings.
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
 
 
 class DatabaseConfig(BaseSettings):
@@ -65,21 +66,24 @@ class DatabaseConfig(BaseSettings):
         description="Path for database backups"
     )
 
-    @validator("db_path")
+    @field_validator("db_path")
+    @classmethod
     def validate_db_path(cls, v):
         """Validate database path and create directory if needed."""
         path = Path(v)
         path.parent.mkdir(parents=True, exist_ok=True)
         return str(path)
     
-    @validator("vector_dimension")
+    @field_validator("vector_dimension")
+    @classmethod
     def validate_vector_dimension(cls, v):
         """Validate vector dimension is positive."""
         if v <= 0:
             raise ValueError("Vector dimension must be positive")
         return v
     
-    @validator("backup_path")
+    @field_validator("backup_path")
+    @classmethod
     def validate_backup_path(cls, v):
         """Validate backup path if provided."""
         if v is not None:

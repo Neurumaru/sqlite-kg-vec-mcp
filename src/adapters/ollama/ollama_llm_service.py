@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from src.common.config.llm import OllamaConfig
 from src.domain.services.knowledge_search import SearchStrategy
 from src.ports.llm_service import LLMService
 
@@ -25,21 +26,29 @@ class OllamaLLMService(LLMService):
 
     def __init__(
         self,
-        ollama_client: OllamaClient,
-        default_temperature: float = 0.7,
-        max_tokens: int = 2000,
+        ollama_client: Optional[OllamaClient] = None,
+        config: Optional[OllamaConfig] = None,
+        default_temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ):
         """
         Initialize Ollama LLM service.
 
         Args:
-            ollama_client: Configured Ollama client
-            default_temperature: Default sampling temperature
-            max_tokens: Default maximum tokens for responses
+            ollama_client: Configured Ollama client (deprecated, config 사용 권장)
+            config: Ollama 설정 객체
+            default_temperature: Default sampling temperature (deprecated, config 사용 권장)
+            max_tokens: Default maximum tokens for responses (deprecated, config 사용 권장)
         """
+        if config is None:
+            config = OllamaConfig()
+        
+        if ollama_client is None:
+            ollama_client = OllamaClient(config=config)
+        
         self.ollama_client = ollama_client
-        self.default_temperature = default_temperature
-        self.max_tokens = max_tokens
+        self.default_temperature = default_temperature or config.temperature
+        self.max_tokens = max_tokens or config.max_tokens
 
     # Interactive search guidance
 

@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from src.common.config.llm import OllamaConfig
 from src.common.observability import get_observable_logger, with_observability
 
 # Langfuse integration removed - using fallback prompts
@@ -30,21 +31,29 @@ class OllamaClient:
 
     def __init__(
         self,
-        base_url: str = "http://localhost:11434",
-        model: str = "gemma2",
-        timeout: int = 60,
+        config: Optional[OllamaConfig] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        timeout: Optional[int] = None,
     ):
         """
         Initialize Ollama client.
 
         Args:
-            base_url: Ollama server URL
-            model: Model name to use (default: gemma2)
-            timeout: Request timeout in seconds
+            config: Ollama 설정 객체
+            base_url: Ollama server URL (deprecated, config 사용 권장)
+            model: Model name to use (deprecated, config 사용 권장) 
+            timeout: Request timeout in seconds (deprecated, config 사용 권장)
         """
-        self.base_url = base_url.rstrip("/")
-        self.model = model
-        self.timeout = timeout
+        if config is None:
+            config = OllamaConfig()
+        
+        # Override config with individual parameters if provided (for backward compatibility)
+        self.base_url = (base_url or f"http://{config.host}:{config.port}").rstrip("/")
+        self.model = model or config.model
+        self.timeout = timeout or int(config.timeout)
+        self.temperature = config.temperature
+        self.max_tokens = config.max_tokens
         self.session = requests.Session()
         self.logger = get_observable_logger("ollama_client", "adapter")
 
