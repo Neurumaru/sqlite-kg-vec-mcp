@@ -9,7 +9,7 @@ from langchain_core.messages import BaseMessage
 
 
 
-class LLMService(ABC):
+class LLM(ABC):
     """
     LLM 서비스 포트.
 

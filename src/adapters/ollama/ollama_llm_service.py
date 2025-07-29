@@ -7,18 +7,19 @@ import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+from langchain_core.messages import AIMessage, BaseMessage
 from src.common.config.llm import OllamaConfig
 from src.domain.services.knowledge_search import SearchStrategy
-from src.ports.llm_service import LLMService
+from src.ports.llm import LLM
 
 # Temporary type alias to avoid circular dependency
 SearchResult = Any
 from .ollama_client import OllamaClient
 
 
-class OllamaLLMService(LLMService):
+class OllamaLLMService(LLM):
     """
-    Ollama-based implementation of the LLMService port.
+    Ollama-based implementation of the LLM port.
 
     This adapter provides LLM capabilities using Ollama models
     for search guidance, knowledge extraction, and analysis.
@@ -49,6 +50,115 @@ class OllamaLLMService(LLMService):
         self.ollama_client = ollama_client
         self.default_temperature = default_temperature or config.temperature
         self.max_tokens = max_tokens or config.max_tokens
+
+    # LangChain 호환 메서드들
+
+    async def invoke(
+        self,
+        input: List[BaseMessage],
+        **kwargs: Any,
+    ) -> BaseMessage:
+        """
+        메시지들을 기반으로 응답을 생성합니다 (LangChain invoke 스타일).
+
+        Args:
+            input: LangChain BaseMessage 리스트
+            **kwargs: 모델 파라미터 (temperature, max_tokens, stop 등)
+
+        Returns:
+            AIMessage 응답
+        """
+        # 메시지들을 텍스트로 변환
+        prompt = self._messages_to_text(input)
+        
+        # 파라미터 추출
+        temperature = kwargs.get('temperature', self.default_temperature)
+        max_tokens = kwargs.get('max_tokens', self.max_tokens)
+        
+        # Ollama 클라이언트로 생성
+        response = await asyncio.to_thread(
+            self.ollama_client.generate,
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        return AIMessage(content=response.text)
+
+    async def stream(
+        self, 
+        input: List[BaseMessage],
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
+        """
+        스트리밍 방식으로 응답을 생성합니다 (LangChain stream 스타일).
+
+        Args:
+            input: LangChain BaseMessage 리스트
+            **kwargs: 모델 파라미터
+
+        Yields:
+            응답 텍스트 청크들
+        """
+        # 메시지들을 텍스트로 변환
+        prompt = self._messages_to_text(input)
+        
+        # 파라미터 추출
+        temperature = kwargs.get('temperature', self.default_temperature)
+        max_tokens = kwargs.get('max_tokens', self.max_tokens)
+        
+        # Ollama 클라이언트로 생성 (현재는 스트리밍을 시뮬레이션)
+        response = await asyncio.to_thread(
+            self.ollama_client.generate,
+            prompt=prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        # 응답을 청크로 나누어 스트리밍 시뮬레이션
+        text = response.text
+        chunk_size = 50
+        for i in range(0, len(text), chunk_size):
+            chunk = text[i : i + chunk_size]
+            yield chunk
+            await asyncio.sleep(0.05)  # 스트리밍 지연 시뮬레이션
+
+    async def batch(
+        self,
+        inputs: List[List[BaseMessage]],
+        **kwargs: Any,
+    ) -> List[BaseMessage]:
+        """
+        여러 메시지 시퀀스를 배치로 처리합니다 (LangChain batch 스타일).
+
+        Args:
+            inputs: 메시지 시퀀스들의 리스트
+            **kwargs: 모델 파라미터
+
+        Returns:
+            AIMessage 응답들의 리스트
+        """
+        # 각 입력에 대해 invoke를 호출
+        results = []
+        for message_list in inputs:
+            result = await self.invoke(message_list, **kwargs)
+            results.append(result)
+        
+        return results
+
+    def _messages_to_text(self, messages: List[BaseMessage]) -> str:
+        """BaseMessage 리스트를 텍스트로 변환합니다."""
+        text_parts = []
+        for message in messages:
+            role = message.__class__.__name__.replace('Message', '').lower()
+            if role == 'ai':
+                role = 'assistant'
+            elif role == 'human':
+                role = 'user'
+            
+            text_parts.append(f"{role}: {message.content}")
+        
+        return "\n".join(text_parts)
 
     # Interactive search guidance
 
