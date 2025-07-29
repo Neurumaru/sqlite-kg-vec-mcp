@@ -33,6 +33,8 @@ class TraceContext:
 
     def add_metadata(self, key: str, value: Any) -> None:
         """Add metadata to the trace context."""
+        if self.metadata is None:
+            self.metadata = {}
         self.metadata[key] = value
 
     def to_dict(self) -> Dict[str, Any]:
@@ -50,9 +52,7 @@ class TraceContext:
 
 
 # Context variables for trace propagation
-_trace_context: ContextVar[Optional[TraceContext]] = ContextVar(
-    "trace_context", default=None
-)
+_trace_context: ContextVar[Optional[TraceContext]] = ContextVar("trace_context", default=None)
 
 
 def get_current_trace_id() -> Optional[str]:
@@ -150,7 +150,7 @@ class TraceContextManager:
             trace_context: Trace context to use
         """
         self.trace_context = trace_context
-        self.previous_context = None
+        self.previous_context: Optional[TraceContext] = None
 
     def __enter__(self) -> TraceContext:
         """Enter the context."""

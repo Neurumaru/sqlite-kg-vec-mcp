@@ -4,6 +4,7 @@
 
 import unittest
 
+from src.domain.exceptions.base import DomainException
 from src.domain.exceptions.document_exceptions import (
     DocumentAlreadyExistsException,
     DocumentNotFoundException,
@@ -34,7 +35,6 @@ class TestDocumentNotFoundException(unittest.TestCase):
         exception = DocumentNotFoundException("doc-test")
 
         # Then
-        from src.domain.exceptions.base import DomainException
         self.assertIsInstance(exception, DomainException)
         self.assertIsInstance(exception, Exception)
 
@@ -70,7 +70,6 @@ class TestDocumentAlreadyExistsException(unittest.TestCase):
         exception = DocumentAlreadyExistsException("doc-test")
 
         # Then
-        from src.domain.exceptions.base import DomainException
         self.assertIsInstance(exception, DomainException)
         self.assertIsInstance(exception, Exception)
 
@@ -106,7 +105,6 @@ class TestInvalidDocumentException(unittest.TestCase):
         exception = InvalidDocumentException("테스트 이유")
 
         # Then
-        from src.domain.exceptions.base import DomainException
         self.assertIsInstance(exception, DomainException)
         self.assertIsInstance(exception, Exception)
 
@@ -155,7 +153,6 @@ class TestDocumentProcessingException(unittest.TestCase):
         exception = DocumentProcessingException("doc-test", "테스트 이유")
 
         # Then
-        from src.domain.exceptions.base import DomainException
         self.assertIsInstance(exception, DomainException)
         self.assertIsInstance(exception, Exception)
 

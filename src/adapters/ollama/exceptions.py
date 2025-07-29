@@ -9,11 +9,10 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from ..exceptions.authentication import AuthenticationException
-from ..exceptions.base import InfrastructureException
-from ..exceptions.connection import HTTPConnectionException
-from ..exceptions.data import DataParsingException, DataValidationException
-from ..exceptions.timeout import HTTPTimeoutException
+from ...adapters.exceptions.base import InfrastructureException
+from ...adapters.exceptions.connection import HTTPConnectionException
+from ...adapters.exceptions.data import DataParsingException
+from ...adapters.exceptions.timeout import HTTPTimeoutException
 
 
 class OllamaConnectionException(HTTPConnectionException):
@@ -152,9 +151,7 @@ class OllamaModelException(InfrastructureException):
         self.model_name = model_name
         self.operation = operation
 
-        full_message = (
-            f"Ollama model '{model_name}' error during {operation}: {message}"
-        )
+        full_message = f"Ollama model '{model_name}' error during {operation}: {message}"
 
         super().__init__(
             message=full_message,
@@ -315,7 +312,9 @@ class OllamaConfigurationException(InfrastructureException):
         self.config_parameter = config_parameter
         self.invalid_value = invalid_value
 
-        full_message = f"Ollama configuration error for '{config_parameter}' = '{invalid_value}': {message}"
+        full_message = (
+            f"Ollama configuration error for '{config_parameter}' = '{invalid_value}': {message}"
+        )
 
         super().__init__(
             message=full_message,

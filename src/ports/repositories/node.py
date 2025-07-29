@@ -30,7 +30,6 @@ class NodeRepository(ABC):
         Returns:
             저장된 노드
         """
-        pass
 
     @abstractmethod
     async def find_by_id(self, node_id: str) -> Optional[NodeData]:
@@ -43,7 +42,6 @@ class NodeRepository(ABC):
         Returns:
             찾은 노드 또는 None
         """
-        pass
 
     @abstractmethod
     async def find_by_document(self, document_id: str) -> List[NodeData]:
@@ -56,7 +54,6 @@ class NodeRepository(ABC):
         Returns:
             해당 문서에서 추출된 노드들
         """
-        pass
 
     @abstractmethod
     async def update(self, node: NodeData) -> NodeData:
@@ -69,7 +66,6 @@ class NodeRepository(ABC):
         Returns:
             업데이트된 노드
         """
-        pass
 
     @abstractmethod
     async def delete(self, node_id: str) -> bool:
@@ -82,4 +78,3 @@ class NodeRepository(ABC):
         Returns:
             삭제 성공 여부
         """
-        pass

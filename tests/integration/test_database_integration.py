@@ -43,7 +43,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         # Check if entities table exists
         cursor.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='entities'
         """
         )
@@ -54,7 +54,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         # Check if edges table exists
         cursor.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='edges'
         """
         )
@@ -82,9 +82,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         )
 
         # Read data
-        cursor.execute(
-            "SELECT uuid, type, name FROM entities WHERE uuid = ?", ("test-uuid-1",)
-        )
+        cursor.execute("SELECT uuid, type, name FROM entities WHERE uuid = ?", ("test-uuid-1",))
         result = cursor.fetchone()
 
         self.assertIsNotNone(result)
@@ -196,9 +194,7 @@ class TestDatabaseIntegration(unittest.TestCase):
             )
 
             # Verify data exists in transaction
-            cursor.execute(
-                "SELECT * FROM entities WHERE uuid = ?", ("test-transaction",)
-            )
+            cursor.execute("SELECT * FROM entities WHERE uuid = ?", ("test-transaction",))
             result = cursor.fetchone()
             self.assertIsNotNone(result)
 
@@ -206,9 +202,7 @@ class TestDatabaseIntegration(unittest.TestCase):
             cursor.execute("ROLLBACK")
 
             # Verify data was rolled back
-            cursor.execute(
-                "SELECT * FROM entities WHERE uuid = ?", ("test-transaction",)
-            )
+            cursor.execute("SELECT * FROM entities WHERE uuid = ?", ("test-transaction",))
             result = cursor.fetchone()
             self.assertIsNone(result)
 

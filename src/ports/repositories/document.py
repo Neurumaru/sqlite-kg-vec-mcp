@@ -31,7 +31,6 @@ class DocumentRepository(ABC):
         Returns:
             저장된 문서
         """
-        pass
 
     @abstractmethod
     async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
@@ -44,7 +43,6 @@ class DocumentRepository(ABC):
         Returns:
             찾은 문서 또는 None
         """
-        pass
 
     @abstractmethod
     async def update(self, document: DocumentData) -> DocumentData:
@@ -57,7 +55,6 @@ class DocumentRepository(ABC):
         Returns:
             업데이트된 문서
         """
-        pass
 
     @abstractmethod
     async def delete(self, document_id: str) -> bool:
@@ -70,7 +67,6 @@ class DocumentRepository(ABC):
         Returns:
             삭제 성공 여부
         """
-        pass
 
     @abstractmethod
     async def exists(self, document_id: str) -> bool:
@@ -83,7 +79,6 @@ class DocumentRepository(ABC):
         Returns:
             존재 여부
         """
-        pass
 
     # 실제 사용되는 특수 기능들
     @abstractmethod
@@ -97,7 +92,6 @@ class DocumentRepository(ABC):
         Returns:
             해당 상태의 문서들
         """
-        pass
 
     @abstractmethod
     async def find_unprocessed(self, limit: int = 100) -> List[DocumentData]:
@@ -110,7 +104,6 @@ class DocumentRepository(ABC):
         Returns:
             미처리 문서들
         """
-        pass
 
     @abstractmethod
     async def update_with_knowledge(
@@ -130,4 +123,3 @@ class DocumentRepository(ABC):
         Returns:
             업데이트된 문서
         """
-        pass

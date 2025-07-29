@@ -9,9 +9,7 @@ class NodeNotFoundException(DomainException):
     """노드를 찾을 수 없을 때 발생하는 예외."""
 
     def __init__(self, node_id: str):
-        super().__init__(
-            message=f"Node with ID '{node_id}' not found", error_code="NODE_NOT_FOUND"
-        )
+        super().__init__(message=f"Node with ID '{node_id}' not found", error_code="NODE_NOT_FOUND")
         self.node_id = node_id
 
 

@@ -19,10 +19,10 @@ from .events.relationship_created import RelationshipCreated
 # Domain Exceptions
 from .exceptions.base import DomainException
 from .exceptions.document_exceptions import (
+    ConcurrentModificationError,
     DocumentAlreadyExistsException,
     DocumentNotFoundException,
     InvalidDocumentException,
-    ConcurrentModificationError,
 )
 from .exceptions.node_exceptions import (
     InvalidNodeException,

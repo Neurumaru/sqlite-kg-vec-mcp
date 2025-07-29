@@ -3,14 +3,13 @@ Streamlit web application for Knowledge Graph exploration.
 """
 
 import argparse
-import sqlite3
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import streamlit as st
 
 from src.adapters.hnsw.search import VectorSearch
 from src.adapters.sqlite3.connection import DatabaseConnection
+from src.adapters.sqlite3.exceptions import SQLiteConnectionException
 from src.adapters.sqlite3.graph.entities import EntityManager
 from src.adapters.sqlite3.graph.relationships import RelationshipManager
 from src.adapters.sqlite3.schema import SchemaManager
@@ -26,28 +25,28 @@ class KnowledgeGraphStreamlitApp:
 
     def setup_page_config(self):
         """Configure Streamlit page settings."""
-        st.set_page_config(
-            page_title="Knowledge Graph Explorer",
-            page_icon="🧠",
-            layout="wide",
-            initial_sidebar_state="expanded",
-        )
+        st.set_page_config(page_title="Knowledge Graph Explorer", page_icon="🧠", layout="wide")
 
     def init_database(self):
         """Initialize database connection and managers."""
         try:
             self.db_connection = DatabaseConnection(self.db_path)
+            connection = self.db_connection.connect()
             self.schema_manager = SchemaManager(self.db_path)
-            self.entity_manager = EntityManager(self.db_connection.get_connection())
-            self.relationship_manager = RelationshipManager(
-                self.db_connection.get_connection()
-            )
+            self.entity_manager = EntityManager(connection)
+            self.relationship_manager = RelationshipManager(connection)
             self.vector_search = VectorSearch(
-                connection=self.db_connection.get_connection(),
-                vector_index_dir="vector_indexes",
+                connection=connection,
+                index_dir="vector_indexes",
             )
-        except Exception as e:
-            st.error(f"데이터베이스 초기화 실패: {e}")
+        except SQLiteConnectionException as exception:
+            st.error(f"데이터베이스 연결 실패: {exception.message}")
+            st.stop()
+        except (OSError, PermissionError) as exception:
+            st.error(f"데이터베이스 파일 접근 실패: {exception}")
+            st.stop()
+        except Exception as exception:
+            st.error(f"데이터베이스 초기화 중 예상치 못한 오류: {exception}")
             st.stop()
 
     def run(self):
@@ -98,8 +97,10 @@ class KnowledgeGraphStreamlitApp:
             else:
                 st.info("No entities found in the database.")
 
-        except Exception as e:
-            st.error(f"대시보드 로딩 중 오류 발생: {e}")
+        except SQLiteConnectionException as exception:
+            st.error(f"데이터베이스 연결 오류: {exception.message}")
+        except Exception as exception:
+            st.error(f"대시보드 로딩 중 예상치 못한 오류: {exception}")
 
     def render_search(self):
         """Render search interface."""
@@ -128,14 +129,19 @@ class KnowledgeGraphStreamlitApp:
                     if semantic_results:
                         for result in semantic_results:
                             with st.expander(
-                                f"Entity: {result.get('name', 'Unnamed')} (Score: {result.get('score', 0):.3f})"
+                                f"Entity: {result.get('name', 'Unnamed')} (Score: "
+                                f"{result.get('score', 0):.3f})"
                             ):
                                 st.json(result)
                     else:
                         st.info("시맨틱 검색 결과가 없습니다.")
 
-            except Exception as e:
-                st.error(f"검색 중 오류 발생: {e}")
+            except SQLiteConnectionException as exception:
+                st.error(f"데이터베이스 연결 오류: {exception.message}")
+            except ValueError as exception:
+                st.error(f"검색 입력값 오류: {exception}")
+            except Exception as exception:
+                st.error(f"검색 중 예상치 못한 오류: {exception}")
 
     def render_entities(self):
         """Render entity management interface."""
@@ -158,9 +164,7 @@ class KnowledgeGraphStreamlitApp:
 
                     # Filtered entities
                     filtered_entities = [
-                        e
-                        for e in entities
-                        if e.get("type", "Unknown") in selected_types
+                        e for e in entities if e.get("type", "Unknown") in selected_types
                     ]
 
                     for entity in filtered_entities:
@@ -174,14 +178,25 @@ class KnowledgeGraphStreamlitApp:
                                 f"Delete {entity.get('id', '')}",
                                 key=f"delete_entity_{entity.get('id', '')}",
                             ):
-                                self.delete_entity(entity.get("id"))
-                                st.success("Entity deleted!")
-                                st.rerun()
+                                entity_id = entity.get("id")
+                                if entity_id is not None:
+                                    try:
+                                        self.delete_entity(int(entity_id))
+                                        st.success("Entity deleted!")
+                                        st.rerun()
+                                    except ValueError:
+                                        st.error("Invalid entity ID format")
+                                    except Exception as exception:
+                                        st.error(f"Entity 삭제 실패: {exception}")
+                                else:
+                                    st.error("Entity ID가 없습니다")
                 else:
                     st.info("No entities found.")
 
-            except Exception as e:
-                st.error(f"엔티티 로딩 중 오류 발생: {e}")
+            except SQLiteConnectionException as exception:
+                st.error(f"데이터베이스 연결 오류: {exception.message}")
+            except Exception as exception:
+                st.error(f"엔티티 로딩 중 예상치 못한 오류: {exception}")
 
         with tab2:
             st.subheader("Create New Entity")
@@ -193,13 +208,22 @@ class KnowledgeGraphStreamlitApp:
 
                 submitted = st.form_submit_button("Create Entity")
 
-                if submitted and name and entity_type:
-                    try:
-                        properties = {"description": description} if description else {}
-                        self.create_entity(name, entity_type, properties)
-                        st.success(f"Entity '{name}' created successfully!")
-                    except Exception as e:
-                        st.error(f"엔티티 생성 실패: {e}")
+                if submitted:
+                    if not name or not name.strip():
+                        st.error("Entity name은 필수입니다")
+                    elif not entity_type or not entity_type.strip():
+                        st.error("Entity type은 필수입니다")
+                    else:
+                        try:
+                            properties = {"description": description} if description else {}
+                            self.create_entity(name.strip(), entity_type.strip(), properties)
+                            st.success(f"Entity '{name}' created successfully!")
+                        except SQLiteConnectionException as exception:
+                            st.error(f"데이터베이스 연결 오류: {exception.message}")
+                        except ValueError as exception:
+                            st.error(f"입력값 오류: {exception}")
+                        except Exception as exception:
+                            st.error(f"엔티티 생성 실패: {exception}")
 
     def render_relationships(self):
         """Render relationship management interface."""
@@ -216,7 +240,9 @@ class KnowledgeGraphStreamlitApp:
 
                     for rel in relationships:
                         with st.expander(
-                            f"{rel.get('source_name', 'Unknown')} -> {rel.get('target_name', 'Unknown')} ({rel.get('type', 'Unknown')})"
+                            f"{rel.get('source_name', 'Unknown')} -> "
+                            f"{rel.get('target_name', 'Unknown')} ("
+                            f"{rel.get('type', 'Unknown')})"
                         ):
                             st.json(rel)
 
@@ -225,14 +251,25 @@ class KnowledgeGraphStreamlitApp:
                                 f"Delete {rel.get('id', '')}",
                                 key=f"delete_rel_{rel.get('id', '')}",
                             ):
-                                self.delete_relationship(rel.get("id"))
-                                st.success("Relationship deleted!")
-                                st.rerun()
+                                rel_id = rel.get("id")
+                                if rel_id is not None:
+                                    try:
+                                        self.delete_relationship(int(rel_id))
+                                        st.success("Relationship deleted!")
+                                        st.rerun()
+                                    except ValueError:
+                                        st.error("Invalid relationship ID format")
+                                    except Exception as exception:
+                                        st.error(f"Relationship 삭제 실패: {exception}")
+                                else:
+                                    st.error("Relationship ID가 없습니다")
                 else:
                     st.info("No relationships found.")
 
-            except Exception as e:
-                st.error(f"관계 로딩 중 오류 발생: {e}")
+            except SQLiteConnectionException as exception:
+                st.error(f"데이터베이스 연결 오류: {exception.message}")
+            except Exception as exception:
+                st.error(f"관계 로딩 중 예상치 못한 오류: {exception}")
 
         with tab2:
             st.subheader("Create New Relationship")
@@ -246,85 +283,102 @@ class KnowledgeGraphStreamlitApp:
 
                 if len(entity_options) >= 2:
                     with st.form("create_relationship_form"):
-                        source_entity = st.selectbox(
-                            "Source Entity", list(entity_options.keys())
-                        )
-                        target_entity = st.selectbox(
-                            "Target Entity", list(entity_options.keys())
-                        )
+                        source_entity = st.selectbox("Source Entity", list(entity_options.keys()))
+                        target_entity = st.selectbox("Target Entity", list(entity_options.keys()))
                         relationship_type = st.text_input("Relationship Type")
                         description = st.text_area("Description")
 
                         submitted = st.form_submit_button("Create Relationship")
 
-                        if (
-                            submitted
-                            and source_entity
-                            and target_entity
-                            and relationship_type
-                        ):
-                            if source_entity != target_entity:
+                        if submitted:
+                            if not source_entity or not target_entity:
+                                st.error("Source와 Target entity를 모두 선택해주세요")
+                            elif not relationship_type or not relationship_type.strip():
+                                st.error("Relationship type은 필수입니다")
+                            elif source_entity == target_entity:
+                                st.error("Source와 Target entity는 달라야 합니다")
+                            else:
                                 try:
                                     source_id = entity_options[source_entity]
                                     target_id = entity_options[target_entity]
-                                    properties = (
-                                        {"description": description}
-                                        if description
-                                        else {}
-                                    )
+                                    properties = {"description": description} if description else {}
 
                                     self.create_relationship(
                                         source_id,
                                         target_id,
-                                        relationship_type,
+                                        relationship_type.strip(),
                                         properties,
                                     )
                                     st.success("Relationship created successfully!")
-                                except Exception as e:
-                                    st.error(f"관계 생성 실패: {e}")
-                            else:
-                                st.error(
-                                    "Source and target entities must be different."
-                                )
+                                except KeyError as exception:
+                                    st.error(f"선택된 entity를 찾을 수 없습니다: {exception}")
+                                except SQLiteConnectionException as exception:
+                                    st.error(f"데이터베이스 연결 오류: {exception.message}")
+                                except ValueError as exception:
+                                    st.error(f"입력값 오류: {exception}")
+                                except Exception as exception:
+                                    st.error(f"관계 생성 실패: {exception}")
                 else:
                     st.info("최소 2개의 엔티티가 필요합니다.")
 
-            except Exception as e:
-                st.error(f"관계 생성 폼 로딩 중 오류 발생: {e}")
+            except SQLiteConnectionException as exception:
+                st.error(f"데이터베이스 연결 오류: {exception.message}")
+            except Exception as exception:
+                st.error(f"관계 생성 폼 로딩 중 예상치 못한 오류: {exception}")
 
     # Helper methods
     def get_entity_count(self) -> int:
         """Get total number of entities."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+        cursor = self.db_connection.connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM entities")
-        return cursor.fetchone()[0]
+        result = cursor.fetchone()
+        return result[0] if result else 0
 
     def get_relationship_count(self) -> int:
         """Get total number of relationships."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+        cursor = self.db_connection.connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM relationships")
-        return cursor.fetchone()[0]
+        result = cursor.fetchone()
+        return result[0] if result else 0
 
     def get_entity_types_distribution(self) -> Dict[str, int]:
         """Get distribution of entity types."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+        cursor = self.db_connection.connection.cursor()
         cursor.execute("SELECT type, COUNT(*) as count FROM entities GROUP BY type")
         return {row[0] or "Unknown": row[1] for row in cursor.fetchall()}
 
     def get_all_entities(self) -> List[Dict[str, Any]]:
         """Get all entities."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+        cursor = self.db_connection.connection.cursor()
         cursor.execute("SELECT id, name, type, properties FROM entities")
         entities = []
         for row in cursor.fetchall():
-            entities.append(
-                {"id": row[0], "name": row[1], "type": row[2], "properties": row[3]}
-            )
+            entities.append({"id": row[0], "name": row[1], "type": row[2], "properties": row[3]})
         return entities
 
     def get_all_relationships(self) -> List[Dict[str, Any]]:
         """Get all relationships with entity names."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+        cursor = self.db_connection.connection.cursor()
         cursor.execute(
             """
             SELECT r.id, r.source_id, r.target_id, r.type, r.properties,
@@ -351,7 +405,16 @@ class KnowledgeGraphStreamlitApp:
 
     def search_entities_by_text(self, query: str) -> List[Dict[str, Any]]:
         """Search entities by text."""
-        cursor = self.db_connection.get_connection().cursor()
+        if not query or not query.strip():
+            raise ValueError("Search query cannot be empty")
+
+        if not self.db_connection.connection:
+            raise SQLiteConnectionException(
+                db_path=self.db_path, message="Database connection not established"
+            )
+
+        query = query.strip()
+        cursor = self.db_connection.connection.cursor()
         cursor.execute(
             """
             SELECT id, name, type, properties
@@ -363,9 +426,7 @@ class KnowledgeGraphStreamlitApp:
 
         results = []
         for row in cursor.fetchall():
-            results.append(
-                {"id": row[0], "name": row[1], "type": row[2], "properties": row[3]}
-            )
+            results.append({"id": row[0], "name": row[1], "type": row[2], "properties": row[3]})
         return results
 
     def search_entities_semantic(self, query: str) -> List[Dict[str, Any]]:
@@ -374,38 +435,62 @@ class KnowledgeGraphStreamlitApp:
             # This would use the vector search functionality
             # For now, return empty list as placeholder
             return []
-        except Exception:
+        except Exception as exception:
+            st.error(f"시맨틱 검색 중 예상치 못한 오류: {exception}")
             return []
 
     def create_entity(self, name: str, entity_type: str, properties: Dict[str, Any]):
         """Create a new entity."""
-        entity = self.entity_manager.create_entity(name, entity_type, properties)
+        if not name or not name.strip():
+            raise ValueError("Entity name cannot be empty")
+        if not entity_type or not entity_type.strip():
+            raise ValueError("Entity type cannot be empty")
+
+        entity = self.entity_manager.create_entity(name.strip(), entity_type.strip(), properties)
         return entity
 
     def create_relationship(
         self, source_id: str, target_id: str, rel_type: str, properties: Dict[str, Any]
     ):
         """Create a new relationship."""
+        if not source_id or not target_id:
+            raise ValueError("Source and target IDs cannot be empty")
+        if not rel_type or not rel_type.strip():
+            raise ValueError("Relationship type cannot be empty")
+        if source_id == target_id:
+            raise ValueError("Source and target entities must be different")
+
+        # Convert string IDs to integers for the relationship manager
+        try:
+            source_id_int = int(source_id)
+            target_id_int = int(target_id)
+        except ValueError:
+            raise ValueError("Entity IDs must be valid integers")
+
         relationship = self.relationship_manager.create_relationship(
-            source_id, target_id, rel_type, properties
+            source_id_int, target_id_int, rel_type.strip(), properties
         )
         return relationship
 
-    def delete_entity(self, entity_id: str):
+    def delete_entity(self, entity_id: int):
         """Delete an entity."""
+        if not isinstance(entity_id, int) or entity_id <= 0:
+            raise ValueError("Entity ID must be a positive integer")
+
         self.entity_manager.delete_entity(entity_id)
 
-    def delete_relationship(self, relationship_id: str):
+    def delete_relationship(self, relationship_id: int):
         """Delete a relationship."""
+        if not isinstance(relationship_id, int) or relationship_id <= 0:
+            raise ValueError("Relationship ID must be a positive integer")
+
         self.relationship_manager.delete_relationship(relationship_id)
 
 
 def main():
     """Main function to run the Streamlit app."""
     parser = argparse.ArgumentParser(description="Knowledge Graph Streamlit App")
-    parser.add_argument(
-        "--db-path", default="knowledge_graph.db", help="Path to SQLite database"
-    )
+    parser.add_argument("--db-path", default="knowledge_graph.db", help="Path to SQLite database")
     args = parser.parse_args()
 
     app = KnowledgeGraphStreamlitApp(args.db_path)

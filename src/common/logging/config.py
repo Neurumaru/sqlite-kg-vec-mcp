@@ -2,12 +2,14 @@
 Logging configuration and setup.
 """
 
-import logging
+import json
+import logging as stdlib_logging
 import os
 import sys
+import traceback
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Union
 
 import structlog
 
@@ -41,7 +43,10 @@ class LoggingConfig:
     sanitize_sensitive_data: bool = True
 
 
-def configure_structured_logging(config: Optional[LoggingConfig] = None, observability_config: Optional[LoggingObservabilityConfig] = None) -> None:
+def configure_structured_logging(
+    config: Optional[LoggingConfig] = None,
+    observability_config: Optional[LoggingObservabilityConfig] = None,
+) -> None:
     """
     Configure structured logging for the application.
 
@@ -68,17 +73,21 @@ def configure_structured_logging(config: Optional[LoggingConfig] = None, observa
 
 def _configure_structlog(config: LoggingConfig) -> None:
     """Configure structlog for structured logging."""
-    import logging
 
     # Configure stdlib logging
-    logging.basicConfig(
+    stdlib_logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout if config.output == "console" else None,
-        level=getattr(logging, config.level.value),
+        level=getattr(stdlib_logging, config.level.value),
     )
 
     # Build processor chain
-    processors = [
+    processors: List[
+        Callable[
+            [Any, str, MutableMapping[str, Any]],
+            Union[Mapping[str, Any], str, bytes, bytearray, tuple],
+        ]
+    ] = [
         # Filter by level
         structlog.stdlib.filter_by_level,
         # Add log level and logger name
@@ -121,19 +130,17 @@ def _configure_structlog(config: LoggingConfig) -> None:
 
 def _configure_stdlib_logging(config: LoggingConfig) -> None:
     """Configure standard library logging as fallback."""
-    import logging
 
     # Create formatter
+    formatter: Any
     if config.format == "json":
         formatter = _JSONFormatter()
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = stdlib_logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(getattr(logging, config.level.value))
+    root_logger = stdlib_logging.getLogger()
+    root_logger.setLevel(getattr(stdlib_logging, config.level.value))
 
     # Remove existing handlers
     for handler in root_logger.handlers[:]:
@@ -141,15 +148,17 @@ def _configure_stdlib_logging(config: LoggingConfig) -> None:
 
     # Add appropriate handler
     if config.output == "console":
-        handler = logging.StreamHandler(sys.stdout)
+        handler = stdlib_logging.StreamHandler(sys.stdout)
     else:
-        handler = logging.FileHandler(config.file_path or "app.log")
+        handler = stdlib_logging.FileHandler(config.file_path or "app.log")
 
     handler.setFormatter(formatter)
     root_logger.addHandler(handler)
 
 
-def _sanitize_processor(logger, method_name, event_dict):
+def _sanitize_processor(
+    logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any]:
     """Processor to sanitize sensitive data from logs."""
     sensitive_keys = {
         "password",
@@ -162,7 +171,7 @@ def _sanitize_processor(logger, method_name, event_dict):
         "private_key",
     }
 
-    def sanitize_dict(d):
+    def sanitize_dict(d: Any) -> Any:
         if not isinstance(d, dict):
             return d
 
@@ -174,29 +183,25 @@ def _sanitize_processor(logger, method_name, event_dict):
             elif isinstance(value, dict):
                 sanitized[key] = sanitize_dict(value)
             elif isinstance(value, list):
-                sanitized[key] = [
-                    sanitize_dict(item) if isinstance(item, dict) else item
-                    for item in value
-                ]
+                sanitized[key] = str(
+                    [sanitize_dict(item) if isinstance(item, dict) else item for item in value]
+                )
             else:
                 sanitized[key] = value
         return sanitized
 
-    return sanitize_dict(event_dict)
+    result = sanitize_dict(event_dict)
+    return result if isinstance(result, dict) else event_dict
 
 
-class _JSONFormatter(object):
+class _JSONFormatter:
     """JSON formatter for standard library logging."""
 
     def __init__(self):
-        import json
-
         self.json = json
 
     def format(self, record):
         """Format log record as JSON."""
-        import traceback
-
         log_entry = {
             "timestamp": record.created,
             "level": record.levelname,
@@ -216,7 +221,7 @@ class _JSONFormatter(object):
 def get_logging_config_from_env() -> LoggingConfig:
     """
     Get logging configuration from environment variables.
-    
+
     Deprecated: Use LoggingObservabilityConfig.from_env() instead.
 
     Environment variables:
@@ -245,7 +250,7 @@ def get_logging_config_from_env() -> LoggingConfig:
 def get_observability_logging_config_from_env() -> LoggingObservabilityConfig:
     """
     Get observability logging configuration from environment variables.
-    
+
     Returns:
         LoggingObservabilityConfig instance
     """

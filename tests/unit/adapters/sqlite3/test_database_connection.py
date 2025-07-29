@@ -2,7 +2,7 @@
 Unit tests for DatabaseConnection adapter.
 """
 
-import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -22,8 +22,6 @@ class TestDatabaseConnection(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures."""
         # Remove temp directory and files
-        import shutil
-
         if Path(self.temp_dir).exists():
             shutil.rmtree(self.temp_dir)
 
@@ -49,7 +47,7 @@ class TestDatabaseConnection(unittest.TestCase):
         nested_path = Path(self.temp_dir) / "nested" / "test.db"
         db_conn = DatabaseConnection(nested_path)
 
-        connection = db_conn.connect()
+        db_conn.connect()
 
         self.assertTrue(nested_path.parent.exists())
         self.assertTrue(nested_path.exists())
@@ -94,7 +92,7 @@ class TestDatabaseConnection(unittest.TestCase):
     def test_close_connection(self):
         """Test closing the connection explicitly."""
         db_conn = DatabaseConnection(self.db_path)
-        connection = db_conn.connect()
+        db_conn.connect()
 
         self.assertIsNotNone(db_conn.connection)
 

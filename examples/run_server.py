@@ -11,8 +11,23 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlite_kg_vec_mcp.db.schema import SchemaManager
-from sqlite_kg_vec_mcp.server.api import KnowledgeGraphServer
+# TODO: Fix imports - sqlite_kg_vec_mcp module doesn't exist
+# from sqlite_kg_vec_mcp.db.schema import SchemaManager  # noqa: E402
+# from sqlite_kg_vec_mcp.server.api import KnowledgeGraphServer  # noqa: E402
+
+# Use correct import paths
+from src.adapters.sqlite3.schema import SchemaManager  # noqa: E402
+
+try:
+    from src.adapters.fastmcp.server import KnowledgeGraphServer  # noqa: E402
+except ImportError:
+    # Fallback if MCP server is not available
+    class KnowledgeGraphServer:
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "KnowledgeGraphServer는 현재 사용할 수 없습니다. "
+                "fastmcp 의존성을 확인하거나 src.adapters.fastmcp.server를 확인하세요."
+            )
 
 
 def main():
@@ -30,12 +45,8 @@ def main():
         default="vector_indexes",
         help="Directory for vector index files",
     )
-    parser.add_argument(
-        "--host", type=str, default="127.0.0.1", help="Host to run the server on"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8080, help="Port to run the server on"
-    )
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to run the server on")
+    parser.add_argument("--port", type=int, default=8080, help="Port to run the server on")
     parser.add_argument(
         "--transport",
         type=str,
@@ -48,9 +59,7 @@ def main():
         action="store_true",
         help="Initialize the database schema if it doesn't exist",
     )
-    parser.add_argument(
-        "--dimension", type=int, default=128, help="Dimension of embedding vectors"
-    )
+    parser.add_argument("--dimension", type=int, default=128, help="Dimension of embedding vectors")
     parser.add_argument(
         "--similarity",
         type=str,

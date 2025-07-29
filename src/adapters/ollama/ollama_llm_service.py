@@ -5,16 +5,18 @@ Ollama-based implementation of LLMService interface.
 import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Optional
+import re
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union, cast
 
 from langchain_core.messages import AIMessage, BaseMessage
+
 from src.common.config.llm import OllamaConfig
-from src.domain.services.knowledge_search import SearchStrategy
 from src.ports.llm import LLM
+
+from .ollama_client import OllamaClient
 
 # Temporary type alias to avoid circular dependency
 SearchResult = Any
-from .ollama_client import OllamaClient
 
 
 class OllamaLLMService(LLM):
@@ -36,92 +38,92 @@ class OllamaLLMService(LLM):
         Initialize Ollama LLM service.
 
         Args:
-            ollama_client: Configured Ollama client (deprecated, config 사용 권장)
-            config: Ollama 설정 객체
-            default_temperature: Default sampling temperature (deprecated, config 사용 권장)
-            max_tokens: Default maximum tokens for responses (deprecated, config 사용 권장)
+            ollama_client: Configured Ollama client (deprecated, use config instead)
+            config: Ollama configuration object
+            default_temperature: Default sampling temperature (deprecated, use config instead)
+            max_tokens: Default maximum tokens for responses (deprecated, use config instead)
         """
         if config is None:
             config = OllamaConfig()
-        
+
         if ollama_client is None:
             ollama_client = OllamaClient(config=config)
-        
+
         self.ollama_client = ollama_client
         self.default_temperature = default_temperature or config.temperature
         self.max_tokens = max_tokens or config.max_tokens
 
-    # LangChain 호환 메서드들
+    # LangChain compatible methods
 
     async def invoke(
         self,
-        input: List[BaseMessage],
+        messages: List[BaseMessage],
         **kwargs: Any,
     ) -> BaseMessage:
         """
-        메시지들을 기반으로 응답을 생성합니다 (LangChain invoke 스타일).
+        Generate response based on messages (LangChain invoke style).
 
         Args:
-            input: LangChain BaseMessage 리스트
-            **kwargs: 모델 파라미터 (temperature, max_tokens, stop 등)
+            input: LangChain BaseMessage list
+            **kwargs: Model parameters (temperature, max_tokens, stop, etc.)
 
         Returns:
-            AIMessage 응답
+            AIMessage response
         """
-        # 메시지들을 텍스트로 변환
-        prompt = self._messages_to_text(input)
-        
-        # 파라미터 추출
-        temperature = kwargs.get('temperature', self.default_temperature)
-        max_tokens = kwargs.get('max_tokens', self.max_tokens)
-        
-        # Ollama 클라이언트로 생성
+        # Convert messages to text
+        prompt = self._messages_to_text(messages)
+
+        # Extract parameters
+        temperature = kwargs.get("temperature", self.default_temperature)
+        max_tokens = kwargs.get("max_tokens", self.max_tokens)
+
+        # Generate using Ollama client
         response = await asyncio.to_thread(
             self.ollama_client.generate,
             prompt=prompt,
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        
+
         return AIMessage(content=response.text)
 
     async def stream(
-        self, 
-        input: List[BaseMessage],
+        self,
+        messages: List[BaseMessage],
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         """
-        스트리밍 방식으로 응답을 생성합니다 (LangChain stream 스타일).
+        Generate response in streaming mode (LangChain stream style).
 
         Args:
-            input: LangChain BaseMessage 리스트
-            **kwargs: 모델 파라미터
+            input: LangChain BaseMessage list
+            **kwargs: Model parameters
 
         Yields:
-            응답 텍스트 청크들
+            Response text chunks
         """
-        # 메시지들을 텍스트로 변환
-        prompt = self._messages_to_text(input)
-        
-        # 파라미터 추출
-        temperature = kwargs.get('temperature', self.default_temperature)
-        max_tokens = kwargs.get('max_tokens', self.max_tokens)
-        
-        # Ollama 클라이언트로 생성 (현재는 스트리밍을 시뮬레이션)
+        # Convert messages to text
+        prompt = self._messages_to_text(messages)
+
+        # Extract parameters
+        temperature = kwargs.get("temperature", self.default_temperature)
+        max_tokens = kwargs.get("max_tokens", self.max_tokens)
+
+        # Generate using Ollama client (currently simulating streaming)
         response = await asyncio.to_thread(
             self.ollama_client.generate,
             prompt=prompt,
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        
-        # 응답을 청크로 나누어 스트리밍 시뮬레이션
+
+        # Split response into chunks for streaming simulation
         text = response.text
         chunk_size = 50
         for i in range(0, len(text), chunk_size):
             chunk = text[i : i + chunk_size]
             yield chunk
-            await asyncio.sleep(0.05)  # 스트리밍 지연 시뮬레이션
+            await asyncio.sleep(0.05)  # Simulate streaming delay
 
     async def batch(
         self,
@@ -129,35 +131,53 @@ class OllamaLLMService(LLM):
         **kwargs: Any,
     ) -> List[BaseMessage]:
         """
-        여러 메시지 시퀀스를 배치로 처리합니다 (LangChain batch 스타일).
+        Process multiple message sequences in batch (LangChain batch style).
 
         Args:
-            inputs: 메시지 시퀀스들의 리스트
-            **kwargs: 모델 파라미터
+            inputs: List of message sequences
+            **kwargs: Model parameters
 
         Returns:
-            AIMessage 응답들의 리스트
+            List of AIMessage responses
         """
-        # 각 입력에 대해 invoke를 호출
-        results = []
+        # Create tasks for concurrent processing
+        tasks = []
         for message_list in inputs:
-            result = await self.invoke(message_list, **kwargs)
-            results.append(result)
-        
-        return results
+            task = asyncio.create_task(self.invoke(message_list, **kwargs))
+            tasks.append(task)
+
+        # Wait for all tasks to complete concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results and handle exceptions
+        processed_results: List[BaseMessage] = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                # Create error message for failed requests
+                error_msg = f"Batch item {i} failed: {str(result)}"
+                processed_results.append(AIMessage(content=error_msg))
+            elif isinstance(result, BaseMessage):
+                processed_results.append(result)
+            else:
+                # Handle unexpected result types
+                processed_results.append(
+                    AIMessage(content=f"Unexpected result type: {type(result)}")
+                )
+
+        return processed_results
 
     def _messages_to_text(self, messages: List[BaseMessage]) -> str:
-        """BaseMessage 리스트를 텍스트로 변환합니다."""
+        """Convert BaseMessage list to text."""
         text_parts = []
         for message in messages:
-            role = message.__class__.__name__.replace('Message', '').lower()
-            if role == 'ai':
-                role = 'assistant'
-            elif role == 'human':
-                role = 'user'
-            
+            role = message.__class__.__name__.replace("Message", "").lower()
+            if role == "ai":
+                role = "assistant"
+            elif role == "human":
+                role = "user"
+
             text_parts.append(f"{role}: {message.content}")
-        
+
         return "\n".join(text_parts)
 
     # Interactive search guidance
@@ -170,7 +190,7 @@ class OllamaLLMService(LLM):
 
         Classify the query intent and recommend one of these strategies:
         - SEMANTIC: For conceptual, meaning-based searches
-        - STRUCTURAL: For specific entity/relationship queries  
+        - STRUCTURAL: For specific entity/relationship queries
         - HYBRID: For complex queries needing both approaches
         - STOP: If the query is unclear or invalid
 
@@ -195,9 +215,12 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            return self._parse_json_response(response.text)
-        except Exception as e:
-            logging.warning(f"Failed to parse query analysis response: {e}")
+            result = self._parse_json_response(response.text)
+            if isinstance(result, dict):
+                return result
+            raise ValueError("Expected dict response")
+        except Exception as exception:
+            logging.warning("Failed to parse query analysis response: %s", exception)
             return {
                 "strategy": "SEMANTIC",
                 "confidence": 0.5,
@@ -233,11 +256,7 @@ class OllamaLLMService(LLM):
                 {
                     "rank": i + 1,
                     "score": result.score,
-                    "type": (
-                        result.entity_type
-                        if hasattr(result, "entity_type")
-                        else "unknown"
-                    ),
+                    "type": (result.entity_type if hasattr(result, "entity_type") else "unknown"),
                 }
             )
 
@@ -245,7 +264,7 @@ class OllamaLLMService(LLM):
         Step number: {step_number}
         Current results summary: {json.dumps(results_summary)}
         Search history: {json.dumps(search_history[-3:])}  # Last 3 steps
-        
+
         What should be the next search action?"""
 
         response = await asyncio.to_thread(
@@ -257,9 +276,12 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            return self._parse_json_response(response.text)
-        except Exception as e:
-            logging.warning(f"Failed to parse navigation guidance: {e}")
+            result = self._parse_json_response(response.text)
+            if isinstance(result, dict):
+                return result
+            raise ValueError("Expected dict response")
+        except Exception as exception:
+            logging.warning("Failed to parse navigation guidance: %s", exception)
             return {
                 "next_action": "stop",
                 "strategy": "STOP",
@@ -304,7 +326,7 @@ class OllamaLLMService(LLM):
         prompt = f"""Query: {query}
         Context: {json.dumps(search_context)}
         Results to evaluate: {json.dumps(results_data)}
-        
+
         Evaluate the quality and relevance of these search results."""
 
         response = await asyncio.to_thread(
@@ -316,9 +338,12 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            return self._parse_json_response(response.text)
-        except Exception as e:
-            logging.warning(f"Failed to parse result evaluation: {e}")
+            result = self._parse_json_response(response.text)
+            if isinstance(result, dict):
+                return result
+            raise ValueError("Expected dict response")
+        except Exception as exception:
+            logging.warning("Failed to parse result evaluation: %s", exception)
             return {
                 "overall_quality": 0.5,
                 "relevance_score": 0.5,
@@ -384,14 +409,12 @@ class OllamaLLMService(LLM):
             "properties": {"key": "value"}
         }"""
 
-        target_names = [
-            entity.get("name", "Unknown") for entity in target_entities[:10]
-        ]
+        target_names = [entity.get("name", "Unknown") for entity in target_entities[:10]]
         context_str = f"Context: {context}\n" if context else ""
 
         prompt = f"""{context_str}Source entity: {json.dumps(source_entity)}
         Target entities: {json.dumps(target_names)}
-        
+
         Suggest meaningful relationships between the source entity and target entities."""
 
         response = await asyncio.to_thread(
@@ -404,9 +427,11 @@ class OllamaLLMService(LLM):
 
         try:
             result = self._parse_json_response(response.text)
-            return result if isinstance(result, list) else []
-        except Exception as e:
-            logging.warning(f"Failed to parse relationship suggestions: {e}")
+            if isinstance(result, list):
+                return result
+            return []
+        except Exception as exception:
+            logging.warning("Failed to parse relationship suggestions: %s", exception)
             return []
 
     # Query enhancement
@@ -419,12 +444,10 @@ class OllamaLLMService(LLM):
 
         Return JSON array of expanded query terms:
         ["term1", "term2", "term3", ...]
-        
+
         Focus on synonyms, related concepts, and contextually relevant terms."""
 
-        context_str = (
-            f"Context: {json.dumps(search_context)}\n" if search_context else ""
-        )
+        context_str = f"Context: {json.dumps(search_context)}\n" if search_context else ""
         prompt = f"{context_str}Original query: {original_query}\n\nGenerate 5-10 related terms."
 
         response = await asyncio.to_thread(
@@ -437,9 +460,11 @@ class OllamaLLMService(LLM):
 
         try:
             result = self._parse_json_response(response.text)
-            return result if isinstance(result, list) else [original_query]
-        except Exception as e:
-            logging.warning(f"Failed to parse query expansion: {e}")
+            if isinstance(result, list):
+                return result
+            return [original_query]
+        except Exception as exception:
+            logging.warning("Failed to parse query expansion: %s", exception)
             return [original_query]
 
     async def generate_search_suggestions(
@@ -450,13 +475,11 @@ class OllamaLLMService(LLM):
 
         Return JSON array of search suggestions:
         ["suggestion1", "suggestion2", "suggestion3", ...]
-        
+
         Consider common search patterns and user intent."""
 
         history_str = (
-            f"Recent searches: {json.dumps(search_history[-5:])}\n"
-            if search_history
-            else ""
+            f"Recent searches: {json.dumps(search_history[-5:])}\n" if search_history else ""
         )
         prompt = f"{history_str}Partial query: {partial_query}\n\nGenerate 3-7 search suggestions."
 
@@ -470,9 +493,11 @@ class OllamaLLMService(LLM):
 
         try:
             result = self._parse_json_response(response.text)
-            return result if isinstance(result, list) else [partial_query]
-        except Exception as e:
-            logging.warning(f"Failed to parse search suggestions: {e}")
+            if isinstance(result, list):
+                return result
+            return [partial_query]
+        except Exception as exception:
+            logging.warning("Failed to parse search suggestions: %s", exception)
             return [partial_query]
 
     # Content analysis
@@ -498,9 +523,12 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            return self._parse_json_response(response.text)
-        except Exception as e:
-            logging.warning(f"Failed to parse content classification: {e}")
+            result = self._parse_json_response(response.text)
+            if isinstance(result, dict):
+                return result
+            raise ValueError("Expected dict response")
+        except Exception as exception:
+            logging.warning("Failed to parse content classification: %s", exception)
             return {"error": "Classification failed", "confidence": 0.0}
 
     async def detect_language(self, text: str) -> str:
@@ -518,12 +546,11 @@ class OllamaLLMService(LLM):
         )
 
         # Extract language code from response
-        lang_code = response.text.strip().lower()
+        lang_code = str(response.text).strip().lower()
         # Validate it's a reasonable language code
         if len(lang_code) == 2 and lang_code.isalpha():
             return lang_code
-        else:
-            return "en"  # Default to English
+        return "en"  # Default to English
 
     # Streaming responses
 
@@ -534,31 +561,68 @@ class OllamaLLMService(LLM):
         context_str = f"Context: {json.dumps(context)}\n" if context else ""
         full_prompt = f"{context_str}{prompt}"
 
-        # Note: This is a simplified implementation
-        # Real streaming would require Ollama streaming API support
-        response = await asyncio.to_thread(
-            self.ollama_client.generate,
-            prompt=full_prompt,
-            temperature=self.default_temperature,
-            max_tokens=self.max_tokens,
-            stream=False,  # Ollama client would need stream=True support
-        )
+        # Try to use streaming if supported, fallback to chunked simulation
+        try:
+            # Attempt streaming generation (if Ollama client supports it in the future)
+            response = await asyncio.to_thread(
+                self.ollama_client.generate,
+                prompt=full_prompt,
+                temperature=self.default_temperature,
+                max_tokens=self.max_tokens,
+                stream=True,  # Try streaming first
+            )
 
-        # Simulate streaming by yielding chunks
-        text = response.text
-        chunk_size = 50
-        for i in range(0, len(text), chunk_size):
-            chunk = text[i : i + chunk_size]
-            yield chunk
-            await asyncio.sleep(0.1)  # Simulate streaming delay
+            # If streaming is supported, this would yield real chunks
+            # For now, we simulate with better chunking logic
+            text = response.text
+
+            # Dynamic chunk sizing based on content
+            words = text.split()
+            current_chunk = ""
+            word_count = 0
+
+            for word in words:
+                current_chunk += word + " "
+                word_count += 1
+
+                # Yield chunk when it reaches optimal size or at natural breaks
+                if word_count >= 5 and (
+                    word.endswith(".")
+                    or word.endswith("!")
+                    or word.endswith("?")
+                    or len(current_chunk) > 100
+                ):
+                    yield current_chunk.strip()
+                    current_chunk = ""
+                    word_count = 0
+                    await asyncio.sleep(0.05)  # Natural typing delay
+
+            # Yield remaining content
+            if current_chunk.strip():
+                yield current_chunk.strip()
+
+        except Exception:
+            # Fallback to simple chunking on any error
+            response = await asyncio.to_thread(
+                self.ollama_client.generate,
+                prompt=full_prompt,
+                temperature=self.default_temperature,
+                max_tokens=self.max_tokens,
+                stream=False,
+            )
+
+            text = response.text
+            chunk_size = 50
+            for i in range(0, len(text), chunk_size):
+                chunk = text[i : i + chunk_size]
+                yield chunk
+                await asyncio.sleep(0.1)
 
     # Configuration and health
 
     async def get_model_info(self) -> Dict[str, Any]:
         """Get information about the current LLM model."""
-        available_models = await asyncio.to_thread(
-            self.ollama_client.list_available_models
-        )
+        available_models = await asyncio.to_thread(self.ollama_client.list_available_models)
 
         return {
             "current_model": self.ollama_client.model,
@@ -584,10 +648,10 @@ class OllamaLLMService(LLM):
                 "response_time": test_response.response_time,
                 "last_check": "now",
             }
-        except Exception as e:
+        except Exception as exception:
             return {
                 "status": "unhealthy",
-                "error": str(e),
+                "error": str(exception),
                 "model": self.ollama_client.model,
                 "base_url": self.ollama_client.base_url,
                 "last_check": "now",
@@ -607,7 +671,7 @@ class OllamaLLMService(LLM):
 
     # Helper methods
 
-    def _parse_json_response(self, response_text: str) -> Dict[str, Any]:
+    def _parse_json_response(self, response_text: str) -> Union[Dict[str, Any], List[Any]]:
         """Parse JSON response from LLM, handling common formatting issues."""
         response_text = response_text.strip()
 
@@ -623,13 +687,12 @@ class OllamaLLMService(LLM):
         response_text = response_text.strip()
 
         try:
-            return json.loads(response_text)
+            parsed = json.loads(response_text)
+            return cast(Union[Dict[str, Any], List[Any]], parsed)
         except json.JSONDecodeError:
             # Try to extract JSON from response
-            import re
-
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if json_match:
-                return json.loads(json_match.group())
-            else:
-                raise ValueError(f"Could not parse JSON from response: {response_text}")
+                parsed = json.loads(json_match.group())
+                return cast(Union[Dict[str, Any], List[Any]], parsed)
+            raise ValueError(f"Could not parse JSON from response: {response_text}")

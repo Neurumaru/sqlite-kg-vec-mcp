@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
 from typing import Any, AsyncContextManager, Dict, List, Optional
 
 
@@ -28,7 +27,7 @@ class Database(ABC):
     ) -> List[Dict[str, Any]]:
         """
         SELECT 쿼리를 실행합니다.
-        
+
         가장 많이 사용되는 핵심 메서드입니다.
 
         Args:
@@ -39,7 +38,6 @@ class Database(ABC):
         Returns:
             쿼리 결과 (딕셔너리 리스트)
         """
-        pass
 
     @abstractmethod
     async def execute_command(
@@ -50,7 +48,7 @@ class Database(ABC):
     ) -> int:
         """
         비-SELECT 명령(INSERT, UPDATE, DELETE)을 실행합니다.
-        
+
         두 번째로 많이 사용되는 핵심 메서드입니다.
 
         Args:
@@ -61,21 +59,18 @@ class Database(ABC):
         Returns:
             영향받은 행 수
         """
-        pass
 
     # Transaction management - 트랜잭션 컨텍스트 매니저만 유지
     @abstractmethod
-    @asynccontextmanager
-    async def transaction(self) -> AsyncContextManager[None]:
+    def transaction(self) -> AsyncContextManager[None]:
         """
         트랜잭션 컨텍스트를 생성합니다.
-        
+
         대부분의 트랜잭션 사용이 컨텍스트 매니저 패턴으로 이루어집니다.
 
-        Yields:
-            트랜잭션 컨텍스트
+        Returns:
+            트랜잭션 컨텍스트 매니저
         """
-        pass
 
     # Connection management - 최소한의 연결 관리
     @abstractmethod
@@ -86,7 +81,6 @@ class Database(ABC):
         Returns:
             연결 성공 여부
         """
-        pass
 
     @abstractmethod
     async def is_connected(self) -> bool:
@@ -96,7 +90,6 @@ class Database(ABC):
         Returns:
             연결 상태
         """
-        pass
 
     # Schema inspection - 필요시에만 사용되는 메서드들
     @abstractmethod
@@ -110,7 +103,6 @@ class Database(ABC):
         Returns:
             테이블 존재 여부
         """
-        pass
 
     @abstractmethod
     async def get_table_schema(self, table_name: str) -> Optional[Dict[str, Any]]:
@@ -123,13 +115,12 @@ class Database(ABC):
         Returns:
             테이블 스키마 또는 None (테이블이 없는 경우)
         """
-        pass
 
 
 class DatabaseMaintenance(ABC):
     """
     데이터베이스 유지보수 작업을 위한 별도 인터페이스.
-    
+
     일반적인 데이터베이스 작업과 분리하여 필요시에만 사용합니다.
     어댑터에서 이 인터페이스를 선택적으로 구현할 수 있습니다.
     """
@@ -137,24 +128,23 @@ class DatabaseMaintenance(ABC):
     @abstractmethod
     async def vacuum(self) -> bool:
         """데이터베이스 VACUUM 작업을 수행합니다."""
-        pass
 
     @abstractmethod
     async def analyze(self, table_name: Optional[str] = None) -> bool:
         """데이터베이스 통계를 분석합니다."""
-        pass
 
     @abstractmethod
     async def create_table(
-        self, table_name: str, schema: Dict[str, Any], if_not_exists: bool = True
+        self,
+        table_name: str,
+        schema: Dict[str, Any],
+        if_not_exists: bool = True,
     ) -> bool:
         """데이터베이스 테이블을 생성합니다."""
-        pass
 
     @abstractmethod
     async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
         """데이터베이스 테이블을 삭제합니다."""
-        pass
 
     @abstractmethod
     async def create_index(
@@ -166,12 +156,10 @@ class DatabaseMaintenance(ABC):
         if_not_exists: bool = True,
     ) -> bool:
         """데이터베이스 인덱스를 생성합니다."""
-        pass
 
     @abstractmethod
     async def drop_index(self, index_name: str, if_exists: bool = True) -> bool:
         """데이터베이스 인덱스를 삭제합니다."""
-        pass
 
 
 # 최적화 설명:

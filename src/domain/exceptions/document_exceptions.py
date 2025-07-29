@@ -31,9 +31,7 @@ class InvalidDocumentException(DomainException):
     """유효하지 않은 문서일 때 발생하는 예외."""
 
     def __init__(self, reason: str):
-        super().__init__(
-            message=f"Invalid document: {reason}", error_code="INVALID_DOCUMENT"
-        )
+        super().__init__(message=f"Invalid document: {reason}", error_code="INVALID_DOCUMENT")
         self.reason = reason
 
 
@@ -52,7 +50,7 @@ class DocumentProcessingException(DomainException):
 class ConcurrentModificationError(DomainException):
     """
     동시 수정 오류 예외.
-    
+
     TODO: 확장성 고려 - 분산 환경에서의 동시성 제어 전략
     현재는 낙관적 잠금을 사용하지만, 분산 환경에서는 다음을 고려해야 함:
     1. 분산 락 매니저를 통한 비관적 잠금 옵션

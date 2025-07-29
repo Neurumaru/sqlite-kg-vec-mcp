@@ -1,6 +1,5 @@
 """
 SQLite3 database adapters.
-
 This module contains SQLite3-specific implementations for database operations
 including connection management, schema operations, and transactions.
 """

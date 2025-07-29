@@ -4,7 +4,7 @@ SQLiteDocumentRepository 단위 테스트.
 
 import unittest
 from datetime import datetime
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 from src.adapters.sqlite3.document_repository import SQLiteDocumentRepository
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
@@ -16,6 +16,11 @@ from src.domain.exceptions.document_exceptions import (
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
+from src.dto.document import (
+    DocumentData,
+)
+from src.dto.document import DocumentStatus as DTODocumentStatus
+from src.dto.document import DocumentType as DTODocumentType
 
 
 class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
@@ -24,15 +29,13 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         """테스트 설정."""
         self.mock_database = Mock()
-        
+
         # Mock transaction context manager
-        from unittest.mock import MagicMock
-        
         transaction_mock = MagicMock()
         transaction_mock.__aenter__ = AsyncMock()
         transaction_mock.__aexit__ = AsyncMock(return_value=None)
         self.mock_database.transaction.return_value = transaction_mock
-        
+
         self.repository = SQLiteDocumentRepository(self.mock_database)
 
         # 샘플 문서 생성
@@ -45,23 +48,49 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
             version=1,
         )
 
+    def _document_to_data(self, document: Document) -> DocumentData:
+        """Document 엔티티를 DocumentData DTO로 변환하는 헬퍼 메서드."""
+        status_mapping = {
+            DocumentStatus.PENDING: DTODocumentStatus.PENDING,
+            DocumentStatus.PROCESSING: DTODocumentStatus.PROCESSING,
+            DocumentStatus.PROCESSED: DTODocumentStatus.COMPLETED,
+            DocumentStatus.FAILED: DTODocumentStatus.FAILED,
+        }
+
+        return DocumentData(
+            id=str(document.id),
+            title=document.title,
+            content=document.content,
+            doc_type=DTODocumentType(document.doc_type.value),
+            status=status_mapping[document.status],
+            metadata=document.metadata,
+            version=document.version,
+            created_at=document.created_at,
+            updated_at=document.updated_at,
+            processed_at=document.processed_at,
+            connected_nodes=[str(node_id) for node_id in document.connected_nodes],
+            connected_relationships=[str(rel_id) for rel_id in document.connected_relationships],
+        )
+
     async def test_save_success(self):
         """문서 저장 성공 테스트."""
         # Given
+        sample_data = self._document_to_data(self.sample_document)
         self.mock_database.execute_query = AsyncMock(return_value=[])  # 기존 문서 없음
         self.mock_database.execute_command = AsyncMock(return_value=1)
 
         # When
-        result = await self.repository.save(self.sample_document)
+        result = await self.repository.save(sample_data)
 
         # Then
-        self.assertEqual(result, self.sample_document)
+        self.assertEqual(result, sample_data)
         self.mock_database.execute_query.assert_called_once()
         self.mock_database.execute_command.assert_called_once()
 
     async def test_save_document_already_exists(self):
         """이미 존재하는 문서 저장 시 예외 발생 테스트."""
         # Given
+        sample_data = self._document_to_data(self.sample_document)
         existing_row = {
             "id": str(self.sample_document.id),
             "title": "기존 문서",
@@ -80,7 +109,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
 
         # When & Then
         with self.assertRaises(DocumentAlreadyExistsException):
-            await self.repository.save(self.sample_document)
+            await self.repository.save(sample_data)
 
     async def test_find_by_id_success(self):
         """ID로 문서 찾기 성공 테스트."""
@@ -102,11 +131,11 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_query = AsyncMock(return_value=[row])
 
         # When
-        result = await self.repository.find_by_id(self.sample_document.id)
+        result = await self.repository.find_by_id(str(self.sample_document.id))
 
         # Then
         self.assertIsNotNone(result)
-        self.assertEqual(result.id, self.sample_document.id)
+        self.assertEqual(result.id, str(self.sample_document.id))
         self.assertEqual(result.title, self.sample_document.title)
         self.assertEqual(result.content, self.sample_document.content)
 
@@ -116,7 +145,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_query = AsyncMock(return_value=[])
 
         # When
-        result = await self.repository.find_by_id(self.sample_document.id)
+        result = await self.repository.find_by_id(str(self.sample_document.id))
 
         # Then
         self.assertIsNone(result)
@@ -145,7 +174,8 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
 
         # Then
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].status, DocumentStatus.PENDING)
+        # DocumentData DTO is returned, so we compare the value
+        self.assertEqual(result[0].status, DTODocumentStatus.PENDING)
 
     async def test_update_success(self):
         """문서 업데이트 성공 테스트."""
@@ -168,10 +198,11 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_command = AsyncMock(return_value=1)
 
         # Update document
-        self.sample_document.title = "업데이트된 제목"
+        sample_data = self._document_to_data(self.sample_document)
+        sample_data.title = "업데이트된 제목"
 
         # When
-        result = await self.repository.update(self.sample_document)
+        result = await self.repository.update(sample_data)
 
         # Then
         self.assertEqual(result.title, "업데이트된 제목")
@@ -184,8 +215,9 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_query = AsyncMock(return_value=[])
 
         # When & Then
+        sample_data = self._document_to_data(self.sample_document)
         with self.assertRaises(DocumentNotFoundException):
-            await self.repository.update(self.sample_document)
+            await self.repository.update(sample_data)
 
     async def test_update_concurrent_modification_error(self):
         """동시 수정 충돌 시 예외 발생 테스트."""
@@ -207,11 +239,12 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_query = AsyncMock(return_value=[current_row])
 
         # 문서 버전은 1이지만 DB의 버전은 2
-        self.sample_document.version = 1
+        sample_data = self._document_to_data(self.sample_document)
+        sample_data.version = 1
 
         # When & Then
         with self.assertRaises(ConcurrentModificationError) as context:
-            await self.repository.update(self.sample_document)
+            await self.repository.update(sample_data)
 
         self.assertEqual(context.exception.expected_version, 1)
         self.assertEqual(context.exception.actual_version, 2)
@@ -236,12 +269,13 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_query = AsyncMock(return_value=[current_row])
         self.mock_database.execute_command = AsyncMock(return_value=1)
 
-        node_ids = [NodeId.generate(), NodeId.generate()]
-        relationship_ids = [RelationshipId.generate()]
+        node_ids = [str(NodeId.generate()), str(NodeId.generate())]
+        relationship_ids = [str(RelationshipId.generate())]
+        sample_data = self._document_to_data(self.sample_document)
 
         # When
         result = await self.repository.update_with_knowledge(
-            self.sample_document, node_ids, relationship_ids
+            sample_data, node_ids, relationship_ids
         )
 
         # Then
@@ -340,7 +374,8 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
 
         # Then
         self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].status, DocumentStatus.PENDING)
+        # DocumentData DTO is returned, so we compare the value
+        self.assertEqual(result[0].status, DTODocumentStatus.PENDING)
 
     async def test_bulk_update_status(self):
         """상태 일괄 업데이트 테스트."""
@@ -349,9 +384,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_command = AsyncMock(return_value=2)
 
         # When
-        result = await self.repository.bulk_update_status(
-            document_ids, DocumentStatus.PROCESSED
-        )
+        result = await self.repository.bulk_update_status(document_ids, DocumentStatus.PROCESSED)
 
         # Then
         self.assertEqual(result, 2)
@@ -388,7 +421,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         # Given
         node_id = NodeId.generate()
         relationship_id = RelationshipId.generate()
-        
+
         row = {
             "id": str(self.sample_document.id),
             "title": "테스트 문서",

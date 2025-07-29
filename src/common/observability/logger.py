@@ -2,15 +2,14 @@
 Observable logger that integrates with trace context and structured logging.
 """
 
-import logging
 import time
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import structlog
 
-from .context import TraceContext, get_current_trace_context
+from .context import get_current_trace_context
 
 
 class LogLevel(Enum):
@@ -31,9 +30,7 @@ class ObservableLogger:
     consistent structured logging across all components.
     """
 
-    def __init__(
-        self, component: str, layer: str, observability_service: Optional[Any] = None
-    ):
+    def __init__(self, component: str, layer: str, observability_service: Optional[Any] = None):
         """
         Initialize observable logger.
 
@@ -64,8 +61,8 @@ class ObservableLogger:
                 {
                     "trace_id": trace_context.trace_id,
                     "span_id": trace_context.span_id,
-                    "parent_span_id": trace_context.parent_span_id,
-                    "operation": trace_context.operation,
+                    "parent_span_id": trace_context.parent_span_id or "",
+                    "operation": trace_context.operation or "",
                 }
             )
 
@@ -91,9 +88,7 @@ class ObservableLogger:
         log_method(**log_data)
 
         # Send to observability service if available
-        if self.observability_service and hasattr(
-            self.observability_service, "log_event"
-        ):
+        if self.observability_service and hasattr(self.observability_service, "log_event"):
             trace_context = get_current_trace_context()
             if trace_context:
                 self.observability_service.log_event(
@@ -120,9 +115,7 @@ class ObservableLogger:
         """Log critical message."""
         self._log(LogLevel.CRITICAL, event, **kwargs)
 
-    def exception_occurred(
-        self, exception: Exception, operation: str, **kwargs
-    ) -> None:
+    def exception_occurred(self, exception: Exception, operation: str, **kwargs) -> None:
         """
         Log exception with rich context.
 
@@ -140,9 +133,7 @@ class ObservableLogger:
         )
 
         # Record exception metric if observability service available
-        if self.observability_service and hasattr(
-            self.observability_service, "record_metric"
-        ):
+        if self.observability_service and hasattr(self.observability_service, "record_metric"):
             self.observability_service.record_metric(
                 "exception_count",
                 1,
@@ -167,9 +158,7 @@ class ObservableLogger:
         """
         start_time = time.time()
 
-        self.info(
-            "operation_started", operation=operation, start_time=start_time, **kwargs
-        )
+        self.info("operation_started", operation=operation, start_time=start_time, **kwargs)
 
         return start_time
 
@@ -192,9 +181,7 @@ class ObservableLogger:
         )
 
         # Record performance metric
-        if self.observability_service and hasattr(
-            self.observability_service, "record_metric"
-        ):
+        if self.observability_service and hasattr(self.observability_service, "record_metric"):
             self.observability_service.record_metric(
                 "operation_duration_ms",
                 duration_ms,

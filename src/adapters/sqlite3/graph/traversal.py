@@ -5,7 +5,9 @@ Graph traversal algorithms for exploring the knowledge graph.
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
+
+from src.common.observability import get_observable_logger
 
 from .entities import Entity
 from .relationships import Relationship
@@ -25,11 +27,9 @@ class PathNode:
         """Get the path from this node back to the root."""
         result = [self]
         current = self
-
         while current.parent:
             current = current.parent
             result.insert(0, current)
-
         return result
 
 
@@ -41,7 +41,6 @@ class GraphTraversal:
     def __init__(self, connection: sqlite3.Connection):
         """
         Initialize the graph traversal utility.
-
         Args:
             connection: SQLite database connection
         """
@@ -57,38 +56,31 @@ class GraphTraversal:
     ) -> List[Tuple[Entity, Relationship]]:
         """
         Get neighboring entities connected to the given entity.
-
         Args:
             entity_id: Root entity ID
             direction: 'outgoing', 'incoming', or 'both'
             relation_types: Optional list of relationship types to filter
             entity_types: Optional list of entity types to filter
             limit: Maximum number of results
-
         Returns:
             List of (entity, relationship) tuples
         """
         if direction not in ("outgoing", "incoming", "both"):
             raise ValueError("Direction must be 'outgoing', 'incoming', or 'both'")
-
         queries = []
         params: List[Any] = []
-
         # Outgoing relationships (entity_id -> neighbor)
         if direction in ("outgoing", "both"):
             conditions = ["r.source_id = ?"]
             query_params: List[Any] = [entity_id]
-
             if relation_types:
                 placeholders = ", ".join(["?"] * len(relation_types))
                 conditions.append(f"r.relation_type IN ({placeholders})")
                 query_params.extend(relation_types)
-
             if entity_types:
                 placeholders = ", ".join(["?"] * len(entity_types))
                 conditions.append(f"e.type IN ({placeholders})")
                 query_params.extend(entity_types)
-
             query = f"""
             SELECT e.*, r.id as rel_id, r.source_id, r.target_id,
                    r.relation_type, r.properties as rel_properties,
@@ -97,25 +89,20 @@ class GraphTraversal:
             JOIN edges r ON e.id = r.target_id
             WHERE {" AND ".join(conditions)}
             """
-
             queries.append(query)
             params.extend(query_params)
-
         # Incoming relationships (neighbor -> entity_id)
         if direction in ("incoming", "both"):
             conditions = ["r.target_id = ?"]
             query_params_inc: List[Any] = [entity_id]
-
             if relation_types:
                 placeholders = ", ".join(["?"] * len(relation_types))
                 conditions.append(f"r.relation_type IN ({placeholders})")
                 query_params_inc.extend(relation_types)
-
             if entity_types:
                 placeholders = ", ".join(["?"] * len(entity_types))
                 conditions.append(f"e.type IN ({placeholders})")
                 query_params_inc.extend(entity_types)
-
             query = f"""
             SELECT e.*, r.id as rel_id, r.source_id, r.target_id,
                    r.relation_type, r.properties as rel_properties,
@@ -124,10 +111,8 @@ class GraphTraversal:
             JOIN edges r ON e.id = r.source_id
             WHERE {" AND ".join(conditions)}
             """
-
             queries.append(query)
             params.extend(query_params_inc)
-
         # Combine queries with UNION if needed
         if len(queries) > 1:
             # SQLite doesn't like parentheses around the entire SELECT statement in UNION
@@ -136,11 +121,9 @@ class GraphTraversal:
         else:
             final_query = f"{queries[0]} LIMIT ?"
             params.append(limit)
-
         # Execute query
         cursor = self.connection.cursor()
         cursor.execute(final_query, params)
-
         # Process results
         results = []
         for row in cursor.fetchall():
@@ -154,7 +137,6 @@ class GraphTraversal:
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
             )
-
             # Extract relationship fields
             rel_props = row["rel_properties"]
             relationship = Relationship(
@@ -166,9 +148,7 @@ class GraphTraversal:
                 created_at=row["rel_created_at"],
                 updated_at=row["rel_updated_at"],
             )
-
             results.append((entity, relationship))
-
         return results
 
     def find_paths(
@@ -181,54 +161,43 @@ class GraphTraversal:
     ) -> List[List[PathNode]]:
         """
         Find paths between start and end entities using breadth-first search.
-
         Args:
             start_id: Start entity ID
             end_id: End entity ID
             max_depth: Maximum path length
             relation_types: Optional list of relationship types to filter
             entity_types: Optional list of entity types to filter
-
         Returns:
             List of paths (each path is a list of PathNodes)
         """
         if max_depth <= 0:
             return []
-
         # Get start entity
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM entities WHERE id = ?", (start_id,))
         start_row = cursor.fetchone()
-
         if not start_row:
             return []
-
         start_entity = Entity(
             id=start_row["id"],
             uuid=start_row["uuid"],
             name=start_row["name"],
             type=start_row["type"],
-            properties=(
-                json.loads(start_row["properties"]) if start_row["properties"] else {}
-            ),
+            properties=(json.loads(start_row["properties"]) if start_row["properties"] else {}),
             created_at=start_row["created_at"],
             updated_at=start_row["updated_at"],
         )
-
         # Queue for BFS
         queue = [PathNode(entity=start_entity, depth=0)]
         # Track visited entities to avoid cycles
         visited = {start_id}
         # Store found paths
         paths = []
-
         while queue:
             current = queue.pop(0)
-
             # If we've reached max depth, don't explore further
             if current.depth >= max_depth:
                 continue
-
             # Get neighbors
             try:
                 neighbors = self.get_neighbors(
@@ -237,12 +206,10 @@ class GraphTraversal:
                     relation_types=relation_types,
                     entity_types=entity_types,
                 )
-
                 for neighbor_entity, relationship in neighbors:
                     # Skip if we've already visited this entity
                     if neighbor_entity.id in visited:
                         continue
-
                     # Create new path node
                     new_node = PathNode(
                         entity=neighbor_entity,
@@ -250,7 +217,6 @@ class GraphTraversal:
                         parent=current,
                         depth=current.depth + 1,
                     )
-
                     # If we found the target entity, add the path to results
                     if neighbor_entity.id == end_id:
                         paths.append(new_node.path_to_root)
@@ -260,19 +226,16 @@ class GraphTraversal:
                         # Add to queue for further exploration
                         queue.append(new_node)
                         visited.add(neighbor_entity.id)
-            except Exception as e:
+            except Exception as exception:
                 # Log the error but continue with other paths
                 # Use structured logging instead of print
-                from src.common.observability import get_observable_logger
-
                 logger = get_observable_logger("graph_traversal", "adapter")
                 logger.error(
                     "neighbor_query_failed",
                     entity_id=current.entity.id,
-                    error_type=type(e).__name__,
-                    error_message=str(e),
+                    error_type=type(exception).__name__,
+                    error_message=str(exception),
                 )
-
         return paths
 
     def recursive_query(
@@ -286,7 +249,6 @@ class GraphTraversal:
     ) -> List[Dict]:
         """
         Perform a recursive query to find a subgraph using SQLite's recursive CTE.
-
         Args:
             start_id: Start entity ID
             direction: 'outgoing', 'incoming', or 'both'
@@ -294,52 +256,38 @@ class GraphTraversal:
             entity_types: Optional list of entity types to filter
             max_depth: Maximum traversal depth
             limit: Maximum number of results
-
         Returns:
             List of result rows with entity and relationship information
         """
         if direction not in ("outgoing", "incoming", "both"):
             raise ValueError("Direction must be 'outgoing', 'incoming', or 'both'")
-
         relation_filter = ""
         entity_filter = ""
-
         # Build filter clauses and params separately for each query part
         relation_filter_params = []
         entity_filter_params = []
-
         # Add relation type filter
         if relation_types:
             placeholders = ", ".join(["?"] * len(relation_types))
             relation_filter = f"AND r.relation_type IN ({placeholders})"
             relation_filter_params = list(relation_types)
-
         # Add entity type filter
         if entity_types:
             placeholders = ", ".join(["?"] * len(entity_types))
             entity_filter = f"AND e.type IN ({placeholders})"
             entity_filter_params = list(entity_types)
-
         # Build parameters based on direction
         if direction == "both":
             # Both direction needs start_id twice (outgoing and incoming base cases)
-            base_params = (
-                [start_id]
-                + relation_filter_params
-                + [start_id]
-                + relation_filter_params
-            )
+            base_params = [start_id] + relation_filter_params + [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
         else:
             # Single direction needs start_id once
             base_params = [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
-
         final_params = entity_filter_params + [limit if limit else 1000]
-
         # Combine all parameters in order
         params = base_params + recursive_params + final_params
-
         # Build the recursive CTE query based on direction
         if direction == "outgoing":
             recursive_query = f"""
@@ -349,16 +297,14 @@ class GraphTraversal:
                 SELECT r.source_id, r.target_id, r.id, 1
                 FROM edges r
                 WHERE r.source_id = ? {relation_filter}
-                
                 UNION ALL
-                
                 -- Recursive case: follow outgoing edges
                 SELECT r.source_id, r.target_id, r.id, gp.depth + 1
                 FROM graph_path gp
                 JOIN edges r ON gp.target_id = r.source_id
                 WHERE gp.depth < ? {relation_filter}
             )
-            SELECT e.*, r.id as rel_id, r.source_id, r.target_id, 
+            SELECT e.*, r.id as rel_id, r.source_id, r.target_id,
                    r.relation_type, r.properties as rel_properties,
                    gp.depth, s.id as source_entity_id, s.name as source_name,
                    s.type as source_type
@@ -378,16 +324,14 @@ class GraphTraversal:
                 SELECT r.source_id, r.target_id, r.id, 1
                 FROM edges r
                 WHERE r.target_id = ? {relation_filter}
-                
                 UNION ALL
-                
                 -- Recursive case: follow incoming edges
                 SELECT r.source_id, r.target_id, r.id, gp.depth + 1
                 FROM graph_path gp
                 JOIN edges r ON gp.source_id = r.target_id
                 WHERE gp.depth < ? {relation_filter}
             )
-            SELECT e.*, r.id as rel_id, r.source_id, r.target_id, 
+            SELECT e.*, r.id as rel_id, r.source_id, r.target_id,
                    r.relation_type, r.properties as rel_properties,
                    gp.depth, t.id as target_entity_id, t.name as target_name,
                    t.type as target_type
@@ -407,36 +351,32 @@ class GraphTraversal:
                 SELECT r.source_id, r.target_id, r.id, 'outgoing', 1
                 FROM edges r
                 WHERE r.source_id = ? {relation_filter}
-                
                 UNION ALL
-                
                 -- Base case: direct incoming relationships to start_id
                 SELECT r.target_id, r.source_id, r.id, 'incoming', 1
                 FROM edges r
                 WHERE r.target_id = ? {relation_filter}
-                
                 UNION ALL
-                
                 -- Recursive case: follow relationships in both directions
-                SELECT 
-                    CASE 
-                        WHEN gp.direction = 'outgoing' THEN r.source_id 
-                        ELSE r.target_id 
+                SELECT
+                    CASE
+                        WHEN gp.direction = 'outgoing' THEN r.source_id
+                        ELSE r.target_id
                     END,
-                    CASE 
-                        WHEN gp.direction = 'outgoing' THEN r.target_id 
-                        ELSE r.source_id 
+                    CASE
+                        WHEN gp.direction = 'outgoing' THEN r.target_id
+                        ELSE r.source_id
                     END,
                     r.id,
                     gp.direction,
                     gp.depth + 1
                 FROM graph_path gp
-                JOIN edges r ON 
+                JOIN edges r ON
                     (gp.direction = 'outgoing' AND gp.related_id = r.source_id) OR
                     (gp.direction = 'incoming' AND gp.related_id = r.target_id)
                 WHERE gp.depth < ? {relation_filter}
             )
-            SELECT e.*, r.id as rel_id, r.source_id, r.target_id, 
+            SELECT e.*, r.id as rel_id, r.source_id, r.target_id,
                    r.relation_type, r.properties as rel_properties,
                    gp.depth, gp.direction
             FROM graph_path gp
@@ -447,33 +387,25 @@ class GraphTraversal:
             LIMIT ?
             """
             # For 'both' direction, start_id is used twice
-            params = [start_id, start_id, max_depth] + params[2:]
-
+            both_params: List[Any] = [start_id, start_id, max_depth] + params[2:]
+            params = both_params
         params.append(limit)
-
         # Execute the recursive query
         cursor = self.connection.cursor()
         cursor.execute(recursive_query, params)
-
         # Process results
         results = []
         for row in cursor.fetchall():
             # Convert to dict for easier manipulation
             result_dict = dict(row)
-
             # Parse JSON properties
             if result_dict.get("properties"):
                 result_dict["properties"] = json.loads(result_dict["properties"])
             else:
                 result_dict["properties"] = {}
-
             if result_dict.get("rel_properties"):
-                result_dict["rel_properties"] = json.loads(
-                    result_dict["rel_properties"]
-                )
+                result_dict["rel_properties"] = json.loads(result_dict["rel_properties"])
             else:
                 result_dict["rel_properties"] = {}
-
             results.append(result_dict)
-
         return results

@@ -106,9 +106,7 @@ class Relationship:
         }
         self.updated_at = datetime.now()
 
-    def get_extraction_context(
-        self, document_id: DocumentId
-    ) -> Optional[Dict[str, str]]:
+    def get_extraction_context(self, document_id: DocumentId) -> Optional[Dict[str, str]]:
         """특정 문서에서의 추출 컨텍스트 조회."""
         return self.extraction_metadata.get(f"context_{document_id}")
 
@@ -126,10 +124,10 @@ class Relationship:
     def calculate_similarity(self, other: "Relationship") -> float:
         """다른 관계와의 유사도 계산."""
         if not self.has_embedding() or not other.has_embedding():
-            raise ValueError(
-                "Both relationships must have embeddings for similarity calculation"
-            )
+            raise ValueError("Both relationships must have embeddings for similarity calculation")
 
+        # mypy: embedding이 None이 아님을 확인했으므로 assert 사용
+        assert self.embedding is not None and other.embedding is not None
         return self.embedding.cosine_similarity(other.embedding)
 
     def update_property(self, key: str, value: Any) -> None:
@@ -175,7 +173,7 @@ class Relationship:
         """주어진 노드의 상대 노드 ID 반환."""
         if self.source_node_id == node_id:
             return self.target_node_id
-        elif self.target_node_id == node_id:
+        if self.target_node_id == node_id:
             return self.source_node_id
         return None
 

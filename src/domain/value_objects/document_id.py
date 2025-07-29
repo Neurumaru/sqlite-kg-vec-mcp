@@ -4,7 +4,6 @@
 
 import uuid
 from dataclasses import dataclass
-from typing import Union
 
 
 @dataclass(frozen=True)

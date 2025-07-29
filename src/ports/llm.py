@@ -8,7 +8,6 @@ from typing import Any, AsyncGenerator, List
 from langchain_core.messages import BaseMessage
 
 
-
 class LLM(ABC):
     """
     LLM 서비스 포트.
@@ -19,7 +18,7 @@ class LLM(ABC):
     @abstractmethod
     async def invoke(
         self,
-        input: List[BaseMessage],
+        messages: List[BaseMessage],
         **kwargs: Any,
     ) -> BaseMessage:
         """
@@ -32,12 +31,11 @@ class LLM(ABC):
         Returns:
             AIMessage 응답
         """
-        pass
 
     @abstractmethod
-    async def stream(
-        self, 
-        input: List[BaseMessage],
+    def stream(
+        self,
+        messages: List[BaseMessage],
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         """
@@ -50,7 +48,6 @@ class LLM(ABC):
         Yields:
             응답 텍스트 청크들
         """
-        pass
 
     @abstractmethod
     async def batch(
@@ -68,5 +65,3 @@ class LLM(ABC):
         Returns:
             AIMessage 응답들의 리스트
         """
-        pass
-

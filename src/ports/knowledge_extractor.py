@@ -28,7 +28,6 @@ class KnowledgeExtractor(ABC):
         Returns:
             (노드 데이터 리스트, 관계 데이터 리스트) 튜플
         """
-        pass
 
     @abstractmethod
     async def is_available(self) -> bool:
@@ -38,4 +37,3 @@ class KnowledgeExtractor(ABC):
         Returns:
             사용 가능 여부
         """
-        pass

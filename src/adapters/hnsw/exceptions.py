@@ -5,14 +5,10 @@ These exceptions handle vector operations, embeddings generation,
 and vector database errors.
 """
 
-from typing import Any, Dict, List, Optional
-
-import numpy as np
+from typing import Any, Dict, Optional
 
 from ..exceptions.base import InfrastructureException
-from ..exceptions.connection import HTTPConnectionException
-from ..exceptions.data import DataException, DataValidationException
-from ..exceptions.timeout import TimeoutException
+from ..exceptions.data import DataValidationException
 
 
 class VectorException(InfrastructureException):
@@ -93,13 +89,9 @@ class EmbeddingGenerationException(VectorException):
         self.expected_dimension = expected_dimension
         self.actual_dimension = actual_dimension
 
-        full_message = (
-            f"Embedding generation failed for model '{model_name}': {message}"
-        )
+        full_message = f"Embedding generation failed for model '{model_name}': {message}"
         if expected_dimension and actual_dimension:
-            full_message += (
-                f" (expected dim: {expected_dimension}, got: {actual_dimension})"
-            )
+            full_message += f" (expected dim: {expected_dimension}, got: {actual_dimension})"
 
         super().__init__(
             operation="embedding generation",

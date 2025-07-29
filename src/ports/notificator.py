@@ -3,13 +3,14 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any
 from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 
 @dataclass
 class NotificationMessage:
     """알림 메시지."""
+
     recipient: str  # 수신자 (이메일, 전화번호, 사용자ID 등)
     title: str
     body: str
@@ -19,7 +20,7 @@ class NotificationMessage:
 class Notificator(ABC):
     """
     알림 포트.
-    
+
     다양한 채널을 통해 사용자에게 알림을 발송하는 인터페이스입니다.
     """
 
@@ -34,7 +35,6 @@ class Notificator(ABC):
         Returns:
             발송 성공 여부
         """
-        pass
 
     @abstractmethod
     async def send_batch_notifications(self, messages: List[NotificationMessage]) -> bool:
@@ -47,7 +47,6 @@ class Notificator(ABC):
         Returns:
             배치 발송 성공 여부
         """
-        pass
 
     @abstractmethod
     async def is_available(self) -> bool:
@@ -57,4 +56,3 @@ class Notificator(ABC):
         Returns:
             사용 가능 여부
         """
-        pass

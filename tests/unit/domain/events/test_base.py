@@ -4,8 +4,8 @@
 
 import unittest
 import uuid
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
 
 from src.domain.events.base import DomainEvent
 
@@ -84,7 +84,7 @@ class TestDomainEvent(unittest.TestCase):
         aggregate_id = "test-aggregate-123"
         test_data = "test data"
         event = TestEvent.create(aggregate_id, test_data)
-        
+
         # 메타데이터 수동 추가 (create 메서드에서는 기본적으로 빈 dict)
         event.metadata["source"] = "unit_test"
         event.metadata["priority"] = "high"

@@ -4,10 +4,13 @@ Vector embedding storage and management.
 
 import json
 import sqlite3
+import warnings
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional
 
 import numpy as np
+
+from .text_embedder import create_embedder
 
 # from .transactions import UnitOfWork  # TODO: Implement transactions module
 
@@ -135,8 +138,8 @@ class EmbeddingManager:
             # Update existing embedding
             cursor.execute(
                 f"""
-                UPDATE {table} 
-                SET embedding = ?, dimensions = ?, model_info = ?, 
+                UPDATE {table}
+                SET embedding = ?, dimensions = ?, model_info = ?,
                     embedding_version = ?
                 WHERE {id_column} = ?
                 """,
@@ -152,7 +155,7 @@ class EmbeddingManager:
             # Insert new embedding
             cursor.execute(
                 f"""
-                INSERT INTO {table} 
+                INSERT INTO {table}
                 ({id_column}, embedding, dimensions, model_info, embedding_version)
                 VALUES (?, ?, ?, ?, ?)
                 """,
@@ -374,12 +377,12 @@ class EmbeddingManager:
         operations = cursor.fetchall()
         processed_count = 0
 
-        for op in operations:
-            outbox_id = op["id"]
-            operation_type = op["operation_type"]
-            entity_type = op["entity_type"]
-            entity_id = op["entity_id"]
-            model_info = op["model_info"]
+        for operation in operations:
+            outbox_id = operation["id"]
+            operation_type = operation["operation_type"]
+            entity_type = operation["entity_type"]
+            entity_id = operation["entity_id"]
+            model_info = operation["model_info"]
 
             try:
                 # Mark as processing
@@ -415,24 +418,24 @@ class EmbeddingManager:
 
                 processed_count += 1
 
-            except Exception as e:
+            except Exception as exception:
                 # Log error and mark as failed
                 cursor.execute(
                     """
-                    UPDATE vector_outbox 
-                    SET status = 'failed', 
+                    UPDATE vector_outbox
+                    SET status = 'failed',
                         retry_count = retry_count + 1,
                         last_error = ?
                     WHERE id = ?
                     """,
-                    (str(e), outbox_id),
+                    (str(exception), outbox_id),
                 )
 
                 # Record in sync_failures table
                 cursor.execute(
                     """
                     INSERT INTO sync_failures
-                    (outbox_id, entity_type, entity_id, operation_type, 
+                    (outbox_id, entity_type, entity_id, operation_type,
                      error_message, retry_count)
                     VALUES (?, ?, ?, ?, ?, ?)
                     """,
@@ -441,7 +444,7 @@ class EmbeddingManager:
                         entity_type,
                         entity_id,
                         operation_type,
-                        str(e),
+                        str(exception),
                         cursor.execute(
                             "SELECT retry_count FROM vector_outbox WHERE id = ?",
                             (outbox_id,),
@@ -472,17 +475,14 @@ class EmbeddingManager:
             # Use text embedder if available
             if hasattr(self, "text_embedder") and self.text_embedder is not None:
                 result = self.text_embedder.embed(text_content)
-                return result
+                return np.asarray(result, dtype=np.float32)
 
             # Fallback: try to create a default embedder
-            from .text_embedder import create_embedder
-
             # Determine embedding dimension from model_info or use default
-            embedding_dim = 384  # Default for sentence-transformers
             if model_info and "dim" in model_info:
                 try:
-                    embedding_dim = int(model_info.split("dim=")[1].split(",")[0])
-                except:
+                    int(model_info.split("dim=")[1].split(",")[0])
+                except Exception:
                     pass
 
             # Create default sentence-transformers embedder
@@ -490,14 +490,13 @@ class EmbeddingManager:
                 embedder_type="sentence-transformers", model_name="all-MiniLM-L6-v2"
             )
 
-            return embedder.embed(text_content)
+            result = embedder.embed(text_content)
+            return np.asarray(result, dtype=np.float32)
 
-        except Exception as e:
+        except Exception as exception:
             # Fallback to random embedding with warning
-            import warnings
-
             warnings.warn(
-                f"Failed to generate embedding for {entity_type} {entity_id}: {e}. Using random embedding."
+                f"Failed to generate embedding for {entity_type} {entity_id}: {exception}. Using random embedding."
             )
             return np.random.rand(384).astype(np.float32)
 
@@ -518,8 +517,8 @@ class EmbeddingManager:
             # Extract text from entity
             cursor.execute(
                 """
-                SELECT name, type, properties 
-                FROM entities 
+                SELECT name, type, properties
+                FROM entities
                 WHERE id = ?
             """,
                 (entity_id,),
@@ -540,23 +539,17 @@ class EmbeddingManager:
 
             # Extract text from properties JSON
             if properties:
-                import json
-
                 try:
-                    props = (
-                        json.loads(properties)
-                        if isinstance(properties, str)
-                        else properties
-                    )
+                    props = json.loads(properties) if isinstance(properties, str) else properties
                     for key, value in props.items():
                         if isinstance(value, (str, int, float)):
                             text_parts.append(f"{key}: {value}")
-                except:
+                except Exception:
                     text_parts.append(f"Properties: {properties}")
 
             return " | ".join(text_parts)
 
-        elif entity_type == "edge":
+        if entity_type == "edge":
             # Extract text from relationship
             cursor.execute(
                 """
@@ -586,21 +579,14 @@ class EmbeddingManager:
 
             # Add properties if available
             if properties:
-                import json
-
                 try:
-                    props = (
-                        json.loads(properties)
-                        if isinstance(properties, str)
-                        else properties
-                    )
+                    props = json.loads(properties) if isinstance(properties, str) else properties
                     for key, value in props.items():
                         if isinstance(value, (str, int, float)):
                             text_parts.append(f"{key}: {value}")
-                except:
+                except Exception:
                     text_parts.append(f"Properties: {properties}")
 
             return " | ".join(text_parts)
 
-        else:
-            return f"Unknown entity type: {entity_type}"
+        return f"Unknown entity type: {entity_type}"

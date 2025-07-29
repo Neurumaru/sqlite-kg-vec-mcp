@@ -26,7 +26,6 @@ class TextEmbedder(ABC):
         Returns:
             임베딩 결과
         """
-        pass
 
     @abstractmethod
     async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
@@ -39,7 +38,6 @@ class TextEmbedder(ABC):
         Returns:
             임베딩 결과들
         """
-        pass
 
     @abstractmethod
     def get_embedding_dimension(self) -> int:
@@ -49,7 +47,6 @@ class TextEmbedder(ABC):
         Returns:
             벡터 차원
         """
-        pass
 
     @abstractmethod
     async def is_available(self) -> bool:
@@ -59,4 +56,3 @@ class TextEmbedder(ABC):
         Returns:
             사용 가능 여부
         """
-        pass

@@ -2,10 +2,12 @@
 OpenAI 텍스트 임베딩 어댑터.
 """
 
+import time
 from typing import Any, Dict, List, Optional
 
 try:
     import openai
+    from openai import AsyncOpenAI
 
     OPENAI_AVAILABLE = True
 except ImportError:
@@ -14,7 +16,7 @@ except ImportError:
 import numpy as np
 
 from src.common.config.llm import OpenAIConfig
-from src.domain.value_objects.vector import Vector
+from src.dto.embedding import EmbeddingResult
 from src.ports.text_embedder import TextEmbedder
 
 
@@ -38,22 +40,18 @@ class OpenAITextEmbedder(TextEmbedder):
             dimension: 임베딩 차원 (deprecated, config 사용 권장)
         """
         if not OPENAI_AVAILABLE:
-            raise ImportError(
-                "openai가 설치되지 않았습니다. 'pip install openai'로 설치해주세요."
-            )
+            raise ImportError("openai가 설치되지 않았습니다. 'pip install openai'로 설치해주세요.")
 
         # Use config if provided, otherwise fall back to individual parameters
         if config is None:
             config = OpenAIConfig()
-        
+
         # Override config with individual parameters if provided (for backward compatibility)
         self.api_key = api_key or config.api_key
         if not self.api_key:
-            raise ValueError(
-                "OpenAI API 키가 제공되지 않았고 OPENAI_API_KEY 환경변수도 없습니다."
-            )
+            raise ValueError("OpenAI API 키가 제공되지 않았고 OPENAI_API_KEY 환경변수도 없습니다.")
 
-        self.client = openai.OpenAI(api_key=self.api_key)
+        self.client = AsyncOpenAI(api_key=self.api_key, timeout=config.timeout)
         self.model = model or config.embedding_model
         self.custom_dimension = dimension or config.embedding_dimension
         self.timeout = config.timeout
@@ -64,30 +62,111 @@ class OpenAITextEmbedder(TextEmbedder):
             "text-embedding-3-small": 1536,
             "text-embedding-3-large": 3072,
         }
-        self._dimension = dimension or self._default_dimensions.get(model, 1536)
 
-    async def embed_text(self, text: str) -> Vector:
+        # 실제 차원 계산 - custom_dimension이 우선, 없으면 모델 기본값
+        actual_model = self.model or "text-embedding-3-small"
+        self._dimension = self.custom_dimension or self._default_dimensions.get(actual_model, 1536)
+
+    async def embed_text(self, text: str) -> EmbeddingResult:
         """단일 텍스트를 임베딩합니다."""
-        kwargs = {"input": text, "model": self.model}
-        if self.custom_dimension is not None:
-            kwargs["dimensions"] = self.custom_dimension
+        if not text or not text.strip():
+            raise ValueError("텍스트가 비어있습니다.")
 
-        response = self.client.embeddings.create(**kwargs)
-        embedding_data = np.array(response.data[0].embedding, dtype=np.float32)
-        return Vector(values=embedding_data.tolist())
+        start_time = time.time()
 
-    async def embed_texts(self, texts: List[str]) -> List[Vector]:
+        try:
+            kwargs: Dict[str, Any] = {"input": text, "model": self.model}
+            if self.custom_dimension is not None and isinstance(self.custom_dimension, int):
+                kwargs["dimensions"] = self.custom_dimension
+
+            response = await self.client.embeddings.create(**kwargs)
+
+            if not response.data:
+                raise ValueError("OpenAI API에서 임베딩 데이터를 받지 못했습니다.")
+
+            embedding_data = np.array(response.data[0].embedding, dtype=np.float32)
+            processing_time = (time.time() - start_time) * 1000  # milliseconds
+
+            return EmbeddingResult(
+                text=text,
+                embedding=embedding_data.tolist(),
+                model_name=self.model,
+                dimension=len(embedding_data),
+                processing_time_ms=processing_time,
+                metadata={
+                    "usage": response.usage.model_dump() if response.usage else {},
+                    "model": response.model if hasattr(response, "model") else self.model,
+                },
+            )
+
+        except openai.AuthenticationError as exception:
+            raise ValueError(f"OpenAI API 인증 실패: {str(exception)}") from exception
+        except openai.RateLimitError as exception:
+            raise ValueError(f"OpenAI API 요청 한도 초과: {str(exception)}") from exception
+        except openai.APIConnectionError as exception:
+            raise ConnectionError(f"OpenAI API 연결 실패: {str(exception)}") from exception
+        except openai.APIError as exception:
+            raise RuntimeError(f"OpenAI API 오류: {str(exception)}") from exception
+        except Exception as exception:
+            raise RuntimeError(f"임베딩 생성 중 예상치 못한 오류: {str(exception)}") from exception
+
+    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
         """여러 텍스트를 일괄 임베딩합니다."""
-        kwargs = {"input": texts, "model": self.model}
-        if self.custom_dimension is not None:
-            kwargs["dimensions"] = self.custom_dimension
+        if not texts:
+            return []
 
-        response = self.client.embeddings.create(**kwargs)
-        return [
-            Vector(values=np.array(data.embedding, dtype=np.float32).tolist())
-            for data in response.data
-        ]
+        # 빈 텍스트 검증
+        for i, text in enumerate(texts):
+            if not text or not text.strip():
+                raise ValueError(f"인덱스 {i}의 텍스트가 비어있습니다.")
 
+        start_time = time.time()
+
+        try:
+            kwargs: Dict[str, Any] = {"input": texts, "model": self.model}
+            if self.custom_dimension is not None and isinstance(self.custom_dimension, int):
+                kwargs["dimensions"] = self.custom_dimension
+
+            response = await self.client.embeddings.create(**kwargs)
+
+            if not response.data or len(response.data) != len(texts):
+                raise ValueError("OpenAI API에서 예상한 수만큼의 임베딩 데이터를 받지 못했습니다.")
+
+            processing_time = (time.time() - start_time) * 1000  # milliseconds
+
+            results = []
+            for i, (text, data) in enumerate(zip(texts, response.data)):
+                embedding_data = np.array(data.embedding, dtype=np.float32)
+                results.append(
+                    EmbeddingResult(
+                        text=text,
+                        embedding=embedding_data.tolist(),
+                        model_name=self.model,
+                        dimension=len(embedding_data),
+                        processing_time_ms=processing_time / len(texts),  # 평균 처리 시간
+                        metadata={
+                            "batch_index": i,
+                            "batch_size": len(texts),
+                            "usage": response.usage.model_dump() if response.usage else {},
+                            "model": response.model if hasattr(response, "model") else self.model,
+                        },
+                    )
+                )
+
+            return results
+
+        except openai.AuthenticationError as exception:
+            raise ValueError(f"OpenAI API 인증 실패: {str(exception)}") from exception
+        except openai.RateLimitError as exception:
+            raise ValueError(f"OpenAI API 요청 한도 초과: {str(exception)}") from exception
+        except openai.APIConnectionError as exception:
+            raise ConnectionError(f"OpenAI API 연결 실패: {str(exception)}") from exception
+        except openai.APIError as exception:
+            raise RuntimeError(f"OpenAI API 오류: {str(exception)}") from exception
+        except Exception as exception:
+            raise RuntimeError(
+                f"일괄 임베딩 생성 중 예상치 못한 오류: {str(exception)}"
+            ) from exception
 
     def get_embedding_dimension(self) -> int:
         """임베딩 벡터의 차원을 반환합니다."""
@@ -96,7 +175,12 @@ class OpenAITextEmbedder(TextEmbedder):
     async def is_available(self) -> bool:
         """임베딩 서비스가 사용 가능한지 확인합니다."""
         try:
-            await self.embed_text("test")
-            return True
+            # 간단한 테스트 텍스트로 가용성 확인
+            test_result = await self.embed_text("test")
+            return test_result is not None and len(test_result.embedding) > 0
+        except (ValueError, ConnectionError, RuntimeError):
+            # 예상되는 오류들은 서비스 사용 불가로 간주
+            return False
         except Exception:
+            # 예상치 못한 오류도 사용 불가로 간주
             return False

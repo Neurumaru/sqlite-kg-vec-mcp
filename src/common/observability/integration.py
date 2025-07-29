@@ -4,6 +4,12 @@ Integration module for connecting observability with external services.
 
 from typing import Any, Dict, Optional
 
+from langfuse import Langfuse
+from opentelemetry import trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
 from .logger import get_observable_logger
 
 
@@ -27,7 +33,7 @@ class ObservabilityIntegration:
         """
         self.config = config or {}
         self.logger = get_observable_logger("observability_integration", "common")
-        self._external_service = None
+        self._external_service: Optional[Any] = None
 
         # Initialize external service if configured
         self._initialize_external_service()
@@ -49,8 +55,6 @@ class ObservabilityIntegration:
     def _initialize_langfuse(self) -> None:
         """Initialize Langfuse integration."""
         try:
-            from langfuse import Langfuse
-
             langfuse_config = self.config.get("langfuse", {})
             self._external_service = Langfuse(
                 secret_key=langfuse_config.get("secret_key"),
@@ -65,23 +69,19 @@ class ObservabilityIntegration:
                 "langfuse_not_available",
                 message="Install langfuse package to enable Langfuse integration",
             )
-        except Exception as e:
+        except Exception as exception:
             self.logger.error(
                 "langfuse_initialization_failed",
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
     def _initialize_opentelemetry(self) -> None:
         """Initialize OpenTelemetry integration."""
         try:
-            from opentelemetry import trace
-            from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-            from opentelemetry.sdk.trace import TracerProvider
-            from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
             # Configure OpenTelemetry
-            trace.set_tracer_provider(TracerProvider())
+            tracer_provider = TracerProvider()
+            trace.set_tracer_provider(tracer_provider)
             tracer = trace.get_tracer(__name__)
 
             # Configure Jaeger exporter
@@ -92,7 +92,7 @@ class ObservabilityIntegration:
             )
 
             span_processor = BatchSpanProcessor(jaeger_exporter)
-            trace.get_tracer_provider().add_span_processor(span_processor)
+            tracer_provider.add_span_processor(span_processor)
 
             self._external_service = tracer
 
@@ -106,11 +106,11 @@ class ObservabilityIntegration:
                 "opentelemetry_not_available",
                 message="Install opentelemetry packages to enable tracing",
             )
-        except Exception as e:
+        except Exception as exception:
             self.logger.error(
                 "opentelemetry_initialization_failed",
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
     def get_external_service(self) -> Optional[Any]:
@@ -140,19 +140,19 @@ class ObservabilityIntegration:
             if hasattr(self._external_service, "trace"):
                 # Langfuse-style
                 trace = self._external_service.trace(name=name, **metadata)
-                return trace.id
-            elif hasattr(self._external_service, "start_span"):
+                return str(trace.id)
+            if hasattr(self._external_service, "start_span"):
                 # OpenTelemetry-style
                 span = self._external_service.start_span(name)
                 for key, value in metadata.items():
                     span.set_attribute(key, str(value))
-                return span.get_span_context().trace_id
-        except Exception as e:
+                return str(span.get_span_context().trace_id)
+        except Exception as exception:
             self.logger.error(
                 "external_trace_creation_failed",
                 trace_name=name,
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
         return None
@@ -192,17 +192,15 @@ class ObservabilityIntegration:
                     prompt_length=len(prompt),
                     response_length=len(response),
                 )
-        except Exception as e:
+        except Exception as exception:
             self.logger.error(
                 "llm_generation_logging_failed",
                 trace_id=trace_id,
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
-    def record_metric(
-        self, name: str, value: float, tags: Optional[Dict[str, str]] = None
-    ) -> None:
+    def record_metric(self, name: str, value: float, tags: Optional[Dict[str, str]] = None) -> None:
         """
         Record a metric to external service.
 
@@ -223,12 +221,12 @@ class ObservabilityIntegration:
                 metric_value=value,
                 metric_tags=tags or {},
             )
-        except Exception as e:
+        except Exception as exception:
             self.logger.error(
                 "metric_recording_failed",
                 metric_name=name,
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
     def flush(self) -> None:
@@ -240,11 +238,11 @@ class ObservabilityIntegration:
             if hasattr(self._external_service, "flush"):
                 self._external_service.flush()
                 self.logger.debug("observability_data_flushed")
-        except Exception as e:
+        except Exception as exception:
             self.logger.error(
                 "observability_flush_failed",
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
 
 

@@ -4,12 +4,12 @@ Nomic Embed Text integration for vector embeddings.
 
 import json
 import logging
-from typing import List, Optional, Union
+from typing import List, Union
 
 import numpy as np
 import requests
 
-from src.adapters.hnsw.text_embedder import VectorTextEmbedder
+from ..hnsw.text_embedder import VectorTextEmbedder
 
 
 class NomicEmbedder(VectorTextEmbedder):
@@ -44,16 +44,14 @@ class NomicEmbedder(VectorTextEmbedder):
             response = self.session.get(f"{self.base_url}/api/tags", timeout=10)
             response.raise_for_status()
 
-            available_models = [
-                model["name"] for model in response.json().get("models", [])
-            ]
+            available_models = [model["name"] for model in response.json().get("models", [])]
 
             if self.model_name in available_models:
-                logging.info(f"Nomic model {self.model_name} is available")
+                logging.info("Nomic model %s is available", self.model_name)
                 return True
 
             # Try to pull the model if not available
-            logging.info(f"Pulling Nomic model {self.model_name}...")
+            logging.info("Pulling Nomic model %s...", self.model_name)
             pull_response = self.session.post(
                 f"{self.base_url}/api/pull",
                 json={"name": self.model_name},
@@ -61,14 +59,21 @@ class NomicEmbedder(VectorTextEmbedder):
             )
 
             if pull_response.status_code == 200:
-                logging.info(f"Successfully pulled {self.model_name}")
+                logging.info("Successfully pulled %s", self.model_name)
                 return True
-            else:
-                logging.error(f"Failed to pull {self.model_name}: {pull_response.text}")
-                return False
+            logging.error("Failed to pull %s: %s", self.model_name, pull_response.text)
+            return False
 
-        except Exception as e:
-            logging.error(f"Error ensuring Nomic model availability: {e}")
+        except (requests.ConnectionError, requests.Timeout) as exception:
+            logging.error("Connection error ensuring Nomic model availability: %s", exception)
+            return False
+        except requests.HTTPError as exception:
+            logging.error("HTTP error ensuring Nomic model availability: %s", exception)
+            return False
+        except (ValueError, KeyError) as exception:
+            logging.error(
+                "Invalid response format ensuring Nomic model availability: %s", exception
+            )
             return False
 
     def embed(self, text: Union[str, List[str]]) -> np.ndarray:
@@ -105,19 +110,23 @@ class NomicEmbedder(VectorTextEmbedder):
                 embedding = np.array(result["embedding"], dtype=np.float32)
                 embeddings.append(embedding)
 
-            except Exception as e:
-                logging.error(f"Error generating Nomic embedding for text: {e}")
-                # Return zero vector on error
-                embeddings.append(
-                    np.zeros(768, dtype=np.float32)
-                )  # Nomic default dimension
+            except requests.ConnectionError as exception:
+                logging.error("Connection error generating Nomic embedding for text: %s", exception)
+                embeddings.append(np.zeros(768, dtype=np.float32))  # Nomic default dimension
+            except requests.HTTPError as exception:
+                logging.error("HTTP error generating Nomic embedding for text: %s", exception)
+                embeddings.append(np.zeros(768, dtype=np.float32))  # Nomic default dimension
+            except (ValueError, KeyError, json.JSONDecodeError) as exception:
+                logging.error(
+                    "Response parsing error generating Nomic embedding for text: %s", exception
+                )
+                embeddings.append(np.zeros(768, dtype=np.float32))  # Nomic default dimension
 
         embeddings_array = np.array(embeddings)
 
         if return_single:
-            return embeddings_array[0]
-        else:
-            return embeddings_array
+            return embeddings_array[0]  # type: ignore[no-any-return]
+        return embeddings_array
 
     def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
         """Convert batch of texts to embedding vectors."""
@@ -134,7 +143,14 @@ class NomicEmbedder(VectorTextEmbedder):
         try:
             test_embedding = self.embed("test")
             return len(test_embedding)
-        except Exception:
+        except (
+            requests.ConnectionError,
+            requests.HTTPError,
+            ValueError,
+            KeyError,
+            json.JSONDecodeError,
+        ) as exception:
+            logging.warning("Error getting embedding dimension: %s", exception)
             # Default dimension for nomic-embed-text
             return 768
 
@@ -166,9 +182,7 @@ class NomicEmbedder(VectorTextEmbedder):
 
             # Log progress for large batches
             if len(texts) > 100:
-                logging.info(
-                    f"Processed {min(i + batch_size, len(texts))}/{len(texts)} texts"
-                )
+                logging.info("Processed %s/%s texts", min(i + batch_size, len(texts)), len(texts))
 
         return np.array(all_embeddings)
 

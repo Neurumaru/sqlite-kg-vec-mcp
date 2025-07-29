@@ -26,7 +26,7 @@ install-dev:
 	$(UV) sync --group dev
 
 # Linting and formatting
-lint: format type-check
+lint: format type-check flake8 ruff pylint
 	@echo "✅ All linting checks passed!"
 
 format:
@@ -44,6 +44,16 @@ flake8:
 	@echo "🔍 Running flake8..."
 	$(UV) run flake8 src/ tests/ examples/
 	@echo "✅ Flake8 checks complete!"
+
+ruff:
+	@echo "🔍 Running ruff..."
+	$(UV) run ruff check src/ tests/ examples/
+	@echo "✅ Ruff checks complete!"
+
+pylint:
+	@echo "🔍 Running pylint..."
+	$(UV) run pylint src/ tests/ examples/
+	@echo "✅ Pylint checks complete!"
 
 # Testing
 test:

@@ -1,6 +1,5 @@
 """
 SQLite-specific infrastructure exceptions.
-
 These exceptions handle SQLite database errors and provide
 meaningful abstractions for common database failure scenarios.
 """
@@ -10,14 +9,13 @@ from typing import Any, Dict, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import DatabaseConnectionException
-from ..exceptions.data import DataException, DataIntegrityException
+from ..exceptions.data import DataIntegrityException
 from ..exceptions.timeout import DatabaseTimeoutException
 
 
 class SQLiteConnectionException(DatabaseConnectionException):
     """
     SQLite database connection failures.
-
     Handles file access issues, permissions, database locking,
     and other connection-related problems.
     """
@@ -32,7 +30,6 @@ class SQLiteConnectionException(DatabaseConnectionException):
     ):
         """
         Initialize SQLite connection exception.
-
         Args:
             db_path: Database file path
             message: Detailed error message
@@ -41,7 +38,6 @@ class SQLiteConnectionException(DatabaseConnectionException):
             original_error: Original SQLite exception
         """
         self.sqlite_error_code = sqlite_error_code
-
         super().__init__(
             db_path=db_path,
             message=message,
@@ -56,23 +52,19 @@ class SQLiteConnectionException(DatabaseConnectionException):
     ) -> "SQLiteConnectionException":
         """
         Create exception from SQLite error.
-
         Args:
             db_path: Database file path
             sqlite_error: Original SQLite error
-
         Returns:
             SQLiteConnectionException instance
         """
         error_code = getattr(sqlite_error, "sqlite_errorcode", None)
         error_name = getattr(sqlite_error, "sqlite_errorname", None)
-
         context = {}
         if error_code:
             context["sqlite_error_code"] = error_code
         if error_name:
             context["sqlite_error_name"] = error_name
-
         return cls(
             db_path=db_path,
             message=str(sqlite_error),
@@ -85,7 +77,6 @@ class SQLiteConnectionException(DatabaseConnectionException):
 class SQLiteIntegrityException(DataIntegrityException):
     """
     SQLite integrity constraint violations.
-
     Handles foreign key violations, unique constraint violations,
     check constraint failures, and other integrity issues.
     """
@@ -101,7 +92,6 @@ class SQLiteIntegrityException(DataIntegrityException):
     ):
         """
         Initialize SQLite integrity exception.
-
         Args:
             constraint: Constraint type or name
             table: Table name where violation occurred
@@ -112,7 +102,6 @@ class SQLiteIntegrityException(DataIntegrityException):
         """
         self.column = column
         self.value = value
-
         # Build detailed message
         if table and column:
             message = f"SQLite integrity constraint '{constraint}' violated on {table}.{column}"
@@ -122,7 +111,6 @@ class SQLiteIntegrityException(DataIntegrityException):
             message = f"SQLite integrity constraint '{constraint}' violated on table '{table}'"
         else:
             message = f"SQLite integrity constraint '{constraint}' violated"
-
         super().__init__(
             constraint=constraint,
             table=table,
@@ -138,16 +126,13 @@ class SQLiteIntegrityException(DataIntegrityException):
     ) -> "SQLiteIntegrityException":
         """
         Create exception from SQLite IntegrityError.
-
         Args:
             sqlite_error: Original SQLite integrity error
             table: Table name if known
-
         Returns:
             SQLiteIntegrityException instance
         """
         error_msg = str(sqlite_error).lower()
-
         # Determine constraint type from error message
         if "unique" in error_msg:
             constraint = "UNIQUE"
@@ -159,7 +144,6 @@ class SQLiteIntegrityException(DataIntegrityException):
             constraint = "NOT_NULL"
         else:
             constraint = "UNKNOWN"
-
         return cls(
             constraint=constraint,
             table=table,
@@ -171,7 +155,6 @@ class SQLiteIntegrityException(DataIntegrityException):
 class SQLiteOperationalException(InfrastructureException):
     """
     SQLite operational errors.
-
     Handles database is locked, disk I/O errors, schema changes,
     and other operational issues.
     """
@@ -186,7 +169,6 @@ class SQLiteOperationalException(InfrastructureException):
     ):
         """
         Initialize SQLite operational exception.
-
         Args:
             operation: Operation being performed
             message: Detailed error message
@@ -196,11 +178,9 @@ class SQLiteOperationalException(InfrastructureException):
         """
         self.operation = operation
         self.db_path = db_path
-
         full_message = f"SQLite operational error during {operation}: {message}"
         if db_path:
             full_message += f" (Database: {db_path})"
-
         super().__init__(
             message=full_message,
             error_code="SQLITE_OPERATIONAL_ERROR",
@@ -217,12 +197,10 @@ class SQLiteOperationalException(InfrastructureException):
     ) -> "SQLiteOperationalException":
         """
         Create exception from SQLite OperationalError.
-
         Args:
             operation: Operation being performed
             sqlite_error: Original SQLite operational error
             db_path: Database file path
-
         Returns:
             SQLiteOperationalException instance
         """
@@ -237,7 +215,6 @@ class SQLiteOperationalException(InfrastructureException):
 class SQLiteTimeoutException(DatabaseTimeoutException):
     """
     SQLite timeout errors.
-
     Handles database busy/locked timeouts and operation timeouts.
     """
 
@@ -252,7 +229,6 @@ class SQLiteTimeoutException(DatabaseTimeoutException):
     ):
         """
         Initialize SQLite timeout exception.
-
         Args:
             operation: Database operation that timed out
             timeout_duration: Timeout duration in seconds
@@ -262,7 +238,6 @@ class SQLiteTimeoutException(DatabaseTimeoutException):
             original_error: Original exception
         """
         self.db_path = db_path
-
         super().__init__(
             operation=f"SQLite {operation}",
             timeout_duration=timeout_duration,
@@ -276,7 +251,6 @@ class SQLiteTimeoutException(DatabaseTimeoutException):
 class SQLiteTransactionException(InfrastructureException):
     """
     SQLite transaction errors.
-
     Handles transaction rollback, deadlock, and state issues.
     """
 
@@ -290,7 +264,6 @@ class SQLiteTransactionException(InfrastructureException):
     ):
         """
         Initialize SQLite transaction exception.
-
         Args:
             transaction_id: Transaction identifier
             state: Transaction state when error occurred
@@ -300,11 +273,7 @@ class SQLiteTransactionException(InfrastructureException):
         """
         self.transaction_id = transaction_id
         self.state = state
-
-        full_message = (
-            f"SQLite transaction {transaction_id} failed in state '{state}': {message}"
-        )
-
+        full_message = f"SQLite transaction {transaction_id} failed in state '{state}': {message}"
         super().__init__(
             message=full_message,
             error_code="SQLITE_TRANSACTION_FAILED",

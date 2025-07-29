@@ -6,6 +6,7 @@ import unittest
 import uuid
 from datetime import datetime
 
+from src.domain.events.base import DomainEvent
 from src.domain.events.document_processed import DocumentProcessed
 
 
@@ -21,7 +22,7 @@ class TestDocumentProcessed(unittest.TestCase):
         processing_time_seconds = 2.5
 
         event = DocumentProcessed.create(
-            document_id=document_id,
+            aggregate_id=document_id,
             extracted_node_count=extracted_node_count,
             extracted_relationship_count=extracted_relationship_count,
             processing_time_seconds=processing_time_seconds,
@@ -49,7 +50,7 @@ class TestDocumentProcessed(unittest.TestCase):
         processing_time_seconds = 1.0
 
         event = DocumentProcessed.create(
-            document_id=document_id,
+            aggregate_id=document_id,
             extracted_node_count=extracted_node_count,
             extracted_relationship_count=extracted_relationship_count,
             processing_time_seconds=processing_time_seconds,
@@ -96,11 +97,7 @@ class TestDocumentProcessed(unittest.TestCase):
         event_id = str(uuid.uuid4())
         occurred_at = datetime.now()
         document_id = "doc-metadata"
-        metadata = {
-            "extractor_version": "1.2.3",
-            "model_used": "gpt-4",
-            "source": "api_upload"
-        }
+        metadata = {"extractor_version": "1.2.3", "model_used": "gpt-4", "source": "api_upload"}
 
         event = DocumentProcessed(
             event_id=event_id,
@@ -129,7 +126,7 @@ class TestDocumentProcessed(unittest.TestCase):
         processing_time_seconds = 120.75
 
         event = DocumentProcessed.create(
-            document_id=document_id,
+            aggregate_id=document_id,
             extracted_node_count=extracted_node_count,
             extracted_relationship_count=extracted_relationship_count,
             processing_time_seconds=processing_time_seconds,
@@ -144,34 +141,33 @@ class TestDocumentProcessed(unittest.TestCase):
         """DocumentProcessed가 DomainEvent를 올바르게 상속하는지 테스트."""
         # When
         event = DocumentProcessed.create(
-            document_id="doc-inheritance",
+            aggregate_id="doc-inheritance",
             extracted_node_count=1,
             extracted_relationship_count=1,
             processing_time_seconds=1.0,
         )
 
         # Then
-        from src.domain.events.base import DomainEvent
         self.assertIsInstance(event, DomainEvent)
-        self.assertTrue(hasattr(event, 'event_id'))
-        self.assertTrue(hasattr(event, 'occurred_at'))
-        self.assertTrue(hasattr(event, 'event_type'))
-        self.assertTrue(hasattr(event, 'aggregate_id'))
-        self.assertTrue(hasattr(event, 'version'))
-        self.assertTrue(hasattr(event, 'metadata'))
+        self.assertTrue(hasattr(event, "event_id"))
+        self.assertTrue(hasattr(event, "occurred_at"))
+        self.assertTrue(hasattr(event, "event_type"))
+        self.assertTrue(hasattr(event, "aggregate_id"))
+        self.assertTrue(hasattr(event, "version"))
+        self.assertTrue(hasattr(event, "metadata"))
 
     def test_multiple_document_processed_events_unique(self):
         """여러 DocumentProcessed 이벤트가 고유한지 테스트."""
         # When
         event1 = DocumentProcessed.create(
-            document_id="doc-1",
+            aggregate_id="doc-1",
             extracted_node_count=1,
             extracted_relationship_count=1,
             processing_time_seconds=1.0,
         )
-        
+
         event2 = DocumentProcessed.create(
-            document_id="doc-2",
+            aggregate_id="doc-2",
             extracted_node_count=2,
             extracted_relationship_count=2,
             processing_time_seconds=2.0,

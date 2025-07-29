@@ -1,12 +1,23 @@
 """
 SQLite Knowledge Graph and Vector Database with MCP Server Interface.
 
-This package combines a SQLite-based knowledge graph with vector storage (optionally using HNSW index)
-and provides an interface through an MCP (Model Context Protocol) server.
+This package combines a SQLite-based knowledge graph with vector storage
+(optionally using HNSW index) and provides an interface through an MCP
+(Model Context Protocol) server.
 """
 
 import sqlite3
 from pathlib import Path
+
+from .adapters.hnsw.embeddings import EmbeddingManager
+from .adapters.huggingface.text_embedder import HuggingFaceTextEmbedder
+from .adapters.openai.text_embedder import OpenAITextEmbedder
+from .adapters.sqlite3.connection import DatabaseConnection
+from .adapters.sqlite3.graph.entities import EntityManager
+from .adapters.sqlite3.graph.relationships import RelationshipManager
+from .adapters.sqlite3.graph.traversal import GraphTraversal
+from .adapters.sqlite3.schema import SchemaManager
+from .adapters.testing.text_embedder import RandomTextEmbedder
 
 # Load environment variables from .env file
 try:
@@ -25,11 +36,41 @@ except ImportError:
 
 __version__ = "0.1.0"
 
-from .adapters.hnsw.embeddings import Embedding, EmbeddingManager
-from .adapters.hnsw.hnsw import HNSWIndex
-
 # from .adapters.hnsw.search import SearchResult, VectorSearch  # TODO: Fix dependencies
-# from .adapters.hnsw.text_embedder import VectorTextEmbedder, create_embedder  # TODO: Implement text_embedder
+# from .adapters.hnsw.text_embedder import (
+#     VectorTextEmbedder, create_embedder
+# ) # TODO: Implement text_embedder
+
+
+# Create embedder function for examples
+def create_embedder(embedder_type="random", **kwargs):
+    """Create a text embedder based on type.
+
+    Args:
+        embedder_type: Type of embedder ('random', 'openai',
+            'sentence-transformers')
+        **kwargs: Additional arguments for embedder
+
+    Returns:
+        Text embedder instance
+    """
+    if embedder_type == "random":
+        return RandomTextEmbedder(dimension=kwargs.get("dimension", 128))
+    if embedder_type == "openai":
+        return OpenAITextEmbedder(**kwargs)
+    if embedder_type == "sentence-transformers":
+        return HuggingFaceTextEmbedder(**kwargs)
+    raise ValueError(f"Unknown embedder type: {embedder_type}")
+
+
+# MCP Server export
+try:
+    from .adapters.fastmcp.server import KnowledgeGraphServer
+
+    __all__ = ["KnowledgeGraph", "EmbeddingManager", "create_embedder", "KnowledgeGraphServer"]
+except ImportError:
+    # If MCP dependencies aren't available, just export the main classes
+    __all__ = ["KnowledgeGraph", "EmbeddingManager", "create_embedder"]
 
 # Export main classes - avoid direct imports to prevent circular dependencies
 # from .adapters.sqlite3.connection import DatabaseConnection
@@ -79,11 +120,11 @@ class KnowledgeGraph:
             embedder_kwargs: Arguments for embedder creation
         """
         # Use delayed imports to avoid circular dependencies
-        from .adapters.sqlite3.connection import DatabaseConnection
-        from .adapters.sqlite3.graph.entities import EntityManager
-        from .adapters.sqlite3.graph.relationships import RelationshipManager
-        from .adapters.sqlite3.graph.traversal import GraphTraversal
-        from .adapters.sqlite3.schema import SchemaManager
+        # from .adapters.sqlite3.connection import DatabaseConnection
+        # from .adapters.sqlite3.graph.entities import EntityManager
+        # from .adapters.sqlite3.graph.relationships import RelationshipManager
+        # from .adapters.sqlite3.graph.traversal import GraphTraversal
+        # from .adapters.sqlite3.schema import SchemaManager
 
         # Initialize database
         self.db_connection = DatabaseConnection(db_path)
@@ -114,9 +155,9 @@ class KnowledgeGraph:
         # )
 
     # Entity methods
-    def create_node(self, type, name=None, properties=None):
+    def create_node(self, node_type, name=None, properties=None):
         """Create a new node in the graph."""
-        return self.entity_manager.create_entity(type, name, properties)
+        return self.entity_manager.create_entity(node_type, name, properties)
 
     def get_node(self, node_id):
         """Get a node by ID."""
@@ -134,12 +175,10 @@ class KnowledgeGraph:
         """Delete a node."""
         return self.entity_manager.delete_entity(node_id)
 
-    def find_nodes(
-        self, type=None, name_pattern=None, properties=None, limit=100, offset=0
-    ):
+    def find_nodes(self, node_type=None, name_pattern=None, properties=None, limit=100, offset=0):
         """Find nodes matching criteria."""
         return self.entity_manager.find_entities(
-            entity_type=type,
+            entity_type=node_type,
             name_pattern=name_pattern,
             property_filters=properties,
             limit=limit,
@@ -200,9 +239,7 @@ class KnowledgeGraph:
             node_id, direction, relation_types, entity_types, limit
         )
 
-    def find_paths(
-        self, start_id, end_id, max_depth=5, relation_types=None, entity_types=None
-    ):
+    def find_paths(self, start_id, end_id, max_depth=5, relation_types=None, entity_types=None):
         """Find paths between nodes."""
         return self.graph_traversal.find_paths(
             start_id, end_id, max_depth, relation_types, entity_types

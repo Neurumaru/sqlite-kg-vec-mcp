@@ -8,7 +8,7 @@ import sys
 # Add the parent directory to the path so we can import the package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src import KnowledgeGraph
+from src import KnowledgeGraph  # noqa: E402
 
 
 def main():
@@ -29,32 +29,32 @@ def main():
 
     # Create some person nodes
     alice = kg.create_node(
-        type="Person",
+        node_type="Person",
         name="Alice",
         properties={"age": 30, "occupation": "Data Scientist"},
     )
 
     bob = kg.create_node(
-        type="Person",
+        node_type="Person",
         name="Bob",
         properties={"age": 35, "occupation": "Software Engineer"},
     )
 
     charlie = kg.create_node(
-        type="Person",
+        node_type="Person",
         name="Charlie",
         properties={"age": 28, "occupation": "Project Manager"},
     )
 
     # Create some company nodes
     tech_corp = kg.create_node(
-        type="Company",
+        node_type="Company",
         name="TechCorp",
         properties={"founded": 2010, "industry": "Technology"},
     )
 
     data_inc = kg.create_node(
-        type="Company",
+        node_type="Company",
         name="DataInc",
         properties={"founded": 2015, "industry": "Data Analytics"},
     )
@@ -97,13 +97,13 @@ def main():
 
     # Find people
     print("\nFinding all people:")
-    people, count = kg.find_nodes(type="Person")
+    people, count = kg.find_nodes(node_type="Person")
     for person in people:
         print(f"- {person.name} ({person.properties.get('occupation')})")
 
     # Find companies
     print("\nFinding all companies:")
-    companies, count = kg.find_nodes(type="Company")
+    companies, count = kg.find_nodes(node_type="Company")
     for company in companies:
         print(f"- {company.name} ({company.properties.get('industry')})")
 
@@ -118,9 +118,7 @@ def main():
 
     # Get who works for TechCorp
     print(f"\nEmployees of {tech_corp.name}:")
-    employees = kg.get_neighbors(
-        tech_corp.id, direction="incoming", relation_types=["WORKS_FOR"]
-    )
+    employees = kg.get_neighbors(tech_corp.id, direction="incoming", relation_types=["WORKS_FOR"])
     for employee, relationship in employees:
         position = relationship.properties.get("position", "Employee")
         since = relationship.properties.get("since", "N/A")

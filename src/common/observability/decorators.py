@@ -4,7 +4,7 @@ Decorators for automatic observability integration.
 
 import functools
 import inspect
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from .context import (
     TraceContextManager,
@@ -67,7 +67,7 @@ def with_observability(
             logger = get_observable_logger(func_component, func_layer)
 
             # Prepare logging context
-            log_context = {}
+            log_context: Dict[str, Any] = {}
             if include_args and args:
                 log_context["args"] = _sanitize_args(args)
             if include_args and kwargs:
@@ -86,17 +86,13 @@ def with_observability(
                     if include_result and result is not None:
                         success_context["result"] = _sanitize_result(result)
 
-                    logger.operation_completed(
-                        func_operation, start_time, **success_context
-                    )
+                    logger.operation_completed(func_operation, start_time, **success_context)
 
                     return result
 
                 except Exception as e:
                     # Log failure
-                    logger.operation_failed(
-                        func_operation, start_time, e, **log_context
-                    )
+                    logger.operation_failed(func_operation, start_time, e, **log_context)
                     raise
 
             # Execute with or without trace context
@@ -151,9 +147,7 @@ def with_trace(
     return decorator
 
 
-def with_metrics(
-    metric_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None
-):
+def with_metrics(metric_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None):
     """
     Decorator to add automatic metrics collection.
 
@@ -184,9 +178,7 @@ def with_metrics(
                 if tags:
                     metric_tags.update(tags)
 
-                logger.observability_service.record_metric(
-                    func_metric_name, 1, tags=metric_tags
-                )
+                logger.observability_service.record_metric(func_metric_name, 1, tags=metric_tags)
 
             return func(*args, **kwargs)
 
@@ -202,11 +194,11 @@ def _infer_layer(func: Callable) -> str:
         module_path = module.__name__
         if "adapters" in module_path:
             return "adapter"
-        elif "ports" in module_path:
+        if "ports" in module_path:
             return "port"
-        elif "domain" in module_path:
+        if "domain" in module_path:
             return "domain"
-        elif "application" in module_path:
+        if "application" in module_path:
             return "application"
     return "unknown"
 
@@ -215,27 +207,27 @@ def _infer_component(func: Callable) -> str:
     """Infer component from function context."""
     # Try to get class name if it's a method
     if hasattr(func, "__self__"):
-        return func.__self__.__class__.__name__.lower()
+        return str(func.__self__.__class__.__name__.lower())
 
     # Get from module name
     module = inspect.getmodule(func)
     if module and module.__name__:
         parts = module.__name__.split(".")
         if len(parts) > 0:
-            return parts[-1]
+            return str(parts[-1])
 
-    return func.__name__
+    return str(func.__name__)
 
 
-def _sanitize_args(args: tuple) -> list:
+def _sanitize_args(args: tuple) -> List[str]:
     """Sanitize function arguments for logging."""
-    sanitized = []
+    sanitized: List[str] = []
     for arg in args:
         if hasattr(arg, "__dict__"):
             # Object - just include type name
             sanitized.append(f"<{type(arg).__name__}>")
         elif isinstance(arg, (str, int, float, bool, type(None))):
-            sanitized.append(arg)
+            sanitized.append(str(arg))
         else:
             sanitized.append(f"<{type(arg).__name__}>")
     return sanitized
@@ -256,7 +248,6 @@ def _sanitize_result(result: Any) -> Any:
     """Sanitize function result for logging."""
     if isinstance(result, (str, int, float, bool, type(None))):
         return result
-    elif hasattr(result, "__dict__"):
+    if hasattr(result, "__dict__"):
         return f"<{type(result).__name__}>"
-    else:
-        return f"<{type(result).__name__}>"
+    return f"<{type(result).__name__}>"

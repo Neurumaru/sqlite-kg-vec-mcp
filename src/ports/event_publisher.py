@@ -11,7 +11,7 @@ from src.dto import EventData
 class EventPublisher(ABC):
     """
     이벤트 발행 포트.
-    
+
     도메인 이벤트를 외부 시스템에 발행하는 인터페이스입니다.
     """
 
@@ -23,7 +23,6 @@ class EventPublisher(ABC):
         Args:
             event: 발행할 이벤트 데이터
         """
-        pass
 
     @abstractmethod
     async def publish_batch(self, events: List[EventData]) -> None:
@@ -33,7 +32,6 @@ class EventPublisher(ABC):
         Args:
             events: 발행할 이벤트 데이터 리스트
         """
-        pass
 
     @abstractmethod
     async def is_available(self) -> bool:
@@ -43,4 +41,3 @@ class EventPublisher(ABC):
         Returns:
             사용 가능 여부
         """
-        pass

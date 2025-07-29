@@ -2,50 +2,48 @@
 Vector similarity search functionality.
 """
 
+# from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
+import hashlib
 import sqlite3
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from .embeddings import Embedding, EmbeddingManager
+from .embeddings import EmbeddingManager
 
 # from .entities import Entity, EntityManager  # TODO: Implement entities module
 from .hnsw import HNSWIndex
 
-# from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
-import hashlib
-from abc import ABC, abstractmethod
-
 
 class VectorTextEmbedder(ABC):
     """Synchronous text embedder interface for HNSW search."""
-    
+
     @abstractmethod
     def embed(self, text: str) -> np.ndarray:
         """Generate embedding for text."""
-        pass
-    
+
     @property
     @abstractmethod
     def dimension(self) -> int:
         """Return embedding dimension."""
-        pass
 
 
 class SyncRandomTextEmbedder(VectorTextEmbedder):
     """Synchronous random text embedder for testing."""
-    
+
     def __init__(self, dimension: int = 128):
         self._dimension = dimension
-    
+
     def embed(self, text: str) -> np.ndarray:
         """Generate deterministic random embedding."""
         seed = int(hashlib.md5(text.encode()).hexdigest()[:8], 16) % (2**32)
         np.random.seed(seed)
         embedding = np.random.randn(self._dimension).astype(np.float32)
-        return embedding / np.linalg.norm(embedding)
-    
+        result = embedding / np.linalg.norm(embedding)
+        return np.asarray(result, dtype=np.float32)
+
     @property
     def dimension(self) -> int:
         return self._dimension
@@ -54,23 +52,22 @@ class SyncRandomTextEmbedder(VectorTextEmbedder):
 def create_embedder(embedder_type: str, **kwargs) -> VectorTextEmbedder:
     """
     Factory function to create text embedders.
-    
+
     Args:
         embedder_type: Type of embedder to create
         **kwargs: Additional arguments for embedder creation
-        
+
     Returns:
         VectorTextEmbedder instance
     """
     if embedder_type == "random":
         dimension = kwargs.get("dimension", 128)
         return SyncRandomTextEmbedder(dimension=dimension)
-    elif embedder_type == "sentence-transformers":
+    if embedder_type == "sentence-transformers":
         # Fallback to random for now
         dimension = kwargs.get("dimension", 384)
         return SyncRandomTextEmbedder(dimension=dimension)
-    else:
-        raise ValueError(f"Unknown embedder type: {embedder_type}")
+    raise ValueError(f"Unknown embedder type: {embedder_type}")
 
 
 @dataclass
@@ -143,7 +140,7 @@ class VectorSearch:
             space=space,
             dim=embedding_dim,
             ef_construction=200,
-            M=16,
+            m_parameter=16,
             index_dir=index_dir,
         )
 
@@ -232,9 +229,7 @@ class VectorSearch:
         results = []
 
         for entity_type, entity_id, distance in search_results:
-            result = SearchResult(
-                entity_type=entity_type, entity_id=entity_id, distance=distance
-            )
+            result = SearchResult(entity_type=entity_type, entity_id=entity_id, distance=distance)
 
             # TODO: Include entity details when managers are available
             # if include_entities:

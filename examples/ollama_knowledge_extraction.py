@@ -11,12 +11,34 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.adapters.hnsw.embeddings import EmbeddingManager
-from src.adapters.hnsw.search import VectorSearch
-from src.adapters.hnsw.text_embedder import create_embedder
-from src.adapters.ollama import OllamaClient, OllamaKnowledgeExtractor
-from src.adapters.sqlite3.connection import DatabaseConnection
-from src.adapters.sqlite3.schema import SchemaManager
+# Use create_embedder from main module
+from src import create_embedder  # noqa: E402
+from src.adapters.hnsw.embeddings import EmbeddingManager  # noqa: E402
+
+# TODO: Fix missing imports - VectorSearch and create_embedder temporarily disabled
+# from src.adapters.hnsw.search import VectorSearch  # noqa: E402
+# from src.adapters.hnsw.text_embedder import create_embedder  # noqa: E402
+
+
+# Temporary VectorSearch stub
+class VectorSearch:
+    def __init__(self, **kwargs):
+        print("경고: VectorSearch는 현재 의존성 문제로 인해 비활성화되어 있습니다.")
+        self.connection = kwargs.get("connection")
+        self.embedding_dim = kwargs.get("embedding_dim", 128)
+
+    def update_index(self):
+        print("Mock: 벡터 인덱스 업데이트 (실제 동작 안함)")
+
+    def search_by_text(self, **kwargs):
+        print(f"Mock: 텍스트 검색 '{kwargs.get('query_text', '')}' (실제 결과 없음)")
+        return []
+
+
+from src.adapters.ollama.ollama_client import OllamaClient  # noqa: E402
+from src.adapters.ollama.ollama_knowledge_extractor import OllamaKnowledgeExtractor  # noqa: E402
+from src.adapters.sqlite3.connection import DatabaseConnection  # noqa: E402
+from src.adapters.sqlite3.schema import SchemaManager  # noqa: E402
 
 
 def setup_logging():
@@ -65,16 +87,14 @@ def check_ollama_models():
         # Nomic 모델은 선택사항으로 처리
         nomic_available = any("nomic-embed-text" in model for model in available_models)
         if not nomic_available:
-            print(
-                "\n⚠️ nomic-embed-text 모델이 없습니다. sentence-transformers를 사용합니다."
-            )
+            print("\n⚠️ nomic-embed-text 모델이 없습니다. sentence-transformers를 사용합니다.")
             print("Nomic 모델을 사용하려면: ollama pull nomic-embed-text")
 
         print("✅ 모든 필요한 모델이 설치되어 있습니다.")
         return True
 
-    except Exception as e:
-        print(f"❌ Ollama 연결 실패: {e}")
+    except Exception as exc:
+        print(f"❌ Ollama 연결 실패: {exc}")
         print("Ollama 서버가 실행 중인지 확인하세요: ollama serve")
         return False
 
@@ -113,8 +133,8 @@ def main():
     try:
         nomic_embedder = create_embedder("nomic")
         print(f"임베딩 차원: {nomic_embedder.dimension}")
-    except Exception as e:
-        print(f"Nomic 임베더 초기화 실패: {e}")
+    except Exception as exception:
+        print(f"Nomic 임베더 초기화 실패: {exception}")
         print("Sentence Transformers로 대체합니다...")
         nomic_embedder = create_embedder("sentence-transformers")
 
@@ -141,8 +161,8 @@ def main():
     # 예제 텍스트들
     sample_texts = [
         """
-        알버트 아인슈타인은 1879년 독일에서 태어난 이론물리학자입니다. 
-        그는 상대성 이론으로 유명하며, 1921년 노벨 물리학상을 수상했습니다. 
+        알버트 아인슈타인은 1879년 독일에서 태어난 이론물리학자입니다.
+        그는 상대성 이론으로 유명하며, 1921년 노벨 물리학상을 수상했습니다.
         아인슈타인은 프린스턴 대학교에서 연구했으며, 현대 물리학의 아버지로 불립니다.
         """,
         """
@@ -222,9 +242,7 @@ def main():
         print(f"\n쿼리: '{query}'")
 
         try:
-            results = vector_search.search_by_text(
-                query_text=query, k=3, include_entities=True
-            )
+            results = vector_search.search_by_text(query_text=query, k=3, include_entities=True)
 
             if results:
                 print("검색 결과:")
@@ -233,16 +251,14 @@ def main():
                     print(
                         f"  {i+1}. {entity.name} ({entity.type}) - 유사도: {result.similarity:.3f}"
                     )
-                    if hasattr(entity, "properties") and entity.properties.get(
-                        "llm_description"
-                    ):
+                    if hasattr(entity, "properties") and entity.properties.get("llm_description"):
                         desc = entity.properties["llm_description"][:100]
                         print(f"     설명: {desc}...")
             else:
                 print("  검색 결과 없음")
 
-        except Exception as e:
-            print(f"  검색 오류: {e}")
+        except Exception as exception:
+            print(f"  검색 오류: {exception}")
 
     # 리소스 정리
     print("\n🧹 리소스 정리...")

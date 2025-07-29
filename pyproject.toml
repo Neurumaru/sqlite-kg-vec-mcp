@@ -51,6 +51,8 @@ dependencies = [
     "pydantic>=2.0.0",
     "openai>=1.97.1",
     "langchain-core>=0.3.72",
+    "structlog>=25.4.0",
+    "streamlit>=1.47.1",
 ]
 
 [project.optional-dependencies]
@@ -106,6 +108,10 @@ dev = [
     "flake8>=7.3.0",
     "isort>=6.0.1",
     "mypy>=1.17.0",
+    "pylint>=3.3.7",
+    "pytest>=8.4.1",
+    "ruff>=0.12.5",
+    "types-requests>=2.32.4.20250611",
 ]
 
 # Testing configuration (unittest)
@@ -210,3 +216,28 @@ exclude_lines = [
 # Package sources for uv
 [tool.uv.sources]
 "sqlite-kg-vec-mcp" = { path = "." } 
+
+[tool.pylint]
+jobs = 0
+unsafe-load-any-extension = "no"
+
+# MESSAGES CONTROL
+disable = [
+    "C0301",  # line-too-long (Black manages this)
+    "W0511",  # fixme (normal during development)
+    "R0801",  # duplicate-code (hexagonal architecture allows interface duplication)
+    "R0903",  # too-few-public-methods (DTO, Value Objects allowed for architectural patterns)
+    "W0613",  # unused-argument (test fixtures)
+    "R0902",  # too-many-instance-attributes (DTO/Entity attribute count allowed)
+    
+    # "Too many ..." 복잡도 관련 경고들 - 비즈니스 로직 복잡도 허용
+    "R0913",  # too-many-arguments
+    "R0917",  # too-many-positional-arguments  
+    "R0912",  # too-many-branches
+    "R0915",  # too-many-statements
+    "R0914",  # too-many-locals
+    "R0904",  # too-many-public-methods
+
+    "C0103",
+    "W0718",
+]

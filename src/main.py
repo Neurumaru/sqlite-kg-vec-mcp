@@ -4,8 +4,6 @@ Main entry point for the SQLite Knowledge Graph Vector MCP application.
 
 import argparse
 import os
-import sys
-from pathlib import Path
 
 from src.adapters.fastmcp.server import KnowledgeGraphServer
 from src.adapters.sqlite3.schema import SchemaManager
@@ -26,12 +24,8 @@ def main():
         default="vector_indexes",
         help="Directory for vector index files",
     )
-    parser.add_argument(
-        "--host", type=str, default="127.0.0.1", help="Host to run the server on"
-    )
-    parser.add_argument(
-        "--port", type=int, default=8080, help="Port to run the server on"
-    )
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to run the server on")
+    parser.add_argument("--port", type=int, default=8080, help="Port to run the server on")
     parser.add_argument(
         "--transport",
         type=str,
@@ -44,9 +38,7 @@ def main():
         action="store_true",
         help="Initialize the database schema if it doesn't exist",
     )
-    parser.add_argument(
-        "--dimension", type=int, default=128, help="Dimension of embedding vectors"
-    )
+    parser.add_argument("--dimension", type=int, default=128, help="Dimension of embedding vectors")
     parser.add_argument(
         "--similarity",
         type=str,

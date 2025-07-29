@@ -6,6 +6,7 @@ import unittest
 from datetime import datetime
 
 from src.domain.entities.relationship import Relationship, RelationshipType
+from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
 
@@ -83,8 +84,6 @@ class TestRelationship(unittest.TestCase):
             label=self.label,
         )
 
-        from src.domain.value_objects.document_id import DocumentId
-
         doc_id = DocumentId.generate()
         context = "문서에서 언급됨"
         sentence = "홍길동이 삼성전자에서 근무한다."
@@ -95,12 +94,8 @@ class TestRelationship(unittest.TestCase):
         # context와 sentence는 하나의 키에 딕셔너리로 저장됨
         context_key = f"context_{doc_id}"
         self.assertIn(context_key, relationship.extraction_metadata)
-        self.assertEqual(
-            relationship.extraction_metadata[context_key]["context"], context
-        )
-        self.assertEqual(
-            relationship.extraction_metadata[context_key]["sentence"], sentence
-        )
+        self.assertEqual(relationship.extraction_metadata[context_key]["context"], context)
+        self.assertEqual(relationship.extraction_metadata[context_key]["sentence"], sentence)
 
 
 if __name__ == "__main__":

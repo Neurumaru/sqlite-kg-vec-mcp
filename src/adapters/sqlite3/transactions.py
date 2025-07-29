@@ -15,7 +15,6 @@ class TransactionManager:
     def __init__(self, connection: sqlite3.Connection):
         """
         Initialize the transaction manager.
-
         Args:
             connection: SQLite database connection
         """
@@ -27,27 +26,23 @@ class TransactionManager:
     ) -> Generator[sqlite3.Connection, None, None]:
         """
         Context manager for database transactions.
-
         Args:
             isolation_level: SQLite isolation level ('DEFERRED', 'IMMEDIATE', or 'EXCLUSIVE')
                             IMMEDIATE is safer for concurrent operations
-
         Yields:
             SQLite connection for executing statements within the transaction
-
         Raises:
             Any exception from the transaction context
         """
         # We need to use 'execute' here because we disabled automatic
         # transaction management when creating the connection
         self.connection.execute(f"BEGIN {isolation_level} TRANSACTION")
-
         try:
             yield self.connection
             self.connection.execute("COMMIT")
-        except Exception as e:
+        except Exception as exception:
             self.connection.execute("ROLLBACK")
-            raise e
+            raise exception
 
 
 class UnitOfWork:
@@ -58,7 +53,6 @@ class UnitOfWork:
     def __init__(self, connection: sqlite3.Connection):
         """
         Initialize the Unit of Work.
-
         Args:
             connection: SQLite database connection
         """
@@ -82,10 +76,8 @@ class UnitOfWork:
     ) -> Generator[sqlite3.Connection, None, None]:
         """
         Begin a unit of work (a transaction).
-
         Args:
             isolation_level: SQLite isolation level
-
         Yields:
             SQLite connection for executing statements
         """
@@ -101,18 +93,15 @@ class UnitOfWork:
     ) -> int:
         """
         Register a vector operation in the outbox for asynchronous processing.
-
         Args:
             entity_type: Type of entity ('node', 'edge', 'hyperedge')
             entity_id: ID of the entity
             operation_type: Type of operation ('insert', 'update', 'delete')
             model_info: Optional model information for embeddings
-
         Returns:
             ID of the created outbox entry
         """
         cursor = self.connection.cursor()
-
         cursor.execute(
             """
         INSERT INTO vector_outbox (
@@ -121,7 +110,6 @@ class UnitOfWork:
         """,
             (operation_type, entity_type, entity_id, model_info, self._correlation_id),
         )
-
         result = cursor.lastrowid
         if result is None:
             raise RuntimeError("Failed to insert into vector_outbox")

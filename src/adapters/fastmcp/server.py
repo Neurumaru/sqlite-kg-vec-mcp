@@ -3,22 +3,18 @@ API endpoints and handlers for the MCP server interface.
 """
 
 import asyncio
-import json
 import logging
-import uuid
-from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
 from fastmcp import Context, FastMCP
 
 from src.adapters.hnsw.embeddings import EmbeddingManager
-from src.adapters.hnsw.search import VectorSearch
-from src.adapters.hnsw.text_embedder import VectorTextEmbedder
+from src.adapters.hnsw.search import VectorSearch, VectorTextEmbedder
 from src.adapters.sqlite3.connection import DatabaseConnection
-from src.adapters.sqlite3.graph.entities import Entity, EntityManager
-from src.adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
+from src.adapters.sqlite3.graph.entities import EntityManager
+from src.adapters.sqlite3.graph.relationships import RelationshipManager
 from src.adapters.sqlite3.graph.traversal import GraphTraversal
 from src.adapters.sqlite3.schema import SchemaManager
 
@@ -84,7 +80,7 @@ class KnowledgeGraphServer:
         # Initialize vector search
         self.vector_search = VectorSearch(
             connection=self.conn,
-            index_dir=vector_index_dir,
+            index_dir=str(vector_index_dir) if vector_index_dir else None,
             embedding_dim=embedding_dim,
             space=vector_similarity,
             text_embedder=text_embedder,
@@ -93,7 +89,7 @@ class KnowledgeGraphServer:
         )
 
         # Create MCP server with FastMCP
-        self.mcp_server = FastMCP(name=server_name, instructions=server_instructions)
+        self.mcp_server: FastMCP = FastMCP(name=server_name, instructions=server_instructions)
 
         # Register all tools
         self._register_tools()
@@ -126,33 +122,33 @@ class KnowledgeGraphServer:
 
     def create_node(
         self,
-        type: str,
+        node_type: str,
         name: Optional[str] = None,
         properties: Optional[Dict[str, Any]] = None,
-        uuid: Optional[str] = None,
+        node_uuid: Optional[str] = None,
         ctx: Optional[Context] = None,
     ) -> Dict[str, Any]:
         """
         Create a new node in the knowledge graph.
 
         Args:
-            type: Type of the node to create
+            node_type: Type of the node to create
             name: Name of the node (optional)
             properties: Custom properties for the node (optional)
-            uuid: Custom UUID for the node (optional)
+            node_uuid: Custom UUID for the node (optional)
             ctx: MCP context object
 
         Returns:
             Created node data
         """
         if ctx:
-            ctx.info(f"Creating node of type '{type}'")
+            ctx.info(f"Creating node of type '{node_type}'")  # type: ignore
 
         properties = properties or {}
 
         try:
             entity = self.entity_manager.create_entity(
-                type=type, name=name, properties=properties, custom_uuid=uuid
+                type=node_type, name=name, properties=properties, custom_uuid=node_uuid
             )
 
             return {
@@ -163,48 +159,54 @@ class KnowledgeGraphServer:
                 "properties": entity.properties,
                 "created_at": entity.created_at,
             }
-        except Exception as e:
-            self.logger.error(f"Error creating node: {e}")
+        except Exception as exception:
+            self.logger.error("Error creating node: %s", exception)
             if ctx:
-                ctx.error(f"Failed to create node: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to create node: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def get_node(
-        self, id: Optional[int] = None, uuid: Optional[str] = None, ctx: Context = None
+        self,
+        node_id: Optional[int] = None,
+        node_uuid: Optional[str] = None,
+        ctx: Optional[Context] = None,
     ) -> Dict[str, Any]:
         """
         Get a node from the knowledge graph.
 
         Args:
-            id: ID of the node to retrieve (optional if uuid is provided)
-            uuid: UUID of the node to retrieve (optional if id is provided)
+            node_id: ID of the node to retrieve (optional if uuid is provided)
+            node_uuid: UUID of the node to retrieve (optional if id is provided)
             ctx: MCP context object
 
         Returns:
             Node data or error
         """
-        # Check if we have either id or uuid
-        if id is None and uuid is None:
-            error_msg = "Missing required parameter: either id or uuid must be provided"
+        # Check if we have either node_id or node_uuid
+        if node_id is None and node_uuid is None:
+            error_msg = "Missing required parameter: either id or node_uuid must be provided"
             if ctx:
-                ctx.error(error_msg)
+                ctx.error(error_msg)  # type: ignore
             return {"error": error_msg}
 
         try:
             # Get by ID or UUID
-            if id is not None:
-                entity = self.entity_manager.get_entity(id)
+            if node_id is not None:
+                entity = self.entity_manager.get_entity(node_id)
                 if ctx:
-                    ctx.info(f"Retrieving node with ID {id}")
+                    ctx.info(f"Retrieving node with ID {node_id}")  # type: ignore
             else:
-                entity = self.entity_manager.get_entity_by_uuid(uuid)
-                if ctx:
-                    ctx.info(f"Retrieving node with UUID {uuid}")
+                if node_uuid is not None:
+                    entity = self.entity_manager.get_entity_by_uuid(node_uuid)
+                    if ctx:
+                        ctx.info(f"Retrieving node with UUID {node_uuid}")  # type: ignore
+                else:
+                    entity = None
 
             if not entity:
                 error_msg = "Node not found"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
             return {
@@ -216,15 +218,15 @@ class KnowledgeGraphServer:
                 "created_at": entity.created_at,
                 "updated_at": entity.updated_at,
             }
-        except Exception as e:
-            self.logger.error(f"Error getting node: {e}")
+        except Exception as exception:
+            self.logger.error("Error getting node: %s", exception)
             if ctx:
-                ctx.error(f"Failed to get node: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to get node: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def update_node(
         self,
-        id: int,
+        entity_id: int,
         name: Optional[str] = None,
         properties: Optional[Dict[str, Any]] = None,
         ctx: Optional[Context] = None,
@@ -233,7 +235,7 @@ class KnowledgeGraphServer:
         Update a node in the knowledge graph.
 
         Args:
-            id: ID of the node to update
+            entity_id: ID of the node to update
             name: New name for the node (optional)
             properties: New or updated properties (optional)
             ctx: MCP context object
@@ -242,24 +244,24 @@ class KnowledgeGraphServer:
             Updated node data or error
         """
         if ctx:
-            ctx.info(f"Updating node with ID {id}")
+            ctx.info(f"Updating node with ID {entity_id}")  # type: ignore
 
         # At least one of name or properties must be provided
         if name is None and properties is None:
             error_msg = "At least one of name or properties must be provided"
             if ctx:
-                ctx.error(error_msg)
+                ctx.error(error_msg)  # type: ignore
             return {"error": error_msg}
 
         try:
             entity = self.entity_manager.update_entity(
-                entity_id=id, name=name, properties=properties
+                entity_id=entity_id, name=name, properties=properties
             )
 
             if not entity:
                 error_msg = "Node not found or update failed"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
             return {
@@ -270,45 +272,45 @@ class KnowledgeGraphServer:
                 "properties": entity.properties,
                 "updated_at": entity.updated_at,
             }
-        except Exception as e:
-            self.logger.error(f"Error updating node: {e}")
+        except Exception as exception:
+            self.logger.error("Error updating node: %s", exception)
             if ctx:
-                ctx.error(f"Failed to update node: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to update node: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
-    def delete_node(self, id: int, ctx: Context = None) -> Dict[str, Any]:
+    def delete_node(self, entity_id: int, ctx: Optional[Context] = None) -> Dict[str, Any]:
         """
         Delete a node from the knowledge graph.
 
         Args:
-            id: ID of the node to delete
+            entity_id: ID of the node to delete
             ctx: MCP context object
 
         Returns:
             Success or error message
         """
         if ctx:
-            ctx.info(f"Deleting node with ID {id}")
+            ctx.info(f"Deleting node with ID {entity_id}")  # type: ignore
 
         try:
-            success = self.entity_manager.delete_entity(id)
+            success = self.entity_manager.delete_entity(entity_id)
 
             if not success:
                 error_msg = "Node not found or already deleted"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
-            return {"success": True, "message": f"Node {id} deleted successfully"}
-        except Exception as e:
-            self.logger.error(f"Error deleting node: {e}")
+            return {"success": True, "message": f"Node {entity_id} deleted successfully"}
+        except Exception as exception:
+            self.logger.error("Error deleting node: %s", exception)
             if ctx:
-                ctx.error(f"Failed to delete node: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to delete node: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def find_nodes(
         self,
-        type: Optional[str] = None,
+        node_type: Optional[str] = None,
         name_pattern: Optional[str] = None,
         properties: Optional[Dict[str, Any]] = None,
         limit: int = 100,
@@ -319,7 +321,7 @@ class KnowledgeGraphServer:
         Find nodes matching specified criteria.
 
         Args:
-            type: Filter by entity type (optional)
+            node_type: Filter by entity type (optional)
             name_pattern: Filter by name pattern (optional)
             properties: Filter by properties (optional)
             limit: Maximum number of results to return (default 100)
@@ -330,13 +332,11 @@ class KnowledgeGraphServer:
             List of nodes matching the criteria
         """
         if ctx:
-            ctx.info(
-                f"Finding nodes with filters: type={type}, name_pattern={name_pattern}"
-            )
+            ctx.info(f"Finding nodes with filters: node_type={node_type}, name_pattern={name_pattern}")  # type: ignore
 
         try:
             entities, total_count = self.entity_manager.find_entities(
-                entity_type=type,
+                entity_type=node_type,
                 name_pattern=name_pattern,
                 property_filters=properties,
                 limit=limit,
@@ -359,9 +359,7 @@ class KnowledgeGraphServer:
                 )
 
             if ctx:
-                ctx.info(
-                    f"Found {total_count} matching nodes, returning {len(result_entities)}"
-                )
+                ctx.info(f"Found {total_count} matching nodes, returning {len(result_entities)}")  # type: ignore
 
             return {
                 "nodes": result_entities,
@@ -369,11 +367,11 @@ class KnowledgeGraphServer:
                 "limit": limit,
                 "offset": offset,
             }
-        except Exception as e:
-            self.logger.error(f"Error finding nodes: {e}")
+        except Exception as exception:
+            self.logger.error("Error finding nodes: %s", exception)
             if ctx:
-                ctx.error(f"Failed to find nodes: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to find nodes: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def create_edge(
         self,
@@ -397,9 +395,7 @@ class KnowledgeGraphServer:
             Created edge data
         """
         if ctx:
-            ctx.info(
-                f"Creating edge of type '{relation_type}' from {source_id} to {target_id}"
-            )
+            ctx.info(f"Creating edge of type '{relation_type}' from {source_id} to {target_id}")  # type: ignore
 
         properties = properties or {}
 
@@ -419,20 +415,20 @@ class KnowledgeGraphServer:
                 "properties": relationship.properties,
                 "created_at": relationship.created_at,
             }
-        except Exception as e:
-            self.logger.error(f"Error creating edge: {e}")
+        except Exception as exception:
+            self.logger.error("Error creating edge: %s", exception)
             if ctx:
-                ctx.error(f"Failed to create edge: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to create edge: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def get_edge(
-        self, id: int, include_entities: bool = False, ctx: Context = None
+        self, edge_id: int, include_entities: bool = False, ctx: Optional[Context] = None
     ) -> Dict[str, Any]:
         """
         Get an edge from the knowledge graph.
 
         Args:
-            id: ID of the edge to retrieve
+            edge_id: ID of the edge to retrieve
             include_entities: Whether to include source and target entity data
             ctx: MCP context object
 
@@ -440,17 +436,17 @@ class KnowledgeGraphServer:
             Edge data or error
         """
         if ctx:
-            ctx.info(f"Retrieving edge with ID {id}")
+            ctx.info(f"Retrieving edge with ID {edge_id}")  # type: ignore
 
         try:
             relationship = self.relationship_manager.get_relationship(
-                relationship_id=id, include_entities=include_entities
+                relationship_id=edge_id, include_entities=include_entities
             )
 
             if not relationship:
                 error_msg = "Edge not found"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
             result = {
@@ -479,20 +475,20 @@ class KnowledgeGraphServer:
                     }
 
             return result
-        except Exception as e:
-            self.logger.error(f"Error getting edge: {e}")
+        except Exception as exception:
+            self.logger.error("Error getting edge: %s", exception)
             if ctx:
-                ctx.error(f"Failed to get edge: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to get edge: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def update_edge(
-        self, id: int, properties: Dict[str, Any], ctx: Context = None
+        self, edge_id: int, properties: Dict[str, Any], ctx: Optional[Context] = None
     ) -> Dict[str, Any]:
         """
         Update an edge in the knowledge graph.
 
         Args:
-            id: ID of the edge to update
+            edge_id: ID of the edge to update
             properties: New or updated properties
             ctx: MCP context object
 
@@ -500,17 +496,17 @@ class KnowledgeGraphServer:
             Updated edge data or error
         """
         if ctx:
-            ctx.info(f"Updating edge with ID {id}")
+            ctx.info(f"Updating edge with ID {edge_id}")  # type: ignore
 
         try:
             relationship = self.relationship_manager.update_relationship(
-                relationship_id=id, properties=properties
+                relationship_id=edge_id, properties=properties
             )
 
             if not relationship:
                 error_msg = "Edge not found or update failed"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
             return {
@@ -521,41 +517,41 @@ class KnowledgeGraphServer:
                 "properties": relationship.properties,
                 "updated_at": relationship.updated_at,
             }
-        except Exception as e:
-            self.logger.error(f"Error updating edge: {e}")
+        except Exception as exception:
+            self.logger.error("Error updating edge: %s", exception)
             if ctx:
-                ctx.error(f"Failed to update edge: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to update edge: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
-    def delete_edge(self, id: int, ctx: Context = None) -> Dict[str, Any]:
+    def delete_edge(self, edge_id: int, ctx: Optional[Context] = None) -> Dict[str, Any]:
         """
         Delete an edge from the knowledge graph.
 
         Args:
-            id: ID of the edge to delete
+            edge_id: ID of the edge to delete
             ctx: MCP context object
 
         Returns:
             Success or error message
         """
         if ctx:
-            ctx.info(f"Deleting edge with ID {id}")
+            ctx.info(f"Deleting edge with ID {edge_id}")  # type: ignore
 
         try:
-            success = self.relationship_manager.delete_relationship(id)
+            success = self.relationship_manager.delete_relationship(edge_id)
 
             if not success:
                 error_msg = "Edge not found or already deleted"
                 if ctx:
-                    ctx.error(error_msg)
+                    ctx.error(error_msg)  # type: ignore
                 return {"error": error_msg}
 
-            return {"success": True, "message": f"Edge {id} deleted successfully"}
-        except Exception as e:
-            self.logger.error(f"Error deleting edge: {e}")
+            return {"success": True, "message": f"Edge {edge_id} deleted successfully"}
+        except Exception as exception:
+            self.logger.error("Error deleting edge: %s", exception)
             if ctx:
-                ctx.error(f"Failed to delete edge: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to delete edge: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def find_edges(
         self,
@@ -585,7 +581,7 @@ class KnowledgeGraphServer:
             List of edges matching the criteria
         """
         if ctx:
-            ctx.info(
+            ctx.info(  # type: ignore
                 f"Finding edges with filters: source={source_id}, target={target_id}, type={relation_type}"
             )
 
@@ -630,9 +626,7 @@ class KnowledgeGraphServer:
                 result_edges.append(edge_dict)
 
             if ctx:
-                ctx.info(
-                    f"Found {total_count} matching edges, returning {len(result_edges)}"
-                )
+                ctx.info(f"Found {total_count} matching edges, returning {len(result_edges)}")  # type: ignore
 
             return {
                 "edges": result_edges,
@@ -640,11 +634,11 @@ class KnowledgeGraphServer:
                 "limit": limit,
                 "offset": offset,
             }
-        except Exception as e:
-            self.logger.error(f"Error finding edges: {e}")
+        except Exception as exception:
+            self.logger.error("Error finding edges: %s", exception)
             if ctx:
-                ctx.error(f"Failed to find edges: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to find edges: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def get_neighbors(
         self,
@@ -670,7 +664,7 @@ class KnowledgeGraphServer:
             List of neighboring nodes and their relationships
         """
         if ctx:
-            ctx.info(f"Getting neighbors for node {node_id} with direction {direction}")
+            ctx.info(f"Getting neighbors for node {node_id} with direction {direction}")  # type: ignore
 
         try:
             neighbors = self.graph_traversal.get_neighbors(
@@ -699,21 +693,19 @@ class KnowledgeGraphServer:
                         "target_id": relationship.target_id,
                         "properties": relationship.properties,
                     },
-                    "direction": (
-                        "outgoing" if relationship.source_id == node_id else "incoming"
-                    ),
+                    "direction": ("outgoing" if relationship.source_id == node_id else "incoming"),
                 }
                 result_neighbors.append(neighbor)
 
             if ctx:
-                ctx.info(f"Found {len(result_neighbors)} neighbors for node {node_id}")
+                ctx.info(f"Found {len(result_neighbors)} neighbors for node {node_id}")  # type: ignore
 
             return {"neighbors": result_neighbors, "count": len(result_neighbors)}
-        except Exception as e:
-            self.logger.error(f"Error getting neighbors: {e}")
+        except Exception as exception:
+            self.logger.error("Error getting neighbors: %s", exception)
             if ctx:
-                ctx.error(f"Failed to get neighbors: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to get neighbors: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def find_paths(
         self,
@@ -739,7 +731,7 @@ class KnowledgeGraphServer:
             List of paths between start and end nodes
         """
         if ctx:
-            ctx.info(
+            ctx.info(  # type: ignore
                 f"Finding paths from node {start_id} to node {end_id} with max depth {max_depth}"
             )
 
@@ -781,16 +773,14 @@ class KnowledgeGraphServer:
                 result_paths.append(path_nodes)
 
             if ctx:
-                ctx.info(
-                    f"Found {len(result_paths)} paths from node {start_id} to node {end_id}"
-                )
+                ctx.info(f"Found {len(result_paths)} paths from node {start_id} to node {end_id}")  # type: ignore
 
             return {"paths": result_paths, "count": len(result_paths)}
-        except Exception as e:
-            self.logger.error(f"Error finding paths: {e}")
+        except Exception as exception:
+            self.logger.error("Error finding paths: %s", exception)
             if ctx:
-                ctx.error(f"Failed to find paths: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to find paths: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def search_similar_nodes(
         self,
@@ -817,16 +807,18 @@ class KnowledgeGraphServer:
         """
         # Check for required parameters - either node_id or query_vector
         if node_id is None and query_vector is None:
-            error_msg = "Missing required parameter: either node_id or query_vector must be provided"
+            error_msg = (
+                "Missing required parameter: either node_id or query_vector must be provided"
+            )
             if ctx:
-                ctx.error(error_msg)
+                ctx.error(error_msg)  # type: ignore
             return {"error": error_msg}
 
         if ctx:
             if node_id is not None:
-                ctx.info(f"Searching for nodes similar to node {node_id}")
+                ctx.info(f"Searching for nodes similar to node {node_id}")  # type: ignore
             else:
-                ctx.info(f"Searching for nodes similar to provided vector")
+                ctx.info("Searching for nodes similar to provided vector")  # type: ignore
 
         entity_types = entity_types or ["node"]
 
@@ -856,14 +848,14 @@ class KnowledgeGraphServer:
                 result_items.append(item.to_dict())
 
             if ctx:
-                ctx.info(f"Found {len(result_items)} similar nodes")
+                ctx.info(f"Found {len(result_items)} similar nodes")  # type: ignore
 
             return {"results": result_items, "count": len(result_items)}
-        except Exception as e:
-            self.logger.error(f"Error searching similar nodes: {e}")
+        except Exception as exception:
+            self.logger.error("Error searching similar nodes: %s", exception)
             if ctx:
-                ctx.error(f"Failed to search similar nodes: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to search similar nodes: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     def search_by_text(
         self,
@@ -887,7 +879,7 @@ class KnowledgeGraphServer:
             List of entities matching the text query
         """
         if ctx:
-            ctx.info(f"Searching for entities matching text query: '{query}'")
+            ctx.info(f"Searching for entities matching text query: '{query}'")  # type: ignore
 
         try:
             results = self.vector_search.search_by_text(
@@ -903,14 +895,14 @@ class KnowledgeGraphServer:
                 result_items.append(item.to_dict())
 
             if ctx:
-                ctx.info(f"Found {len(result_items)} entities matching text query")
+                ctx.info(f"Found {len(result_items)} entities matching text query")  # type: ignore
 
             return {"results": result_items, "count": len(result_items)}
-        except Exception as e:
-            self.logger.error(f"Error searching by text: {e}")
+        except Exception as exception:
+            self.logger.error("Error searching by text: %s", exception)
             if ctx:
-                ctx.error(f"Failed to search by text: {e}")
-            return {"error": str(e)}
+                ctx.error(f"Failed to search by text: {exception}")  # type: ignore
+            return {"error": str(exception)}
 
     async def maintenance_task(self) -> None:
         """Periodic maintenance task for vector index updates."""
@@ -919,15 +911,18 @@ class KnowledgeGraphServer:
                 # Update vector index with pending changes
                 count = self.vector_search.update_index(batch_size=100)
                 if count > 0:
-                    self.logger.info(f"Updated vector index with {count} changes")
-            except Exception as e:
-                self.logger.error(f"Error in maintenance task: {e}")
+                    self.logger.info("Updated vector index with %s changes", count)
+            except Exception as exception:
+                self.logger.error("Error in maintenance task: %s", exception)
 
             # Sleep for a while
             await asyncio.sleep(60)  # Run every minute
 
     def start(
-        self, host: str = "127.0.0.1", port: int = 8080, transport: str = "sse"
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8080,
+        transport: Literal["stdio", "http", "sse", "streamable-http"] = "sse",
     ) -> None:
         """
         Start the MCP server.

@@ -8,7 +8,7 @@ import sys
 # Add the parent directory to the path so we can import the package
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src import KnowledgeGraph, create_embedder
+from src import KnowledgeGraph, create_embedder  # noqa: E402
 
 
 def main():
@@ -35,34 +35,39 @@ def main():
         )
 
         # Create some nodes
-        alice = kg.create_node(
-            type="Person",
+        kg.create_node(
+            node_type="Person",
             name="Alice",
             properties={"bio": "A data scientist working on machine learning"},
         )
 
-        bob = kg.create_node(
-            type="Person",
+        kg.create_node(
+            node_type="Person",
             name="Bob",
             properties={"bio": "A software engineer building cloud applications"},
         )
 
-        # Search by text
-        print("\nSearching for 'machine learning':")
-        results = kg.search_by_text("machine learning", limit=5)
-        for result in results:
-            entity = result.entity
-            print(
-                f"- {entity.name}: {entity.properties.get('bio', '')} (score: {result.distance:.4f})"
-            )
+        # Search by text (TODO: Re-enable when vector search is fixed)
+        # print("\nSearching for 'machine learning':")
+        # results = kg.search_by_text("machine learning", limit=5)
+        # for result in results:
+        #     entity = result.entity
+        #     print(
+        #         f"- {entity.name}: {entity.properties.get('bio', '')} (score: {result.distance:.4f})"
+        #     )
 
-        print("\nSearching for 'cloud computing':")
-        results = kg.search_by_text("cloud computing", limit=5)
-        for result in results:
-            entity = result.entity
-            print(
-                f"- {entity.name}: {entity.properties.get('bio', '')} (score: {result.distance:.4f})"
-            )
+        # print("\nSearching for 'cloud computing':")
+        # results = kg.search_by_text("cloud computing", limit=5)
+        # for result in results:
+        #     entity = result.entity
+        #     print(
+        #         f"- {entity.name}: {entity.properties.get('bio', '')} (score: {result.distance:.4f})"
+        #     )
+
+        print("Nodes created successfully! (Vector search temporarily disabled)")
+        nodes, count = kg.find_nodes(node_type="Person")
+        for node in nodes:
+            print(f"- {node.name}: {node.properties.get('bio', '')}")
 
     except ImportError:
         print(
@@ -75,7 +80,7 @@ def main():
 
     if os.getenv("OPENAI_API_KEY"):
         try:
-            kg_openai = KnowledgeGraph(
+            KnowledgeGraph(
                 "openai_example.db",
                 embedding_dim=1536,  # OpenAI ada-002 dimension
                 embedder_type="openai",
@@ -89,9 +94,7 @@ def main():
 
     # Example 3: Using random embeddings (for testing)
     print("\n\n3. Using random embeddings (for testing)")
-    kg_random = KnowledgeGraph(
-        "random_example.db", embedding_dim=128, embedder_type="random"
-    )
+    KnowledgeGraph("random_example.db", embedding_dim=128, embedder_type="random")
     print("Random embeddings initialized (for testing only)")
 
     # Example 4: Custom text embedder
@@ -99,9 +102,7 @@ def main():
 
     # You can create a custom embedder by implementing the VectorTextEmbedder interface
     custom_embedder = create_embedder("random", dimension=256)
-    kg_custom = KnowledgeGraph(
-        "custom_example.db", embedding_dim=256, text_embedder=custom_embedder
-    )
+    KnowledgeGraph("custom_example.db", embedding_dim=256, text_embedder=custom_embedder)
     print("Custom embedder initialized")
 
     print("\nText embedding integration complete!")

@@ -5,8 +5,13 @@ Setup and initialization utilities for the observability system.
 import os
 from typing import Any, Dict, Optional
 
-from ..logging.config import configure_structured_logging, get_logging_config_from_env
+from ..logging.config import (
+    LoggingConfig,
+    configure_structured_logging,
+    get_logging_config_from_env,
+)
 from .integration import initialize_observability
+from .logger import get_observable_logger
 
 
 def setup_observability(
@@ -34,8 +39,6 @@ def setup_observability(
         config = get_logging_config_from_env()
         configure_structured_logging(config)
     elif logging_config:
-        from ..logging.config import LoggingConfig
-
         config = LoggingConfig(**logging_config)
         configure_structured_logging(config)
     else:
@@ -50,8 +53,6 @@ def setup_observability(
         initialize_observability(observability_config)
 
     # Log successful setup
-    from .logger import get_observable_logger
-
     logger = get_observable_logger("observability_setup", "common")
     logger.info(
         "observability_system_initialized",
@@ -81,23 +82,25 @@ def get_observability_config_from_env() -> Dict[str, Any]:
     if service_type == "none":
         return {}
 
-    config = {"service_type": service_type}
+    config: Dict[str, Any] = {"service_type": service_type}
 
     if service_type == "langfuse":
-        config["langfuse"] = {
+        langfuse_config = {
             "secret_key": os.getenv("LANGFUSE_SECRET_KEY"),
             "public_key": os.getenv("LANGFUSE_PUBLIC_KEY"),
             "host": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
         }
+        config["langfuse"] = langfuse_config
 
         # Only include if keys are provided
-        if not config["langfuse"]["secret_key"] or not config["langfuse"]["public_key"]:
+        if not langfuse_config["secret_key"] or not langfuse_config["public_key"]:
             return {}
 
     elif service_type == "opentelemetry":
+        jaeger_port_str = os.getenv("JAEGER_PORT", "6831")
         config["opentelemetry"] = {
             "jaeger_host": os.getenv("JAEGER_HOST", "localhost"),
-            "jaeger_port": int(os.getenv("JAEGER_PORT", "6831")),
+            "jaeger_port": int(jaeger_port_str),
         }
 
     return config

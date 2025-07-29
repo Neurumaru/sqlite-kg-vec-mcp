@@ -8,6 +8,6 @@ from .relationship import RelationshipRepository
 
 __all__ = [
     "DocumentRepository",
-    "NodeRepository", 
+    "NodeRepository",
     "RelationshipRepository",
 ]

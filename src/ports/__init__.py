@@ -7,12 +7,12 @@
 
 # Repository Ports
 from .database import Database
-from .repositories.document import DocumentRepository
-from .repositories.node import NodeRepository  
-from .repositories.relationship import RelationshipRepository
 from .knowledge_extractor import KnowledgeExtractor
+from .repositories.document import DocumentRepository
+from .repositories.node import NodeRepository
+from .repositories.relationship import RelationshipRepository
 
-# Service Ports  
+# Service Ports
 from .text_embedder import TextEmbedder
 from .vector_store import VectorStore
 
@@ -23,7 +23,7 @@ __all__ = [
     "RelationshipRepository",
     # Service Ports
     "Database",
-    "KnowledgeExtractor", 
+    "KnowledgeExtractor",
     "TextEmbedder",
     "VectorStore",
 ]

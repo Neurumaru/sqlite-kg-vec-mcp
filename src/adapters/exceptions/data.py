@@ -2,7 +2,8 @@
 Data-related infrastructure exceptions.
 """
 
-from typing import Any, Dict, Optional
+import re
+from typing import Any, Dict, Optional, Union
 
 from .base import InfrastructureException
 
@@ -83,9 +84,7 @@ class DataIntegrityException(DataException):
 
         if message is None:
             if table:
-                message = (
-                    f"Integrity constraint '{constraint}' violated on table '{table}'"
-                )
+                message = f"Integrity constraint '{constraint}' violated on table '{table}'"
             else:
                 message = f"Integrity constraint '{constraint}' violated"
 
@@ -110,7 +109,7 @@ class DataValidationException(DataException):
     def __init__(
         self,
         field: str,
-        value: Any,
+        value: Union[str, int, float, bool, None],
         expected_format: str,
         message: Optional[str] = None,
         error_code: Optional[str] = None,
@@ -178,7 +177,12 @@ class DataParsingException(DataException):
         self.raw_data = raw_data
 
         if raw_data and len(raw_data) > 200:
-            self.raw_data = raw_data[:200] + "..."
+            # 민감한 패턴 마스킹 (이메일, API 키 등)
+            masked_data = re.sub(
+                r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]", raw_data[:200]
+            )
+            masked_data = re.sub(r"\b[A-Za-z0-9]{32,}\b", "[API_KEY]", masked_data)
+            self.raw_data = masked_data + "..."
 
         super().__init__(
             operation=f"{data_format} parsing",

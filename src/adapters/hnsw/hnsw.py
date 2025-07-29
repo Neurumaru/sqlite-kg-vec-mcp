@@ -3,7 +3,6 @@ HNSW (Hierarchical Navigable Small World) index for vector similarity search.
 Uses hnswlib backend for fast approximate nearest neighbor search.
 """
 
-import os
 import pickle
 from enum import Enum
 from pathlib import Path
@@ -12,8 +11,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import hnswlib
 import numpy as np
 
+from src.common.observability import get_observable_logger
 
-from .embeddings import Embedding, EmbeddingManager
+from .embeddings import EmbeddingManager
 
 
 class HNSWBackend(Enum):
@@ -33,7 +33,7 @@ class HNSWIndex:
         space: str = "cosine",
         dim: int = 128,
         ef_construction: int = 200,
-        M: int = 16,
+        m_parameter: int = 16,
         index_dir: Optional[Union[str, Path]] = None,
         backend: Union[str, HNSWBackend] = HNSWBackend.HNSWLIB,
     ):
@@ -44,14 +44,14 @@ class HNSWIndex:
             space: Distance metric ('cosine', 'ip' for inner product, or 'l2')
             dim: Vector dimension
             ef_construction: Controls quality/speed trade-off at index construction
-            M: Parameter controlling index graph connectivity
+            m_parameter: Parameter controlling index graph connectivity
             index_dir: Directory to save/load index files (None for memory-only)
             backend: Backend to use (only 'hnswlib' supported)
         """
         self.space = space
         self.dim = dim
         self.ef_construction = ef_construction
-        self.M = M
+        self.m_parameter = m_parameter
         self.index_dir = Path(index_dir) if index_dir else None
 
         # Handle backend selection
@@ -59,9 +59,8 @@ class HNSWIndex:
             backend = HNSWBackend(backend.lower())
         self.backend = backend
 
-
         # Initialize the backend-specific index
-        self.index = None
+        self.index: hnswlib.Index
         self._init_backend()
 
         # Maps from SQLite ID to index ID
@@ -84,13 +83,14 @@ class HNSWIndex:
         Args:
             max_elements: Maximum number of elements in the index
         """
-        self.index.init_index(
-            max_elements=max_elements,
-            ef_construction=self.ef_construction,
-            M=self.M,
-        )
-        # Set the search parameter
-        self.index.set_ef(max(self.ef_construction, 100))
+        if self.index is not None:
+            self.index.init_index(
+                max_elements=max_elements,
+                ef_construction=self.ef_construction,
+                M=self.m_parameter,
+            )
+            # Set the search parameter
+            self.index.set_ef(max(self.ef_construction, 100))
 
         self.current_capacity = max_elements
         self.current_size = 0
@@ -110,7 +110,7 @@ class HNSWIndex:
 
         if filename is None:
             # Use default filenames based on parameters
-            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.M}"
+            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.m_parameter}"
         else:
             base_name = filename
 
@@ -123,7 +123,7 @@ class HNSWIndex:
             mapping_path = Path(f"{base_name}_mapping.pkl")
 
         # Load the index
-        if index_path.exists():
+        if index_path.exists() and self.index is not None:
             self.index.load_index(str(index_path))
             self.current_capacity = self.index.get_max_elements()
             self.current_size = self.index.get_current_count()
@@ -131,14 +131,12 @@ class HNSWIndex:
 
             # Load ID mappings
             if mapping_path.exists():
-                with open(mapping_path, "rb") as f:
-                    mappings = pickle.load(f)
+                with open(mapping_path, "rb") as file_handle:
+                    mappings = pickle.load(file_handle)
                     self.id_to_idx = mappings["id_to_idx"]
                     self.idx_to_id = mappings["idx_to_id"]
             else:
-                raise FileNotFoundError(
-                    f"Index mappings file not found: {mapping_path}"
-                )
+                raise FileNotFoundError(f"Index mappings file not found: {mapping_path}")
         else:
             raise FileNotFoundError(f"Index file not found: {index_path}")
 
@@ -157,7 +155,7 @@ class HNSWIndex:
 
         if filename is None:
             # Use default filenames based on parameters
-            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.M}"
+            base_name = f"hnsw_{self.backend.value}_{self.space}_{self.dim}_{self.m_parameter}"
         else:
             base_name = filename
 
@@ -171,12 +169,13 @@ class HNSWIndex:
             mapping_path = Path(f"{base_name}_mapping.pkl")
 
         # Save the index
-        self.index.save_index(str(index_path))
+        if self.index is not None:
+            self.index.save_index(str(index_path))
 
         # Save ID mappings
         mappings = {"id_to_idx": self.id_to_idx, "idx_to_id": self.idx_to_id}
-        with open(mapping_path, "wb") as f:
-            pickle.dump(mappings, f)
+        with open(mapping_path, "wb") as file_handle:
+            pickle.dump(mappings, file_handle)
 
     def resize_index(self, new_size: int) -> None:
         """
@@ -188,7 +187,8 @@ class HNSWIndex:
         if new_size <= self.current_capacity:
             return
 
-        self.index.resize_index(new_size)
+        if self.index is not None:
+            self.index.resize_index(new_size)
         self.current_capacity = new_size
 
     def add_item(
@@ -234,7 +234,8 @@ class HNSWIndex:
         vector = vector.astype(np.float32)  # Ensure correct data type
 
         idx = self.current_size
-        self.index.add_items(vector, [idx])
+        if self.index is not None:
+            self.index.add_items(vector, [idx])
 
         # Update mappings
         self.id_to_idx[item_key] = idx
@@ -266,9 +267,7 @@ class HNSWIndex:
             raise RuntimeError("Index is not initialized")
 
         if len(entity_types) != len(entity_ids) or len(entity_types) != len(vectors):
-            raise ValueError(
-                "entity_types, entity_ids, and vectors must have the same length"
-            )
+            raise ValueError("entity_types, entity_ids, and vectors must have the same length")
 
         if len(vectors) == 0:
             return []
@@ -276,8 +275,7 @@ class HNSWIndex:
         # Prepare data
         vectors = vectors.astype(np.float32)
         item_keys = [
-            (entity_type, entity_id)
-            for entity_type, entity_id in zip(entity_types, entity_ids)
+            (entity_type, entity_id) for entity_type, entity_id in zip(entity_types, entity_ids)
         ]
 
         # Filter out existing items if not replacing
@@ -309,9 +307,7 @@ class HNSWIndex:
 
         # Check if we need to resize
         if self.current_size + n_items > self.current_capacity:
-            new_capacity = max(
-                self.current_capacity * 2, self.current_size + n_items + 1000
-            )
+            new_capacity = max(self.current_capacity * 2, self.current_size + n_items + 1000)
             self.resize_index(new_capacity)
 
         # Generate new indices
@@ -319,7 +315,8 @@ class HNSWIndex:
         indices = list(range(start_idx, start_idx + n_items))
 
         # Batch add to index
-        self.index.add_items(vectors, indices)
+        if self.index is not None:
+            self.index.add_items(vectors, indices)
 
         # Batch update mappings
         for i, (item_key, idx) in enumerate(zip(item_keys, indices)):
@@ -348,7 +345,8 @@ class HNSWIndex:
         if item_key in self.id_to_idx:
             idx = self.id_to_idx[item_key]
 
-            self.index.mark_deleted(idx)
+            if self.index is not None:
+                self.index.mark_deleted(idx)
 
             # Update mappings
             del self.id_to_idx[item_key]
@@ -385,7 +383,7 @@ class HNSWIndex:
             return []
 
         # Set search parameter if provided
-        if ef_search is not None:
+        if ef_search is not None and self.index is not None:
             self.index.set_ef(ef_search)
 
         # Convert to correct type
@@ -397,7 +395,10 @@ class HNSWIndex:
             return []
 
         # Search the index
-        indices, distances = self.index.knn_query(query_vector, k=adjusted_k)
+        if self.index is not None:
+            indices, distances = self.index.knn_query(query_vector, k=adjusted_k)
+        else:
+            return []
         indices, distances = indices[0], distances[0]
 
         # Process results (optimized with list comprehension and fewer lookups)
@@ -448,13 +449,13 @@ class HNSWIndex:
         count_query = """
         SELECT COUNT(*)
         FROM (
-            SELECT 1 FROM node_embeddings 
+            SELECT 1 FROM node_embeddings
             WHERE {model_clause}
             UNION ALL
-            SELECT 1 FROM edge_embeddings 
+            SELECT 1 FROM edge_embeddings
             WHERE {model_clause}
             UNION ALL
-            SELECT 1 FROM hyperedge_embeddings 
+            SELECT 1 FROM hyperedge_embeddings
             WHERE {model_clause}
         )
         """
@@ -492,9 +493,9 @@ class HNSWIndex:
 
                 # Optimized vector batch creation - stack directly instead of list->array conversion
                 if embeddings:
-                    vectors_batch = np.stack(
-                        [emb.embedding for emb in embeddings]
-                    ).astype(np.float32)
+                    vectors_batch = np.stack([emb.embedding for emb in embeddings]).astype(
+                        np.float32
+                    )
                 else:
                     vectors_batch = np.array([], dtype=np.float32)
 
@@ -515,9 +516,7 @@ class HNSWIndex:
 
         return total_embeddings
 
-    def sync_with_outbox(
-        self, embedding_manager: EmbeddingManager, batch_size: int = 100
-    ) -> int:
+    def sync_with_outbox(self, embedding_manager: EmbeddingManager, batch_size: int = 100) -> int:
         """
         Process vector operations from the outbox and update the index.
 
@@ -549,10 +548,10 @@ class HNSWIndex:
         operations = cursor.fetchall()
         sync_count = 0
 
-        for op in operations:
-            operation_type = op["operation_type"]
-            entity_type = op["entity_type"]
-            entity_id = op["entity_id"]
+        for operation in operations:
+            operation_type = operation["operation_type"]
+            entity_type = operation["entity_type"]
+            entity_id = operation["entity_id"]
 
             try:
                 if operation_type == "delete":
@@ -574,18 +573,16 @@ class HNSWIndex:
 
                 sync_count += 1
 
-            except Exception as e:
+            except Exception as exception:
                 # Log error but continue with other operations
                 # Use structured logging instead of print
-                from src.common.observability import get_observable_logger
-
                 logger = get_observable_logger("hnsw_index", "adapter")
                 logger.error(
                     "entity_sync_failed",
                     entity_type=entity_type,
                     entity_id=entity_id,
-                    error_type=type(e).__name__,
-                    error_message=str(e),
+                    error_type=type(exception).__name__,
+                    error_message=str(exception),
                 )
 
         return sync_count

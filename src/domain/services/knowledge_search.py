@@ -3,17 +3,14 @@
 """
 
 import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
-from src.domain.value_objects.document_id import DocumentId
-from src.domain.value_objects.node_id import NodeId
-from src.domain.value_objects.relationship_id import RelationshipId
-from src.domain.value_objects.vector import Vector
 
 
 class SearchStrategy(Enum):
@@ -105,8 +102,6 @@ class KnowledgeSearchService:
         Returns:
             검색 결과 컬렉션
         """
-        import time
-
         start_time = time.time()
 
         self.logger.info(
@@ -122,13 +117,9 @@ class KnowledgeSearchService:
         elif criteria.strategy == SearchStrategy.RELATIONSHIP_ONLY:
             search_results = self._search_relationships(criteria, relationships)
         elif criteria.strategy == SearchStrategy.SEMANTIC:
-            search_results = self._semantic_search(
-                criteria, documents, nodes, relationships
-            )
+            search_results = self._semantic_search(criteria, documents, nodes, relationships)
         else:  # HYBRID
-            search_results = self._hybrid_search(
-                criteria, documents, nodes, relationships
-            )
+            search_results = self._hybrid_search(criteria, documents, nodes, relationships)
 
         # 점수순으로 정렬하고 제한
         search_results.sort(key=lambda x: x.score, reverse=True)
@@ -159,12 +150,8 @@ class KnowledgeSearchService:
 
         for doc in documents:
             # 단순 텍스트 매칭 검색 (실제로는 더 정교한 텍스트 검색 필요)
-            title_score = self._calculate_text_similarity(
-                query_lower, doc.title.lower()
-            )
-            content_score = self._calculate_text_similarity(
-                query_lower, doc.content.lower()
-            )
+            title_score = self._calculate_text_similarity(query_lower, doc.title.lower())
+            content_score = self._calculate_text_similarity(query_lower, doc.content.lower())
 
             # 제목에 더 높은 가중치
             combined_score = title_score * 0.7 + content_score * 0.3
@@ -179,9 +166,7 @@ class KnowledgeSearchService:
 
         return results
 
-    def _search_nodes(
-        self, criteria: SearchCriteria, nodes: List[Node]
-    ) -> List[SearchResult]:
+    def _search_nodes(self, criteria: SearchCriteria, nodes: List[Node]) -> List[SearchResult]:
         """노드 기반 검색."""
         results = []
         query_lower = criteria.query.lower()
@@ -195,9 +180,7 @@ class KnowledgeSearchService:
             name_score = self._calculate_text_similarity(query_lower, node.name.lower())
             desc_score = 0.0
             if node.description:
-                desc_score = self._calculate_text_similarity(
-                    query_lower, node.description.lower()
-                )
+                desc_score = self._calculate_text_similarity(query_lower, node.description.lower())
 
             # 임베딩 기반 유사도 (있는 경우)
             embedding_score = 0.0
@@ -237,9 +220,7 @@ class KnowledgeSearchService:
                 continue
 
             # 관계 레이블 매칭
-            label_score = self._calculate_text_similarity(
-                query_lower, rel.label.lower()
-            )
+            label_score = self._calculate_text_similarity(query_lower, rel.label.lower())
 
             # 임베딩 기반 유사도 (있는 경우)
             embedding_score = 0.0
@@ -328,16 +309,12 @@ class KnowledgeSearchService:
             all_results.extend(rel_results)
 
         # 의미적 검색 결과도 포함
-        semantic_results = self._semantic_search(
-            criteria, documents, nodes, relationships
-        )
+        semantic_results = self._semantic_search(criteria, documents, nodes, relationships)
         all_results.extend(semantic_results)
 
         return all_results
 
-    def find_related_documents(
-        self, node: Node, all_documents: List[Document]
-    ) -> List[Document]:
+    def find_related_documents(self, node: Node, all_documents: List[Document]) -> List[Document]:
         """노드와 관련된 문서들을 찾습니다."""
         related_docs = []
 
@@ -347,9 +324,7 @@ class KnowledgeSearchService:
 
         return related_docs
 
-    def find_connected_nodes(
-        self, document: Document, all_nodes: List[Node]
-    ) -> List[Node]:
+    def find_connected_nodes(self, document: Document, all_nodes: List[Node]) -> List[Node]:
         """문서와 연결된 노드들을 찾습니다."""
         connected_nodes = []
 

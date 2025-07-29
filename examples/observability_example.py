@@ -38,9 +38,7 @@ class ExampleService:
         """Initialize service with observable logger."""
         self.logger = get_observable_logger("example_service", "domain")
 
-    @with_observability(
-        operation="process_data", include_args=True, include_result=True
-    )
+    @with_observability(operation="process_data", include_args=True, include_result=True)
     def process_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Example method with automatic observability.
@@ -73,12 +71,10 @@ class ExampleService:
 
             return result
 
-        except Exception as e:
+        except Exception:
             # Exception logging is handled automatically by the decorator
             # But you can add additional context if needed
-            self.logger.error(
-                "data_processing_failed", error_details="Custom error context"
-            )
+            self.logger.error("data_processing_failed", error_details="Custom error context")
             raise
 
     def manual_trace_example(self, user_id: str) -> None:
@@ -141,10 +137,10 @@ class ExampleRepository:
 
             return entity_id
 
-        except Exception as e:
+        except Exception as exception:
             # Log operation failure
             self.logger.operation_failed(
-                "database_save", start_time, e, entity_id=entity_id
+                "database_save", start_time, exception, entity_id=entity_id
             )
             raise
 
@@ -158,24 +154,22 @@ class ExampleRepository:
 
             result = {"id": entity_id, "name": f"Entity {entity_id}"}
 
-            self.logger.info(
-                "entity_found", entity_id=entity_id, result_size=len(result)
-            )
+            self.logger.info("entity_found", entity_id=entity_id, result_size=len(result))
 
             return result
 
-        except ValueError as e:
+        except ValueError as exception:
             # Use exception_occurred for rich context
             self.logger.exception_occurred(
-                exception=e,
+                exception=exception,
                 operation="entity_lookup",
                 entity_id=entity_id,
                 query_type="by_id",
             )
             raise
-        except Exception as e:
+        except Exception as exception:
             self.logger.exception_occurred(
-                exception=e,
+                exception=exception,
                 operation="entity_lookup",
                 entity_id=entity_id,
                 error_category="unexpected",
@@ -201,8 +195,8 @@ async def main():
     try:
         result = service.process_data({"item1": "value1", "item2": "value2"})
         print(f"Result: {result}\n")
-    except Exception as e:
-        print(f"Error: {e}\n")
+    except Exception as exception:
+        print(f"Error: {exception}\n")
 
     # Example 2: Manual trace context
     print("2. Manual trace context management:")
@@ -212,28 +206,24 @@ async def main():
     # Example 3: Repository operations
     print("3. Repository operations with timing:")
     try:
-        entity_id = repository.save_entity(
-            {"id": "ent_456", "type": "Person", "name": "John Doe"}
-        )
+        entity_id = repository.save_entity({"id": "ent_456", "type": "Person", "name": "John Doe"})
         print(f"Saved entity: {entity_id}")
 
         entity = repository.find_entity(entity_id)
         print(f"Found entity: {entity}\n")
-    except Exception as e:
-        print(f"Error: {e}\n")
+    except Exception as exception:
+        print(f"Error: {exception}\n")
 
     # Example 4: Error handling
     print("4. Error handling and exception logging:")
     try:
         repository.find_entity("missing")
-    except Exception as e:
-        print(f"Expected error caught: {e}\n")
+    except Exception as exception:
+        print(f"Expected error caught: {exception}\n")
 
     print("=== Example Complete ===")
     print("All operations above generated structured logs with trace context.")
-    print(
-        "In production, these logs would be collected by your logging infrastructure."
-    )
+    print("In production, these logs would be collected by your logging infrastructure.")
 
 
 if __name__ == "__main__":

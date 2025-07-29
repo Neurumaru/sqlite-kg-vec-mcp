@@ -6,6 +6,7 @@ import unittest
 from datetime import datetime
 
 from src.domain.entities.node import Node, NodeType
+from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 
 
@@ -36,9 +37,7 @@ class TestNode(unittest.TestCase):
 
     def test_node_types(self):
         """노드 타입 테스트."""
-        person_node = Node(
-            id=NodeId.generate(), name="홍길동", node_type=NodeType.PERSON
-        )
+        person_node = Node(id=NodeId.generate(), name="홍길동", node_type=NodeType.PERSON)
 
         organization_node = Node(
             id=NodeId.generate(), name="삼성전자", node_type=NodeType.ORGANIZATION
@@ -67,8 +66,6 @@ class TestNode(unittest.TestCase):
     def test_add_source_document(self):
         """출처 문서 추가 테스트."""
         node = Node(id=self.node_id, name=self.name, node_type=self.node_type)
-        from src.domain.value_objects.document_id import DocumentId
-
         doc_id = DocumentId.generate()
         context = "문서에서 언급됨"
 

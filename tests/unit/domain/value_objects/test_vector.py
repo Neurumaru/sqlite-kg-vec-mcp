@@ -2,8 +2,8 @@
 Vector 값 객체 단위 테스트.
 """
 
-import unittest
 import math
+import unittest
 
 from src.domain.value_objects.vector import Vector
 
@@ -107,7 +107,7 @@ class TestVector(unittest.TestCase):
         distance = vector1.euclidean_distance(vector2)
 
         # Then
-        expected = math.sqrt((4-1)**2 + (5-1)**2)  # sqrt(9 + 16) = 5
+        expected = math.sqrt((4 - 1) ** 2 + (5 - 1) ** 2)  # sqrt(9 + 16) = 5
         self.assertEqual(distance, expected)
 
     def test_euclidean_distance_identical_vectors(self):

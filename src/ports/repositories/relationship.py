@@ -30,7 +30,6 @@ class RelationshipRepository(ABC):
         Returns:
             저장된 관계
         """
-        pass
 
     @abstractmethod
     async def find_by_id(self, relationship_id: str) -> Optional[RelationshipData]:
@@ -43,7 +42,6 @@ class RelationshipRepository(ABC):
         Returns:
             찾은 관계 또는 None
         """
-        pass
 
     @abstractmethod
     async def find_by_nodes(
@@ -59,7 +57,6 @@ class RelationshipRepository(ABC):
         Returns:
             두 노드 간의 관계들
         """
-        pass
 
     @abstractmethod
     async def find_by_document(self, document_id: str) -> List[RelationshipData]:
@@ -72,7 +69,6 @@ class RelationshipRepository(ABC):
         Returns:
             해당 문서에서 추출된 관계들
         """
-        pass
 
     @abstractmethod
     async def update(self, relationship: RelationshipData) -> RelationshipData:
@@ -85,7 +81,6 @@ class RelationshipRepository(ABC):
         Returns:
             업데이트된 관계
         """
-        pass
 
     @abstractmethod
     async def delete(self, relationship_id: str) -> bool:
@@ -98,4 +93,3 @@ class RelationshipRepository(ABC):
         Returns:
             삭제 성공 여부
         """
-        pass

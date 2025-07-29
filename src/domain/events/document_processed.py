@@ -2,8 +2,7 @@
 문서 처리 완료 이벤트.
 """
 
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 
 from .base import DomainEvent
 
@@ -14,10 +13,10 @@ class DocumentProcessed(DomainEvent):
     문서 처리가 완료되었을 때 발생하는 이벤트.
     """
 
-    document_id: str
-    extracted_node_count: int
-    extracted_relationship_count: int
-    processing_time_seconds: float
+    document_id: str = ""
+    extracted_node_count: int = 0
+    extracted_relationship_count: int = 0
+    processing_time_seconds: float = 0.0
 
     def __init__(
         self,
@@ -46,18 +45,21 @@ class DocumentProcessed(DomainEvent):
         self.processing_time_seconds = processing_time_seconds
 
     @classmethod
-    def create(
+    def create(  # type: ignore[override]
         cls,
-        document_id: str,
+        aggregate_id: str,
         extracted_node_count: int,
         extracted_relationship_count: int,
         processing_time_seconds: float,
+        **kwargs,
     ) -> "DocumentProcessed":
         """문서 처리 완료 이벤트 생성."""
-        return super().create(
-            aggregate_id=document_id,
-            document_id=document_id,
+        event = super().create(
+            aggregate_id=aggregate_id,
+            document_id=aggregate_id,
             extracted_node_count=extracted_node_count,
             extracted_relationship_count=extracted_relationship_count,
             processing_time_seconds=processing_time_seconds,
+            **kwargs,
         )
+        return event

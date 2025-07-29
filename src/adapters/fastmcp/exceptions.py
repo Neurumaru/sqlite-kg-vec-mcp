@@ -5,12 +5,11 @@ These exceptions handle MCP protocol errors, server lifecycle issues,
 and message processing failures.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import ConnectionException
-from ..exceptions.data import DataParsingException, DataValidationException
-from ..exceptions.timeout import TimeoutException
+from ..exceptions.data import DataParsingException
 
 
 class MCPException(InfrastructureException):
@@ -89,9 +88,7 @@ class MCPServerException(MCPException):
         self.port = port
         self.host = host
 
-        full_message = (
-            f"MCP server {operation} failed in state '{server_state}': {message}"
-        )
+        full_message = f"MCP server {operation} failed in state '{server_state}': {message}"
         if host and port:
             full_message += f" (server: {host}:{port})"
 
@@ -222,9 +219,7 @@ class MCPResourceException(MCPException):
         self.resource_uri = resource_uri
         self.resource_type = resource_type
 
-        full_message = (
-            f"MCP resource {operation} failed for '{resource_uri}': {message}"
-        )
+        full_message = f"MCP resource {operation} failed for '{resource_uri}': {message}"
         if resource_type:
             full_message += f" (type: {resource_type})"
 

@@ -5,18 +5,37 @@ This module provides a concrete implementation of the KnowledgeExtractor port
 using Ollama LLM for automatic knowledge graph construction.
 """
 
+import asyncio
 import logging
 import sqlite3
-from typing import Any, Dict, List, Optional, Tuple
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
 from src.adapters.sqlite3.graph.relationships import RelationshipManager
-from src.domain.entities.entity import Entity
-from src.domain.entities.relationship import Relationship
-from src.ports.knowledge_extractor import ExtractionResult, KnowledgeExtractor
+from src.domain.entities.node import Node
+from src.domain.entities.relationship import Relationship, RelationshipType
+from src.domain.value_objects.node_id import NodeId
+from src.domain.value_objects.relationship_id import RelationshipId
+from src.ports.knowledge_extractor import KnowledgeExtractor
 
 from .ollama_client import OllamaClient
+
+
+@dataclass
+class ExtractionResult:
+    """지식 추출 결과를 담는 데이터클래스."""
+
+    entities_created: int = 0
+    relationships_created: int = 0
+    errors: Optional[List[str]] = None
+    processing_time: float = 0.0
+
+    def __post_init__(self):
+        if self.errors is None:
+            self.errors = []
 
 
 class OllamaKnowledgeExtractor(KnowledgeExtractor):
@@ -65,20 +84,16 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         Returns:
             ExtractionResult with statistics and errors
         """
-        import time
-
         start_time = time.time()
 
         entities_created = 0
         relationships_created = 0
-        errors = []
+        errors: List[str] = []
 
         try:
             # Extract entities and relationships using LLM
-            logging.info(f"Extracting knowledge from text ({len(text)} characters)...")
-            extraction_data = self.ollama_client.extract_entities_and_relationships(
-                text
-            )
+            logging.info("Extracting knowledge from text (%s characters)...", len(text))
+            extraction_data = self.ollama_client.extract_entities_and_relationships(text)
 
             # Process entities
             entities_created = self._process_entities(
@@ -97,14 +112,14 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
             if self.auto_embed and self.embedding_manager:
                 try:
                     processed_count = self.embedding_manager.process_outbox()
-                    logging.info(f"Generated embeddings for {processed_count} entities")
-                except Exception as e:
-                    error_msg = f"Embedding generation failed: {e}"
+                    logging.info("Generated embeddings for %s entities", processed_count)
+                except Exception as exception:
+                    error_msg = "Embedding generation failed: %s" % exception
                     logging.error(error_msg)
                     errors.append(error_msg)
 
-        except Exception as e:
-            error_msg = f"Knowledge extraction failed: {e}"
+        except Exception as exception:
+            error_msg = "Knowledge extraction failed: %s" % exception
             logging.error(error_msg)
             errors.append(error_msg)
 
@@ -118,8 +133,10 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         )
 
         logging.info(
-            f"Extraction completed: {entities_created} entities, "
-            f"{relationships_created} relationships in {processing_time:.2f}s"
+            "Extraction completed: %s entities, %s relationships in %.2fs",
+            entities_created,
+            relationships_created,
+            processing_time,
         )
 
         return result
@@ -149,15 +166,15 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 # Enhance description if requested
                 if enhance_descriptions:
                     try:
-                        enhanced_desc = (
-                            self.ollama_client.generate_embeddings_description(
-                                entity_data
-                            )
+                        enhanced_desc = self.ollama_client.generate_embeddings_description(
+                            entity_data
                         )
                         properties["llm_description"] = enhanced_desc
-                    except Exception as e:
+                    except Exception as exception:
                         logging.warning(
-                            f"Failed to enhance description for {entity_data['name']}: {e}"
+                            "Failed to enhance description for %s: %s",
+                            entity_data["name"],
+                            exception,
                         )
 
                 # Create entity
@@ -173,20 +190,19 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 self.entity_id_mapping[extraction_id] = entity.id
 
                 created_count += 1
-                logging.debug(f"Created entity: {entity.name} ({entity.type})")
+                logging.debug("Created entity: %s (%s)", entity.name, entity.type)
 
-            except Exception as e:
-                error_msg = (
-                    f"Failed to create entity {entity_data.get('name', 'unknown')}: {e}"
+            except Exception as exception:
+                error_msg = "Failed to create entity %s: %s" % (
+                    entity_data.get("name", "unknown"),
+                    exception,
                 )
                 logging.error(error_msg)
                 errors.append(error_msg)
 
         return created_count
 
-    def _process_relationships(
-        self, relationships: List[Dict[str, Any]], errors: List[str]
-    ) -> int:
+    def _process_relationships(self, relationships: List[Dict[str, Any]], errors: List[str]) -> int:
         """Process and create relationships from extraction data."""
         created_count = 0
 
@@ -210,7 +226,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                     continue
 
                 # Create relationship
-                relationship = self.relationship_manager.create_relationship(
+                self.relationship_manager.create_relationship(
                     source_id=source_id,
                     target_id=target_id,
                     relation_type=rel_data["type"],
@@ -219,11 +235,17 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
                 created_count += 1
                 logging.debug(
-                    f"Created relationship: {rel_data['source']} --{rel_data['type']}--> {rel_data['target']}"
+                    "Created relationship: %s --%s--> %s",
+                    rel_data["source"],
+                    rel_data["type"],
+                    rel_data["target"],
                 )
 
-            except Exception as e:
-                error_msg = f"Failed to create relationship {rel_data.get('type', 'unknown')}: {e}"
+            except Exception as exception:
+                error_msg = "Failed to create relationship %s: %s" % (
+                    rel_data.get("type", "unknown"),
+                    exception,
+                )
                 logging.error(error_msg)
                 errors.append(error_msg)
 
@@ -247,7 +269,9 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         for i in range(0, len(documents), batch_size):
             batch = documents[i : i + batch_size]
             logging.info(
-                f"Processing batch {i//batch_size + 1}/{(len(documents) + batch_size - 1)//batch_size}"
+                "Processing batch %s/%s",
+                i // batch_size + 1,
+                (len(documents) + batch_size - 1) // batch_size,
             )
 
             for doc in batch:
@@ -262,9 +286,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
                 # Log progress
                 if result.errors:
-                    logging.warning(
-                        f"Document {doc_id} had {len(result.errors)} errors"
-                    )
+                    logging.warning("Document %s had %s errors", doc_id, len(result.errors))
 
         return results
 
@@ -280,9 +302,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         total_entities = cursor.fetchone()[0]
 
         # Relationship statistics
-        cursor.execute(
-            "SELECT relation_type, COUNT(*) FROM edges GROUP BY relation_type"
-        )
+        cursor.execute("SELECT relation_type, COUNT(*) FROM edges GROUP BY relation_type")
         relationship_stats = dict(cursor.fetchall())
 
         cursor.execute("SELECT COUNT(*) FROM edges")
@@ -314,47 +334,61 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         """Extract entities and relationships from text using Ollama LLM."""
         return self.extract_from_text(text)
 
-    async def extract_entities(self, text: str) -> List[Entity]:
+    async def extract_entities(self, text: str) -> List[Node]:
         """Extract only entities from text."""
-        # Use existing entity extraction logic
-        entities_data = await self.ollama_client.extract_entities(text)
+        # Extract entities using the existing synchronous method
+        extraction_data = await asyncio.to_thread(
+            self.ollama_client.extract_entities_and_relationships, text
+        )
         entities = []
 
-        for entity_data in entities_data:
+        for entity_data in extraction_data.get("entities", []):
             try:
-                entity = Entity.create(
-                    entity_type=entity_data.get("type", "Unknown"),
-                    name=entity_data.get("name"),
+                entity = Node(
+                    id=NodeId.generate(),
+                    name=entity_data.get("name", "Unknown"),
+                    node_type=entity_data.get("type", "Unknown"),
                     properties=entity_data.get("properties", {}),
                 )
                 entities.append(entity)
-            except Exception as e:
-                logging.warning(f"Failed to create entity from data {entity_data}: {e}")
+            except Exception as exception:
+                logging.warning("Failed to create entity from data %s: %s", entity_data, exception)
 
         return entities
 
-    async def extract_relationships(
-        self, text: str, entities: List[Entity]
-    ) -> List[Relationship]:
+    async def extract_relationships(self, text: str, entities: List[Node]) -> List[Relationship]:
         """Extract relationships from text given existing entities."""
-        # Use existing relationship extraction logic
-        relationships_data = await self.ollama_client.extract_relationships(
-            text, entities
+        # Extract relationships using the existing synchronous method
+        extraction_data = await asyncio.to_thread(
+            self.ollama_client.extract_entities_and_relationships, text
         )
         relationships = []
 
-        for rel_data in relationships_data:
+        # Create entity name to ID mapping for reference
+        entity_map = {entity.name: entity.id for entity in entities}
+
+        for rel_data in extraction_data.get("relationships", []):
             try:
-                relationship = Relationship.create(
-                    source_id=rel_data.get("source_id"),
-                    target_id=rel_data.get("target_id"),
-                    relationship_type=rel_data.get("type", "RELATED_TO"),
-                    properties=rel_data.get("properties", {}),
-                )
-                relationships.append(relationship)
-            except Exception as e:
+                # Try to resolve entity references
+                source_id = entity_map.get(rel_data.get("source"))
+                target_id = entity_map.get(rel_data.get("target"))
+
+                if source_id and target_id:
+                    rel_type_str = rel_data.get("type", "RELATED_TO").upper()
+                    rel_type = getattr(RelationshipType, rel_type_str, RelationshipType.OTHER)
+
+                    relationship = Relationship(
+                        id=RelationshipId.generate(),
+                        source_node_id=source_id,
+                        target_node_id=target_id,
+                        relationship_type=rel_type,
+                        label=rel_data.get("type", "RELATED_TO"),
+                        properties=rel_data.get("properties", {}),
+                    )
+                    relationships.append(relationship)
+            except Exception as exception:
                 logging.warning(
-                    f"Failed to create relationship from data {rel_data}: {e}"
+                    "Failed to create relationship from data %s: %s", rel_data, exception
                 )
 
         return relationships

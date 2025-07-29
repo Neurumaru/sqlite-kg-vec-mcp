@@ -58,9 +58,7 @@ class Node:
         if not self.name.strip():
             raise ValueError("Node name cannot be empty")
 
-    def add_source_document(
-        self, document_id: DocumentId, context: Optional[str] = None
-    ) -> None:
+    def add_source_document(self, document_id: DocumentId, context: Optional[str] = None) -> None:
         """소스 문서 추가."""
         if document_id not in self.source_documents:
             self.source_documents.append(document_id)
@@ -105,10 +103,10 @@ class Node:
     def calculate_similarity(self, other: "Node") -> float:
         """다른 노드와의 유사도 계산."""
         if not self.has_embedding() or not other.has_embedding():
-            raise ValueError(
-                "Both nodes must have embeddings for similarity calculation"
-            )
+            raise ValueError("Both nodes must have embeddings for similarity calculation")
 
+        # mypy: embedding이 None이 아님을 확인했으므로 assert 사용
+        assert self.embedding is not None and other.embedding is not None
         return self.embedding.cosine_similarity(other.embedding)
 
     def update_property(self, key: str, value: Any) -> None:

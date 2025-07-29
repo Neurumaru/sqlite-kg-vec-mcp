@@ -137,9 +137,7 @@ class Document:
         self.version = version
 
     def __str__(self) -> str:
-        return (
-            f"Document(id={self.id}, title='{self.title}', status={self.status.value})"
-        )
+        return f"Document(id={self.id}, title='{self.title}', status={self.status.value})"
 
     def __repr__(self) -> str:
         return (

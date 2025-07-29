@@ -26,27 +26,34 @@ class TestTextEmbedderInterface(unittest.TestCase):
         # 최적화된 TextEmbedder 인터페이스는 4개 핵심 메서드만 포함
         expected_core_methods = {
             "embed_text",
-            "embed_texts", 
+            "embed_texts",
             "get_embedding_dimension",
-            "is_available"
+            "is_available",
         }
 
         # 모든 핵심 메서드가 추상 메서드로 정의되어 있는지 확인
         for method in expected_core_methods:
-            self.assertIn(method, abstract_methods, f"'{method}' should be abstract in core TextEmbedder interface")
-        
+            self.assertIn(
+                method,
+                abstract_methods,
+                f"'{method}' should be abstract in core TextEmbedder interface",
+            )
+
         # 핵심 인터페이스에 불필요한 메서드가 없는지 확인
-        self.assertEqual(abstract_methods, expected_core_methods, 
-                        "TextEmbedder interface should only contain core methods")
+        self.assertEqual(
+            abstract_methods,
+            expected_core_methods,
+            "TextEmbedder interface should only contain core methods",
+        )
 
     def test_interface_simplification(self):
         """인터페이스 단순화가 올바르게 되었는지 테스트."""
         # 제거된 메서드들이 더 이상 추상 메서드가 아닌지 확인
         abstract_methods = TextEmbedder.__abstractmethods__
-        
+
         removed_methods = {
             "embed_with_metadata",
-            "batch_embed_with_metadata", 
+            "batch_embed_with_metadata",
             "get_model_name",
             "get_max_token_length",
             "truncate_text",
@@ -55,12 +62,13 @@ class TestTextEmbedderInterface(unittest.TestCase):
             "preprocess_text",
             "get_embedding_statistics",
             "validate_embedding",
-            "warm_up"
+            "warm_up",
         }
-        
+
         for method in removed_methods:
-            self.assertNotIn(method, abstract_methods, 
-                           f"'{method}' should have been removed from the interface")
+            self.assertNotIn(
+                method, abstract_methods, f"'{method}' should have been removed from the interface"
+            )
 
 
 if __name__ == "__main__":

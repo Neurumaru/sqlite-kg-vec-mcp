@@ -5,12 +5,19 @@ Ollama client for LLM integration with SQLite KG Vec MCP.
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, cast
 
 import requests
 
 from src.common.config.llm import OllamaConfig
 from src.common.observability import get_observable_logger, with_observability
+
+from .exceptions import (
+    OllamaConnectionException,
+    OllamaGenerationException,
+    OllamaResponseException,
+    OllamaTimeoutException,
+)
 
 # Langfuse integration removed - using fallback prompts
 
@@ -40,14 +47,14 @@ class OllamaClient:
         Initialize Ollama client.
 
         Args:
-            config: Ollama 설정 객체
-            base_url: Ollama server URL (deprecated, config 사용 권장)
-            model: Model name to use (deprecated, config 사용 권장) 
-            timeout: Request timeout in seconds (deprecated, config 사용 권장)
+            config: Ollama configuration object
+            base_url: Ollama server URL (deprecated, use config instead)
+            model: Model name to use (deprecated, use config instead)
+            timeout: Request timeout in seconds (deprecated, use config instead)
         """
         if config is None:
             config = OllamaConfig()
-        
+
         # Override config with individual parameters if provided (for backward compatibility)
         self.base_url = (base_url or f"http://{config.host}:{config.port}").rstrip("/")
         self.model = model or config.model
@@ -66,49 +73,41 @@ class OllamaClient:
             response = self.session.get(f"{self.base_url}/api/tags", timeout=5)
             response.raise_for_status()
             return True
-        except requests.ConnectionError as e:
-            from .exceptions import OllamaConnectionException
-
+        except requests.ConnectionError as exception:
             self.logger.warning(
                 "ollama_connection_failed",
                 base_url=self.base_url,
                 error_type="connection_error",
-                error_message=str(e),
+                error_message=str(exception),
             )
             return False
-        except requests.Timeout as e:
-            from .exceptions import OllamaTimeoutException
-
+        except requests.Timeout as exception:
             self.logger.warning(
                 "ollama_connection_timeout",
                 base_url=self.base_url,
                 timeout_duration=5,
-                error_message=str(e),
+                error_message=str(exception),
             )
             return False
-        except requests.HTTPError as e:
-            from .exceptions import OllamaConnectionException
-
-            status_code = getattr(e.response, "status_code", None)
+        except requests.HTTPError as exception:
+            status_code = getattr(exception.response, "status_code", None)
             self.logger.warning(
                 "ollama_http_error",
                 base_url=self.base_url,
                 status_code=status_code,
-                error_message=str(e),
+                error_message=str(exception),
             )
             return False
-        except Exception as e:
+        except (requests.RequestException, ValueError, KeyError) as exception:
             self.logger.warning(
                 "ollama_unexpected_error",
                 base_url=self.base_url,
-                error_type=type(e).__name__,
-                error_message=str(e),
+                error_type=type(exception).__name__,
+                error_message=str(exception),
             )
             return False
 
-    @with_observability(
-        operation="llm_generate", include_args=True, include_result=True
-    )
+    @with_observability(operation="llm_generate", include_args=True, include_result=True)
     def generate(
         self,
         prompt: str,
@@ -133,20 +132,19 @@ class OllamaClient:
         start_time = time.time()
 
         # Prepare request data
-        data = {
+        options: Dict[str, Any] = {"temperature": temperature}
+        if max_tokens:
+            options["num_predict"] = max_tokens
+
+        data: Dict[str, Any] = {
             "model": self.model,
             "prompt": prompt,
             "stream": stream,
-            "options": {
-                "temperature": temperature,
-            },
+            "options": options,
         }
 
         if system_prompt:
             data["system"] = system_prompt
-
-        if max_tokens:
-            data["options"]["num_predict"] = max_tokens
 
         try:
             response = self.session.post(
@@ -155,11 +153,13 @@ class OllamaClient:
             response.raise_for_status()
 
             # Parse response
+            generated_text = ""
+            total_tokens = 0
+            response_text = response.text  # Initialize response_text here
+
             if stream:
                 # Handle streaming response
                 text_chunks = []
-                total_tokens = 0
-
                 for line in response.iter_lines():
                     if line:
                         chunk_data = json.loads(line.decode("utf-8"))
@@ -187,48 +187,37 @@ class OllamaClient:
                 metadata={"temperature": temperature},
             )
 
-        except requests.ConnectionError as e:
-            from .exceptions import OllamaConnectionException
-
-            raise OllamaConnectionException.from_requests_error(self.base_url, e)
-        except requests.Timeout as e:
-            from .exceptions import OllamaTimeoutException
-
+        except requests.ConnectionError as exception:
+            raise OllamaConnectionException.from_requests_error(self.base_url, exception)
+        except requests.Timeout as exception:
             raise OllamaTimeoutException(
                 base_url=self.base_url,
                 operation="text generation",
                 timeout_duration=self.timeout,
-                original_error=e,
+                original_error=exception,
             )
-        except requests.HTTPError as e:
-            from .exceptions import OllamaConnectionException
-
-            status_code = getattr(e.response, "status_code", None)
+        except requests.HTTPError as exception:
+            status_code = getattr(exception.response, "status_code", None)
             raise OllamaConnectionException(
                 base_url=self.base_url,
                 message=f"HTTP {status_code} error during generation",
                 status_code=status_code,
-                original_error=e,
+                original_error=exception,
             )
-        except json.JSONDecodeError as e:
-            from .exceptions import OllamaResponseException
-
-            response_text = getattr(e, "doc", "Unknown response")
+        except json.JSONDecodeError as exception:
             raise OllamaResponseException(
-                response_text=response_text, parsing_error=str(e), original_error=e
+                response_text=response_text, parsing_error=str(exception), original_error=exception
             )
-        except Exception as e:
-            from .exceptions import OllamaGenerationException
-
+        except (ValueError, KeyError, TypeError) as exception:
             raise OllamaGenerationException(
                 model_name=self.model,
                 prompt=prompt,
-                message=f"Unexpected error during generation: {e}",
+                message=f"Data processing error during generation: {exception}",
                 generation_params={
                     "temperature": temperature,
                     "max_tokens": max_tokens,
                 },
-                original_error=e,
+                original_error=exception,
             )
 
     def extract_entities_and_relationships(self, text: str) -> Dict[str, Any]:
@@ -241,16 +230,15 @@ class OllamaClient:
         Returns:
             Dictionary containing extracted entities and relationships
         """
-        # 기본 프롬프트 사용 (Langfuse 제거됨)
-        system_prompt = """You are an expert knowledge graph extraction system. 
+        # Use default prompt (Langfuse removed)
+        system_prompt = """You are an expert knowledge graph extraction system.
             Analyze the given text and extract entities and relationships in JSON format.
-            
             Return a JSON object with this structure:
             {
                 "entities": [
                     {
                         "id": "unique_id",
-                        "name": "entity_name", 
+                        "name": "entity_name",
                         "type": "entity_type",
                         "properties": {"key": "value"}
                     }
@@ -258,18 +246,16 @@ class OllamaClient:
                 "relationships": [
                     {
                         "source": "source_entity_id",
-                        "target": "target_entity_id", 
+                        "target": "target_entity_id",
                         "type": "relationship_type",
                         "properties": {"key": "value"}
                     }
                 ]
             }
-            
             Focus on extracting:
             - People, organizations, places, concepts, events
             - Clear relationships between entities
             - Important properties and attributes
-            
             Be precise and only extract information explicitly mentioned in the text."""
 
         prompt = f"""Extract entities and relationships from this text:
@@ -297,7 +283,7 @@ Return only valid JSON, no additional text or explanation."""
             response_text = response_text.strip()
 
             # Parse the JSON response
-            result = json.loads(response_text)
+            result = cast(dict[str, Any], json.loads(response_text))
 
             # Validate structure
             if "entities" not in result:
@@ -309,10 +295,10 @@ Return only valid JSON, no additional text or explanation."""
 
             return result
 
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError as exception:
             self.logger.error(
                 "llm_response_parse_failed",
-                error_message=str(e),
+                error_message=str(exception),
                 response_text=response.text,
             )
 
@@ -332,13 +318,11 @@ Return only valid JSON, no additional text or explanation."""
         system_prompt = """You are an expert at creating rich, informative descriptions for knowledge graph entities.
         Given an entity with its name, type, and properties, create a comprehensive but concise description
         that would be ideal for vector embeddings and semantic search.
-        
         The description should:
         - Include the entity's main characteristics
         - Mention key relationships and context
         - Be 1-3 sentences long
         - Be informative for search and matching
-        
         Return only the description, no additional text."""
 
         entity_info = f"""Entity Name: {entity.get('name', 'Unknown')}
@@ -351,7 +335,7 @@ Properties: {json.dumps(entity.get('properties', {}), indent=2)}"""
             prompt=prompt, system_prompt=system_prompt, temperature=0.3, max_tokens=150
         )
 
-        return response.text.strip()
+        return str(response.text).strip()
 
     def list_available_models(self) -> List[str]:
         """Get list of available models from Ollama."""
@@ -362,8 +346,8 @@ Properties: {json.dumps(entity.get('properties', {}), indent=2)}"""
             data = response.json()
             return [model["name"] for model in data.get("models", [])]
 
-        except Exception as e:
-            self.logger.error("model_list_fetch_failed", error_message=str(e))
+        except (requests.RequestException, ValueError, KeyError) as exception:
+            self.logger.error("model_list_fetch_failed", error_message=str(exception))
             return []
 
     def pull_model(self, model_name: str) -> bool:
@@ -394,8 +378,8 @@ Properties: {json.dumps(entity.get('properties', {}), indent=2)}"""
 
             return False
 
-        except Exception as e:
+        except (requests.RequestException, ValueError, json.JSONDecodeError) as exception:
             self.logger.error(
-                "model_pull_failed", model_name=model_name, error_message=str(e)
+                "model_pull_failed", model_name=model_name, error_message=str(exception)
             )
             return False

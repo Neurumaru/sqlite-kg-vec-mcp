@@ -6,7 +6,9 @@ import uuid
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, TypeVar
+
+T = TypeVar("T", bound="DomainEvent")
 
 
 @dataclass
@@ -29,7 +31,7 @@ class DomainEvent(ABC):
         pass
 
     @classmethod
-    def create(cls, aggregate_id: str, **kwargs) -> "DomainEvent":
+    def create(cls: type[T], aggregate_id: str, **kwargs: Any) -> T:
         """새로운 도메인 이벤트 생성."""
         event_id = str(uuid.uuid4())
         occurred_at = datetime.now()
