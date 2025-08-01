@@ -167,7 +167,9 @@ class KnowledgeGraphServer:
                 domain_node_id = NodeId(str(node_id))
                 self.logger.info("Retrieving node with ID %s", node_id)
             else:
-                domain_node_id = NodeId(node_uuid)  # type: ignore # node_uuid is guaranteed to be str here
+                # node_uuid is guaranteed to be str here since we checked both are not None above
+                assert node_uuid is not None, "node_uuid must not be None at this point"
+                domain_node_id = NodeId(node_uuid)
                 self.logger.info("Retrieving node with UUID %s", node_uuid)
 
             # Call use case
@@ -371,8 +373,9 @@ class KnowledgeGraphServer:
                             "id": str(result.document.id),
                             "title": result.document.title,
                             "content": (
-                                result.document.content[:200] + "..."
-                                if len(result.document.content) > 200
+                                result.document.content[: self.config.content_summary_length]
+                                + "..."
+                                if len(result.document.content) > self.config.content_summary_length
                                 else result.document.content
                             ),
                             "similarity": result.score,
@@ -451,7 +454,7 @@ class KnowledgeGraphServer:
         relation_type: str,
         label: str,
         properties: dict[str, Any] | None = None,
-        weight: float = 1.0,
+        weight: float | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
@@ -463,7 +466,7 @@ class KnowledgeGraphServer:
             relation_type: Type of the relationship
             label: Label for the relationship
             properties: Custom properties for the relationship (optional)
-            weight: Weight of the relationship (default 1.0)
+            weight: Weight of the relationship (uses config default if not provided)
             ctx: MCP context object
 
         Returns:
@@ -477,6 +480,11 @@ class KnowledgeGraphServer:
             target_id = NodeId(str(target_node_id))
             domain_relation_type = RelationshipType(relation_type)
 
+            # Use config default weight if not provided
+            actual_weight = (
+                weight if weight is not None else self.config.default_relationship_weight
+            )
+
             # Call use case
             relationship = await self.relationship_use_case.create_relationship(
                 source_node_id=source_id,
@@ -484,7 +492,7 @@ class KnowledgeGraphServer:
                 relationship_type=domain_relation_type,
                 label=label,
                 properties=properties,
-                weight=weight,
+                weight=actual_weight,
             )
 
             # Convert to MCP response format
@@ -829,7 +837,7 @@ class KnowledgeGraphServer:
         self,
         node_id: int,
         limit: int = 10,
-        threshold: float = 0.7,
+        threshold: float | None = None,
         ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
@@ -838,7 +846,7 @@ class KnowledgeGraphServer:
         Args:
             node_id: ID of the reference node
             limit: Maximum number of similar nodes to return (default 10)
-            threshold: Similarity threshold (default 0.7)
+            threshold: Similarity threshold (uses config default if not provided)
             ctx: MCP context object
 
         Returns:
@@ -848,6 +856,11 @@ class KnowledgeGraphServer:
 
         try:
             domain_node_id = NodeId(str(node_id))
+
+            # Use config default threshold if not provided
+            actual_threshold = (
+                threshold if threshold is not None else self.config.similarity_threshold
+            )
 
             # Check if NodeEmbeddingUseCase is available
             if not hasattr(self.node_use_case, "find_similar_nodes"):
@@ -893,7 +906,7 @@ class KnowledgeGraphServer:
             similar_nodes_with_scores = await self.node_use_case.find_similar_nodes(
                 node_id=domain_node_id,
                 limit=limit,
-                threshold=threshold,
+                threshold=actual_threshold,
             )
 
             # Convert to MCP response format

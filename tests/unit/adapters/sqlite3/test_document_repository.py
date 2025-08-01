@@ -261,6 +261,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         sample_data = self._document_to_data(self.sample_document)
         # 데이터베이스 연결 오류 시뮬레이션
         from src.adapters.sqlite3.exceptions import SQLiteConnectionException
+
         connection_error = SQLiteConnectionException(
             "/test/db.sqlite", "database connection failed"
         )
@@ -278,14 +279,12 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         # Given
         sample_data = self._document_to_data(self.sample_document)
         self.mock_database.execute_query = AsyncMock(return_value=[])  # 문서 없음 확인
-        
+
         # UNIQUE 제약 위반 시뮬레이션
         from src.adapters.sqlite3.exceptions import SQLiteIntegrityException
+
         integrity_error = SQLiteIntegrityException(
-            constraint="UNIQUE",
-            table="documents", 
-            column="id",
-            value=str(self.sample_document.id)
+            constraint="UNIQUE", table="documents", column="id", value=str(self.sample_document.id)
         )
         self.mock_database.execute_command = AsyncMock(side_effect=integrity_error)
 
@@ -316,12 +315,12 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
             "connected_relationships": "[]",
         }
         self.mock_database.execute_query = AsyncMock(return_value=[current_row])
-        
+
         # 데이터베이스 잠금 오류 시뮬레이션
         from src.adapters.sqlite3.exceptions import SQLiteOperationalException
+
         operational_error = SQLiteOperationalException(
-            operation="UPDATE",
-            message="database is locked"
+            operation="UPDATE", message="database is locked"
         )
         self.mock_database.execute_command = AsyncMock(side_effect=operational_error)
 
@@ -352,13 +351,12 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
             "connected_relationships": "[]",
         }
         self.mock_database.execute_query = AsyncMock(return_value=[current_row])
-        
+
         # 트랜잭션 실패 시뮬레이션
         from src.adapters.sqlite3.exceptions import SQLiteTransactionException
+
         transaction_error = SQLiteTransactionException(
-            transaction_id="tx_001",
-            state="COMMITTING",
-            message="transaction deadlock detected"
+            transaction_id="tx_001", state="COMMITTING", message="transaction deadlock detected"
         )
         self.mock_database.execute_command = AsyncMock(side_effect=transaction_error)
 
@@ -368,9 +366,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
 
         # When & Then
         with self.assertRaises(SQLiteTransactionException) as context:
-            await self.repository.update_with_knowledge(
-                sample_data, node_ids, relationship_ids
-            )
+            await self.repository.update_with_knowledge(sample_data, node_ids, relationship_ids)
 
         self.assertEqual(context.exception.transaction_id, "tx_001")
         self.assertEqual(context.exception.state, "COMMITTING")
@@ -380,10 +376,11 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         """장시간 실행 쿼리 타임아웃 테스트."""
         # Given
         from src.adapters.sqlite3.exceptions import SQLiteTimeoutException
+
         timeout_error = SQLiteTimeoutException(
             operation="SELECT",
             timeout_duration=30.0,
-            query="SELECT * FROM documents WHERE status = ?"
+            query="SELECT * FROM documents WHERE status = ?",
         )
         self.mock_database.execute_query = AsyncMock(side_effect=timeout_error)
 
@@ -399,9 +396,10 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         """복잡한 작업에서 다양한 예외 타입 처리 테스트."""
         # Given - 복잡한 시나리오: exists 체크 -> save -> update
         sample_data = self._document_to_data(self.sample_document)
-        
+
         # 1단계: exists 체크 시 연결 오류
         from src.adapters.sqlite3.exceptions import SQLiteConnectionException
+
         connection_error = SQLiteConnectionException("/test/db.sqlite", "connection lost")
         self.mock_database.execute_query = AsyncMock(side_effect=connection_error)
 
@@ -412,6 +410,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         # Given - 2단계: 연결 복구 후 무결성 위반
         self.mock_database.execute_query = AsyncMock(return_value=[])  # exists 성공
         from src.adapters.sqlite3.exceptions import SQLiteIntegrityException
+
         integrity_error = SQLiteIntegrityException("UNIQUE", "documents", "id")
         self.mock_database.execute_command = AsyncMock(side_effect=integrity_error)
 
@@ -424,13 +423,11 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         # Given
         sample_data = self._document_to_data(self.sample_document)
         self.mock_database.execute_query = AsyncMock(return_value=[])
-        
+
         from src.adapters.sqlite3.exceptions import SQLiteIntegrityException
+
         integrity_error = SQLiteIntegrityException(
-            constraint="FOREIGN_KEY",
-            table="documents",
-            column="parent_id",
-            value="invalid_parent"
+            constraint="FOREIGN_KEY", table="documents", column="parent_id", value="invalid_parent"
         )
         self.mock_database.execute_command = AsyncMock(side_effect=integrity_error)
 
@@ -443,7 +440,7 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.assertIn("FOREIGN_KEY", context.exception.message)
         self.assertIn("documents.parent_id", context.exception.message)
         self.assertIn("invalid_parent", context.exception.message)
-        
+
         # 문자열 표현 형식 검증
         expected_str_format = f"[{context.exception.error_code}] {context.exception.message}"
         self.assertEqual(str(context.exception), expected_str_format)

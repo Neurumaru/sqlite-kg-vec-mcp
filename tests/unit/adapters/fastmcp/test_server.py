@@ -62,6 +62,7 @@ class MockSearchResult:
         self.similarity = similarity
 
     def to_dict(self):
+        """Convert search result to dictionary format."""
         return {"node_id": self.node_id, "similarity": self.similarity}
 
 
@@ -73,9 +74,11 @@ class MockContext:
         self.error_calls = []
 
     def info(self, message):
+        """Record info message."""
         self.info_calls.append(message)
 
     def error(self, message):
+        """Record error message."""
         self.error_calls.append(message)
 
 
@@ -85,9 +88,8 @@ class TestKnowledgeGraphServerMethods(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
         # 임시 데이터베이스 파일 생성
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
-        self.temp_db.close()
-        self.db_path = self.temp_db.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as temp_db:
+            self.db_path = temp_db.name
 
         # Mock managers
         self.entity_manager = Mock()
@@ -308,6 +310,7 @@ class TestKnowledgeGraphServerMethods(unittest.TestCase):
                 if ctx:
                     ctx.error(error_msg)
                 return {"error": error_msg}
+            return None
 
         # When
         result = get_node()
@@ -315,6 +318,8 @@ class TestKnowledgeGraphServerMethods(unittest.TestCase):
         # Then
         expected_error = "Missing required parameter: either id or node_uuid must be provided"
         self.assertEqual(result, {"error": expected_error})
+
+    # === Edge/Relationship Tests ===
 
     def test_create_edge_success(self):
         """
@@ -364,38 +369,82 @@ class TestKnowledgeGraphServerMethods(unittest.TestCase):
             source_id=1, target_id=2, relation_type="connects", properties={"weight": 1.0}
         )
 
-    def test_search_similar_nodes_missing_parameters(self):
-        """
-        Given: node_id와 query_vector가 모두 없는 요청
-        When: search_similar_nodes 메서드를 호출할 때
-        Then: 오류 메시지를 반환해야 함
-        """
+    # === Delete Node Tests ===
 
+    def test_delete_node_success(self):
+        """
+        Given: 유효한 노드 ID
+        When: delete_node 메서드를 호출할 때
+        Then: 노드가 성공적으로 삭제되어야 함
+        """
         # Given
-        def search_similar_nodes(
-            node_id=None,
-            query_vector=None,
-            limit=10,
-            entity_types=None,
-            include_entities=True,
-            ctx=None,
-        ):
-            if node_id is None and query_vector is None:
-                error_msg = (
-                    "Missing required parameter: either node_id or query_vector must be provided"
-                )
+        self.entity_manager.delete_entity.return_value = True
+
+        # Simulate method
+        def delete_node(entity_id, ctx=None):
+            if ctx:
+                ctx.info(f"Deleting node with ID {entity_id}")
+
+            try:
+                success = self.entity_manager.delete_entity(entity_id)
+
+                if not success:
+                    error_msg = "Node not found or already deleted"
+                    if ctx:
+                        ctx.error(error_msg)
+                    return {"error": error_msg}
+
+                return {"success": True, "message": f"Node {entity_id} deleted successfully"}
+            except Exception as exception:
                 if ctx:
-                    ctx.error(error_msg)
-                return {"error": error_msg}
+                    ctx.error(f"Failed to delete node: {exception}")
+                return {"error": str(exception)}
 
         # When
-        result = search_similar_nodes()
+        result = delete_node(entity_id=1)
 
         # Then
-        expected_error = (
-            "Missing required parameter: either node_id or query_vector must be provided"
-        )
+        self.entity_manager.delete_entity.assert_called_once_with(1)
+        expected_result = {"success": True, "message": "Node 1 deleted successfully"}
+        self.assertEqual(result, expected_result)
+
+    def test_delete_node_not_found(self):
+        """
+        Given: 존재하지 않는 노드 ID
+        When: delete_node 메서드를 호출할 때
+        Then: 노드를 찾을 수 없다는 오류를 반환해야 함
+        """
+        # Given
+        self.entity_manager.delete_entity.return_value = False
+
+        # Simulate method
+        def delete_node(entity_id, ctx=None):
+            if ctx:
+                ctx.info(f"Deleting node with ID {entity_id}")
+
+            try:
+                success = self.entity_manager.delete_entity(entity_id)
+
+                if not success:
+                    error_msg = "Node not found or already deleted"
+                    if ctx:
+                        ctx.error(error_msg)
+                    return {"error": error_msg}
+
+                return {"success": True, "message": f"Node {entity_id} deleted successfully"}
+            except Exception as exception:
+                if ctx:
+                    ctx.error(f"Failed to delete node: {exception}")
+                return {"error": str(exception)}
+
+        # When
+        result = delete_node(entity_id=999)
+
+        # Then
+        expected_error = "Node not found or already deleted"
         self.assertEqual(result, {"error": expected_error})
+
+    # === Search Tests ===
 
     def test_search_similar_nodes_with_node_id(self):
         """
@@ -474,77 +523,38 @@ class TestKnowledgeGraphServerMethods(unittest.TestCase):
         self.assertEqual(result["results"][0]["node_id"], 2)
         self.assertEqual(result["results"][0]["similarity"], 0.8)
 
-    def test_delete_node_success(self):
+    def test_search_similar_nodes_missing_parameters(self):
         """
-        Given: 유효한 노드 ID
-        When: delete_node 메서드를 호출할 때
-        Then: 노드가 성공적으로 삭제되어야 함
+        Given: node_id와 query_vector가 모두 없는 요청
+        When: search_similar_nodes 메서드를 호출할 때
+        Then: 오류 메시지를 반환해야 함
         """
+
         # Given
-        self.entity_manager.delete_entity.return_value = True
-
-        # Simulate method
-        def delete_node(entity_id, ctx=None):
-            if ctx:
-                ctx.info(f"Deleting node with ID {entity_id}")
-
-            try:
-                success = self.entity_manager.delete_entity(entity_id)
-
-                if not success:
-                    error_msg = "Node not found or already deleted"
-                    if ctx:
-                        ctx.error(error_msg)
-                    return {"error": error_msg}
-
-                return {"success": True, "message": f"Node {entity_id} deleted successfully"}
-            except Exception as exception:
+        def search_similar_nodes(
+            node_id=None,
+            query_vector=None,
+            limit=10,
+            entity_types=None,
+            include_entities=True,
+            ctx=None,
+        ):
+            if node_id is None and query_vector is None:
+                error_msg = (
+                    "Missing required parameter: either node_id or query_vector must be provided"
+                )
                 if ctx:
-                    ctx.error(f"Failed to delete node: {exception}")
-                return {"error": str(exception)}
+                    ctx.error(error_msg)
+                return {"error": error_msg}
+            return None
 
         # When
-        result = delete_node(entity_id=1)
+        result = search_similar_nodes()
 
         # Then
-        self.entity_manager.delete_entity.assert_called_once_with(1)
-        expected_result = {"success": True, "message": "Node 1 deleted successfully"}
-        self.assertEqual(result, expected_result)
-
-    def test_delete_node_not_found(self):
-        """
-        Given: 존재하지 않는 노드 ID
-        When: delete_node 메서드를 호출할 때
-        Then: 노드를 찾을 수 없다는 오류를 반환해야 함
-        """
-        # Given
-        self.entity_manager.delete_entity.return_value = False
-
-        # Simulate method
-        def delete_node(entity_id, ctx=None):
-            if ctx:
-                ctx.info(f"Deleting node with ID {entity_id}")
-
-            try:
-                success = self.entity_manager.delete_entity(entity_id)
-
-                if not success:
-                    error_msg = "Node not found or already deleted"
-                    if ctx:
-                        ctx.error(error_msg)
-                    return {"error": error_msg}
-
-                return {"success": True, "message": f"Node {entity_id} deleted successfully"}
-            except Exception as exception:
-                if ctx:
-                    ctx.error(f"Failed to delete node: {exception}")
-                return {"error": str(exception)}
-
-        # When
-        result = delete_node(entity_id=999)
-
-        # Then
-        expected_error = "Node not found or already deleted"
+        expected_error = (
+            "Missing required parameter: either node_id or query_vector must be provided"
+        )
         self.assertEqual(result, {"error": expected_error})
 
 

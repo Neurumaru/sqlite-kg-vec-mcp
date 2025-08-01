@@ -190,18 +190,18 @@ class TestVector(unittest.TestCase):
         """NaN 값 처리 테스트."""
         # When & Then - NaN 값으로 벡터 생성 시 예외 발생
         with self.assertRaises(ValueError) as context:
-            Vector([1.0, float('nan'), 3.0])
+            Vector([1.0, float("nan"), 3.0])
         self.assertIn("Vector values must be numeric", str(context.exception))
 
     def test_vector_infinity_values_handling(self):
         """무한대 값 처리 테스트."""
         # When & Then - 무한대 값으로 벡터 생성 시 예외 발생
         with self.assertRaises(ValueError) as context:
-            Vector([1.0, float('inf'), 3.0])
+            Vector([1.0, float("inf"), 3.0])
         self.assertIn("Vector values must be numeric", str(context.exception))
 
         with self.assertRaises(ValueError) as context:
-            Vector([1.0, float('-inf'), 3.0])
+            Vector([1.0, float("-inf"), 3.0])
         self.assertIn("Vector values must be numeric", str(context.exception))
 
     def test_vector_very_high_dimensions(self):
@@ -213,13 +213,14 @@ class TestVector(unittest.TestCase):
 
         # When & Then
         self.assertEqual(vector.dimension, high_dim)
-        
+
         # 크기 계산 성능 확인
         import time
+
         start_time = time.time()
         magnitude = vector.magnitude()
         end_time = time.time()
-        
+
         self.assertIsInstance(magnitude, float)
         self.assertLess(end_time - start_time, 1.0)  # 1초 이내 완료
 
@@ -252,17 +253,17 @@ class TestVector(unittest.TestCase):
             ([0.0, 0.0]),
             ([0.0, 0.0, 0.0, 0.0]),
             ([-0.0, 0.0]),  # 음수 영
-            ([1e-300, 1e-300])  # 사실상 영벡터
+            ([1e-300, 1e-300]),  # 사실상 영벡터
         ]
 
         for values in test_cases:
             with self.subTest(values=values):
                 vector = Vector(values)
-                
+
                 # 크기는 0이거나 0에 매우 가까워야 함
                 magnitude = vector.magnitude()
                 self.assertLessEqual(magnitude, 1e-100)
-                
+
                 # 다른 벡터와의 코사인 유사도는 0이어야 함
                 other_vector = Vector([1.0] * len(values))
                 similarity = vector.cosine_similarity(other_vector)
@@ -271,31 +272,31 @@ class TestVector(unittest.TestCase):
     def test_vector_performance_with_large_data(self):
         """대용량 데이터 성능 테스트."""
         import time
-        
+
         # Given - 10,000차원 벡터 (실용적인 임베딩 크기)
         large_dim = 1000  # 테스트 환경에서는 더 작은 크기로
         values1 = [i * 0.0001 for i in range(large_dim)]
         values2 = [(i + 1) * 0.0001 for i in range(large_dim)]
-        
+
         # When - 벡터 생성 성능
         start_time = time.time()
         vector1 = Vector(values1)
         vector2 = Vector(values2)
         creation_time = time.time() - start_time
-        
+
         # Then - 생성 시간 검증
         self.assertLess(creation_time, 0.1)  # 100ms 이내
-        
+
         # When - 연산 성능
         start_time = time.time()
         magnitude1 = vector1.magnitude()
         similarity = vector1.cosine_similarity(vector2)
         distance = vector1.euclidean_distance(vector2)
         operation_time = time.time() - start_time
-        
+
         # Then - 연산 시간 검증
         self.assertLess(operation_time, 0.5)  # 500ms 이내
-        
+
         # 결과 정확성 검증
         self.assertIsInstance(magnitude1, float)
         self.assertIsInstance(similarity, float)
@@ -306,13 +307,13 @@ class TestVector(unittest.TestCase):
         """동시 연산 안전성 테스트."""
         import threading
         import time
-        
+
         # Given
         vector1 = Vector([1.0, 2.0, 3.0])
         vector2 = Vector([4.0, 5.0, 6.0])
         results = []
         errors = []
-        
+
         def compute_similarity():
             try:
                 for _ in range(10):  # 빠른 테스트를 위해 반복 횟수 감소
@@ -321,21 +322,21 @@ class TestVector(unittest.TestCase):
                     time.sleep(0.001)  # 작은 지연
             except Exception as e:
                 errors.append(e)
-        
+
         # When - 동시 연산 실행
         threads = []
         for _ in range(3):  # 스레드 수 감소
             thread = threading.Thread(target=compute_similarity)
             threads.append(thread)
             thread.start()
-        
+
         for thread in threads:
             thread.join()
-        
+
         # Then - 오류 없이 일관된 결과
         self.assertEqual(len(errors), 0)  # 예외 발생 없음
         self.assertGreater(len(results), 0)  # 결과 생성됨
-        
+
         # 모든 결과가 동일해야 함 (불변 객체이므로)
         expected_similarity = vector1.cosine_similarity(vector2)
         for result in results:

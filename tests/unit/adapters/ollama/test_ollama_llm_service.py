@@ -182,28 +182,30 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                 "name": "network_timeout",
                 "exception": TimeoutError("Network timeout"),
                 "should_propagate": True,
-                "expected_behavior": "immediate_failure"
+                "expected_behavior": "immediate_failure",
             },
             {
-                "name": "api_rate_limit", 
+                "name": "api_rate_limit",
                 "exception": Exception("Rate limit exceeded"),
                 "should_propagate": False,
-                "expected_behavior": "graceful_degradation"
+                "expected_behavior": "graceful_degradation",
             },
             {
                 "name": "invalid_response",
-                "exception": ValueError("Invalid JSON response"), 
+                "exception": ValueError("Invalid JSON response"),
                 "should_propagate": False,
-                "expected_behavior": "fallback_response"
-            }
+                "expected_behavior": "fallback_response",
+            },
         ]
 
         for scenario in test_scenarios:
             with self.subTest(scenario=scenario["name"]):
                 # Given: Mock specific exception
-                with patch.object(self.llm_service, "invoke", new_callable=AsyncMock) as mock_invoke:
+                with patch.object(
+                    self.llm_service, "invoke", new_callable=AsyncMock
+                ) as mock_invoke:
                     mock_invoke.side_effect = scenario["exception"]
-                    
+
                     if scenario["should_propagate"]:
                         # When & Then: Exception should be propagated
                         with self.assertRaises(type(scenario["exception"])):
@@ -215,7 +217,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                             # Then: Should return error message in result
                             self.assertEqual(len(result), 1)
                             self.assertIn("failed", result[0].content.lower())
-                        
+
                         elif scenario["expected_behavior"] == "fallback_response":
                             # Fallback behavior for analyze_query
                             result = await self.llm_service.analyze_query("test query")
@@ -231,45 +233,56 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                 "name": "first_success_second_fail",
                 "side_effects": [AIMessage(content="Success"), Exception("Fail")],
                 "expected_success_count": 1,
-                "expected_error_count": 1
+                "expected_error_count": 1,
             },
             {
-                "name": "all_fail_different_errors", 
-                "side_effects": [TimeoutError("Timeout"), ValueError("Invalid"), ConnectionError("Network")],
+                "name": "all_fail_different_errors",
+                "side_effects": [
+                    TimeoutError("Timeout"),
+                    ValueError("Invalid"),
+                    ConnectionError("Network"),
+                ],
                 "expected_success_count": 0,
-                "expected_error_count": 3
+                "expected_error_count": 3,
             },
             {
                 "name": "alternating_success_fail",
                 "side_effects": [
-                    AIMessage(content="Success1"), Exception("Fail1"),
-                    AIMessage(content="Success2"), Exception("Fail2")
+                    AIMessage(content="Success1"),
+                    Exception("Fail1"),
+                    AIMessage(content="Success2"),
+                    Exception("Fail2"),
                 ],
                 "expected_success_count": 2,
-                "expected_error_count": 2
-            }
+                "expected_error_count": 2,
+            },
         ]
 
         for test_case in test_cases:
             with self.subTest(case=test_case["name"]):
                 # Given: Mock with specific side effects
-                inputs = [[HumanMessage(content=f"Input {i}")] for i in range(len(test_case["side_effects"]))]
-                
-                with patch.object(self.llm_service, "invoke", new_callable=AsyncMock) as mock_invoke:
+                inputs = [
+                    [HumanMessage(content=f"Input {i}")]
+                    for i in range(len(test_case["side_effects"]))
+                ]
+
+                with patch.object(
+                    self.llm_service, "invoke", new_callable=AsyncMock
+                ) as mock_invoke:
                     mock_invoke.side_effect = test_case["side_effects"]
-                    
+
                     # When: Process batch
                     results = await self.llm_service.batch(inputs)
-                    
+
                     # Then: Verify consistent behavior
                     self.assertEqual(len(results), len(inputs))
-                    
-                    success_count = sum(1 for r in results if not "failed" in r.content.lower())
+
+                    success_count = sum(1 for r in results if "failed" not in r.content.lower())
                     error_count = sum(1 for r in results if "failed" in r.content.lower())
-                    
+
                     self.assertEqual(success_count, test_case["expected_success_count"])
                     self.assertEqual(error_count, test_case["expected_error_count"])
-                    
+
                     # Verify all results are AIMessage instances (consistent type)
                     for result in results:
                         self.assertIsInstance(result, AIMessage)
@@ -278,7 +291,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         """비동기 예외에서 컨텍스트 보존 테스트."""
         # Given: Exception with context
         original_error = ValueError("Original validation error")
-        
+
         class ContextPreservingError(Exception):
             def __init__(self, message, original_error=None, context=None):
                 super().__init__(message)
@@ -290,15 +303,15 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
             mock_invoke.side_effect = ContextPreservingError(
                 "Processing failed",
                 original_error=original_error,
-                context={"input_length": 150, "model": "llama3.2", "attempt": 1}
+                context={"input_length": 150, "model": "llama3.2", "attempt": 1},
             )
-            
+
             # Then: Context should be preserved in batch processing
             results = await self.llm_service.batch([[HumanMessage(content="test")]])
-            
+
             self.assertEqual(len(results), 1)
             error_result = results[0]
-            
+
             # Verify error context is preserved in response
             self.assertIn("Processing failed", error_result.content)
             self.assertIn("Batch item 0 failed", error_result.content)
@@ -306,45 +319,45 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
     async def test_concurrent_async_exception_isolation(self):
         """동시 비동기 작업에서 예외 격리 테스트."""
         import asyncio
-        
+
         # Given: Multiple concurrent operations with mixed outcomes
         async def successful_operation(delay=0.01):
             await asyncio.sleep(delay)
             return AIMessage(content="Success")
-            
+
         async def failing_operation(delay=0.01, error_type=Exception):
             await asyncio.sleep(delay)
             raise error_type("Operation failed")
-        
+
         # Create mixed operations
         operations = [
             successful_operation(0.01),
             failing_operation(0.02, TimeoutError),
             successful_operation(0.015),
             failing_operation(0.005, ValueError),
-            successful_operation(0.03)
+            successful_operation(0.03),
         ]
-        
+
         # When: Execute concurrently with exception handling
         results = await asyncio.gather(*operations, return_exceptions=True)
-        
+
         # Then: Verify exception isolation
         self.assertEqual(len(results), 5)
-        
+
         # Count successes and exceptions
         successes = [r for r in results if isinstance(r, AIMessage)]
         exceptions = [r for r in results if isinstance(r, Exception)]
-        
+
         self.assertEqual(len(successes), 3)  # 3 successful operations
         self.assertEqual(len(exceptions), 2)  # 2 failed operations
-        
+
         # Verify exception types are preserved
         timeout_errors = [e for e in exceptions if isinstance(e, TimeoutError)]
         value_errors = [e for e in exceptions if isinstance(e, ValueError)]
-        
+
         self.assertEqual(len(timeout_errors), 1)
         self.assertEqual(len(value_errors), 1)
-        
+
         # Verify successful operations are unaffected by failures
         for success in successes:
             self.assertEqual(success.content, "Success")
@@ -357,34 +370,36 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                 "name": "retry_on_timeout",
                 "initial_error": TimeoutError("Initial timeout"),
                 "recovery_result": AIMessage(content="Recovered"),
-                "should_recover": True
+                "should_recover": True,
             },
             {
                 "name": "no_recovery_on_auth_error",
                 "initial_error": PermissionError("Authentication failed"),
                 "recovery_result": None,
-                "should_recover": False
-            }
+                "should_recover": False,
+            },
         ]
-        
+
         for scenario in recovery_scenarios:
             with self.subTest(scenario=scenario["name"]):
                 call_count = 0
-                
+
                 async def mock_invoke_with_recovery(*args, **kwargs):
                     nonlocal call_count
                     call_count += 1
-                    
+
                     if call_count == 1:
                         raise scenario["initial_error"]
                     elif scenario["should_recover"]:
                         return scenario["recovery_result"]
                     else:
                         raise scenario["initial_error"]  # Continue failing
-                
-                with patch.object(self.llm_service, "invoke", new_callable=AsyncMock) as mock_invoke:
+
+                with patch.object(
+                    self.llm_service, "invoke", new_callable=AsyncMock
+                ) as mock_invoke:
                     mock_invoke.side_effect = mock_invoke_with_recovery
-                    
+
                     if scenario["should_recover"]:
                         # When: Should recover after retry
                         # Note: This assumes the service has retry logic
@@ -396,21 +411,21 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                         except type(scenario["initial_error"]):
                             # Expected first failure
                             pass
-                        
+
                         # Second call succeeds (simulating retry)
                         result = await self.llm_service.invoke([HumanMessage(content="test")])
                         self.assertEqual(result, scenario["recovery_result"])
                         self.assertEqual(call_count, 2)  # Verify retry occurred
-                    
+
                     else:
                         # When: Should not recover
                         with self.assertRaises(type(scenario["initial_error"])):
                             await self.llm_service.invoke([HumanMessage(content="test")])
-                        
+
                         # Even on retry, should still fail
                         with self.assertRaises(type(scenario["initial_error"])):
                             await self.llm_service.invoke([HumanMessage(content="test")])
-                        
+
                         self.assertEqual(call_count, 2)  # Both calls failed
 
     async def test_analyze_query_success(self):

@@ -18,6 +18,12 @@ class FastMCPConfig:
     max_results: int = 100
     similarity_threshold: float = 0.7
 
+    # 응답 포맷 설정
+    content_summary_length: int = 200
+
+    # 관계 기본 설정
+    default_relationship_weight: float = 1.0
+
     # 로깅 설정
     log_level: str = "INFO"
 
@@ -33,3 +39,13 @@ class FastMCPConfig:
 
         if self.max_results < 1:
             raise ValueError(f"Max results must be positive: {self.max_results}")
+
+        if self.content_summary_length < 1:
+            raise ValueError(
+                f"Content summary length must be positive: {self.content_summary_length}"
+            )
+
+        if self.default_relationship_weight < 0:
+            raise ValueError(
+                f"Default relationship weight must be non-negative: {self.default_relationship_weight}"
+            )

@@ -353,7 +353,7 @@ class TestDocument(unittest.TestCase):
         self.assertFalse(document.has_connected_elements())
 
     # === 상태 일관성 검증 테스트 추가 ===
-    
+
     def test_document_state_transitions_consistency(self):
         """문서 상태 전환의 일관성 테스트."""
         # Given
@@ -363,28 +363,28 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         # Initial state verification
         self.assertEqual(document.status, DocumentStatus.PENDING)
         self.assertIsNone(document.processed_at)
         self.assertNotIn("error", document.metadata)
-        
+
         # When: PENDING -> PROCESSING
         original_updated_at = document.updated_at
         time.sleep(0.001)
         document.mark_as_processing()
-        
+
         # Then: Processing state consistency
         self.assertEqual(document.status, DocumentStatus.PROCESSING)
         self.assertIsNone(document.processed_at)  # Still None during processing
         self.assertGreater(document.updated_at, original_updated_at)
         self.assertFalse(document.is_processed())
-        
+
         # When: PROCESSING -> PROCESSED
         processing_updated_at = document.updated_at
         time.sleep(0.001)
         document.mark_as_processed()
-        
+
         # Then: Processed state consistency
         self.assertEqual(document.status, DocumentStatus.PROCESSED)
         self.assertIsNotNone(document.processed_at)
@@ -400,17 +400,17 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         # When: Mark as processing first
         document.mark_as_processing()
         self.assertEqual(document.status, DocumentStatus.PROCESSING)
-        
+
         # When: Mark as failed from processing state
         error_message = "Processing failed due to network error"
         original_updated_at = document.updated_at
         time.sleep(0.001)
         document.mark_as_failed(error_message)
-        
+
         # Then: Failed state consistency
         self.assertEqual(document.status, DocumentStatus.FAILED)
         self.assertEqual(document.metadata["error"], error_message)
@@ -427,23 +427,23 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         node_id_1 = NodeId.generate()
         node_id_2 = NodeId.generate()
         rel_id_1 = RelationshipId.generate()
-        
+
         # Initial state: no connections
         self.assertFalse(document.has_connected_elements())
         self.assertEqual(len(document.connected_nodes), 0)
         self.assertEqual(len(document.connected_relationships), 0)
-        
+
         # When: Add connections
         original_updated_at = document.updated_at
         time.sleep(0.001)
         document.add_connected_node(node_id_1)
         document.add_connected_node(node_id_2)
         document.add_connected_relationship(rel_id_1)
-        
+
         # Then: Connection state consistency
         self.assertTrue(document.has_connected_elements())
         self.assertEqual(len(document.connected_nodes), 2)
@@ -452,12 +452,12 @@ class TestDocument(unittest.TestCase):
         self.assertIn(node_id_2, document.connected_nodes)
         self.assertIn(rel_id_1, document.connected_relationships)
         self.assertGreater(document.updated_at, original_updated_at)
-        
+
         # When: Remove some connections
         removal_updated_at = document.updated_at
         time.sleep(0.001)
         document.remove_connected_node(node_id_1)
-        
+
         # Then: Partial removal consistency
         self.assertTrue(document.has_connected_elements())  # Still has elements
         self.assertEqual(len(document.connected_nodes), 1)
@@ -465,13 +465,13 @@ class TestDocument(unittest.TestCase):
         self.assertNotIn(node_id_1, document.connected_nodes)
         self.assertIn(node_id_2, document.connected_nodes)
         self.assertGreater(document.updated_at, removal_updated_at)
-        
+
         # When: Remove all connections
         final_removal_updated_at = document.updated_at
         time.sleep(0.001)
         document.remove_connected_node(node_id_2)
         document.remove_connected_relationship(rel_id_1)
-        
+
         # Then: Complete removal consistency
         self.assertFalse(document.has_connected_elements())
         self.assertEqual(len(document.connected_nodes), 0)
@@ -487,16 +487,16 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         node_id = NodeId.generate()
         rel_id = RelationshipId.generate()
-        
+
         # When: Add same elements multiple times
         document.add_connected_node(node_id)
         document.add_connected_node(node_id)  # Duplicate
         document.add_connected_relationship(rel_id)
         document.add_connected_relationship(rel_id)  # Duplicate
-        
+
         # Then: No duplicates should exist
         self.assertEqual(len(document.connected_nodes), 1)
         self.assertEqual(len(document.connected_relationships), 1)
@@ -512,41 +512,41 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         # Initial metadata state
         self.assertEqual(len(document.metadata), 0)
-        
+
         # When: Add various metadata
         original_updated_at = document.updated_at
         time.sleep(0.001)
         document.update_metadata("author", "홍길동")
         document.update_metadata("category", "test")
         document.update_metadata("priority", "high")
-        
+
         # Then: Metadata consistency
         self.assertEqual(len(document.metadata), 3)
         self.assertEqual(document.metadata["author"], "홍길동")
         self.assertEqual(document.metadata["category"], "test")
         self.assertEqual(document.metadata["priority"], "high")
         self.assertGreater(document.updated_at, original_updated_at)
-        
+
         # When: Update existing metadata
         metadata_updated_at = document.updated_at
         time.sleep(0.001)
         document.update_metadata("author", "김철수")  # Update existing key
-        
+
         # Then: Overwrite consistency
         self.assertEqual(len(document.metadata), 3)  # Count should remain same
         self.assertEqual(document.metadata["author"], "김철수")  # Value updated
         self.assertEqual(document.metadata["category"], "test")  # Others unchanged
         self.assertGreater(document.updated_at, metadata_updated_at)
-        
+
         # When: Mark as failed (adds error metadata)
         failed_updated_at = document.updated_at
         time.sleep(0.001)
         error_message = "Test error"
         document.mark_as_failed(error_message)
-        
+
         # Then: Error metadata consistency
         self.assertEqual(len(document.metadata), 4)  # Added error key
         self.assertEqual(document.metadata["error"], error_message)
@@ -562,20 +562,20 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         # When: Mark as processed directly from PENDING (skip PROCESSING)
         document.mark_as_processed()
-        
+
         # Then: Should still work (flexible state machine)
         self.assertEqual(document.status, DocumentStatus.PROCESSED)
         self.assertIsNotNone(document.processed_at)
         self.assertTrue(document.is_processed())
-        
+
         # When: Try to mark as processing after already processed
         processed_updated_at = document.updated_at
         time.sleep(0.001)
         document.mark_as_processing()
-        
+
         # Then: State should change (allows re-processing)
         self.assertEqual(document.status, DocumentStatus.PROCESSING)
         self.assertGreater(document.updated_at, processed_updated_at)
@@ -591,33 +591,42 @@ class TestDocument(unittest.TestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         initial_created_at = document.created_at
         initial_updated_at = document.updated_at
-        
+
         # created_at should equal updated_at initially
         self.assertEqual(initial_created_at, initial_updated_at)
-        
+
         operations = [
             ("mark_as_processing", lambda: document.mark_as_processing()),
             ("add_node", lambda: document.add_connected_node(NodeId.generate())),
-            ("add_relationship", lambda: document.add_connected_relationship(RelationshipId.generate())),
+            (
+                "add_relationship",
+                lambda: document.add_connected_relationship(RelationshipId.generate()),
+            ),
             ("update_metadata", lambda: document.update_metadata("test", "value")),
             ("mark_as_processed", lambda: document.mark_as_processed()),
         ]
-        
+
         previous_updated_at = initial_updated_at
-        
+
         for operation_name, operation in operations:
             time.sleep(0.001)  # Ensure timestamp difference
             operation()
-            
+
             # Then: Timestamp consistency for each operation
-            self.assertEqual(document.created_at, initial_created_at, 
-                           f"created_at should not change during {operation_name}")
-            self.assertGreater(document.updated_at, previous_updated_at,
-                             f"updated_at should increase during {operation_name}")
-            
+            self.assertEqual(
+                document.created_at,
+                initial_created_at,
+                f"created_at should not change during {operation_name}",
+            )
+            self.assertGreater(
+                document.updated_at,
+                previous_updated_at,
+                f"updated_at should increase during {operation_name}",
+            )
+
             previous_updated_at = document.updated_at
 
     def test_str_representation(self):

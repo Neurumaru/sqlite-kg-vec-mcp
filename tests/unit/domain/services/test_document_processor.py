@@ -514,9 +514,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
 
         mock_document_repository.exists = AsyncMock(return_value=False)
         # 저장 시 예외 발생
-        mock_document_repository.save = AsyncMock(
-            side_effect=Exception("Storage failure")
-        )
+        mock_document_repository.save = AsyncMock(side_effect=Exception("Storage failure"))
 
         # When & Then
         with self.assertRaises(Exception) as context:
@@ -525,7 +523,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         # 문서 상태가 PROCESSING에서 FAILED로 변경되었는지 확인
         self.assertEqual(document.status, DocumentStatus.FAILED)
         self.assertIn("Storage failure", document.metadata["error"])
-        
+
         # 실패 상태 업데이트 시도했는지 확인
         mock_document_repository.update.assert_called()
 
@@ -559,7 +557,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         # 구체적 예외 타입과 내용 검증
         self.assertEqual(context.exception.document_id, str(document.id))
         self.assertEqual(context.exception.reason, error_message)
-        
+
         # 문서 상태가 FAILED로 변경되었는지 확인
         self.assertEqual(document.status, DocumentStatus.FAILED)
         expected_error_message = f"[DOCUMENT_PROCESSING_FAILED] Failed to process document '{document.id}': {error_message}"
@@ -606,10 +604,10 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
 
         # 지식 추출은 성공했으나 최종 업데이트에서 실패
         self.assertIn("Final update failed", str(context.exception))
-        
+
         # 문서 상태가 FAILED로 변경되었는지 확인
         self.assertEqual(document.status, DocumentStatus.FAILED)
-        
+
         # 처리 순서 검증: save -> extract -> update_with_knowledge 실패 -> update (실패 상태)
         mock_document_repository.save.assert_called_once()
         mock_knowledge_extractor.extract.assert_called_once()
@@ -648,7 +646,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
 
         # 원본 예외가 전파되어야 함
         self.assertEqual(context.exception.reason, original_error)
-        
+
         # 문서 상태는 여전히 FAILED로 설정되어야 함
         self.assertEqual(document.status, DocumentStatus.FAILED)
 
@@ -686,7 +684,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(document.status, DocumentStatus.PROCESSED)
         self.assertIsNotNone(document.processed_at)
         self.assertEqual(len(document.connected_nodes), 1)
-        
+
         # 호출 순서 검증
         mock_document_repository.exists.assert_called_once()
         mock_document_repository.save.assert_called_once()
@@ -702,7 +700,9 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         # Given - 영속성 처리용
         mock_knowledge_extractor_persistence = Mock()
         mock_document_repository = AsyncMock()
-        processor_persistence = DocumentProcessor(mock_knowledge_extractor_persistence, mock_document_repository)
+        processor_persistence = DocumentProcessor(
+            mock_knowledge_extractor_persistence, mock_document_repository
+        )
 
         # 동일한 문서와 추출 결과 설정
         document_memory = Document(
@@ -711,7 +711,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
             content="테스트 내용",
             doc_type=DocumentType.TEXT,
         )
-        
+
         document_persistence = Document(
             id=document_memory.id,
             title=document_memory.title,
@@ -727,11 +727,15 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         )
 
         mock_knowledge_extractor_memory.extract = AsyncMock(return_value=([sample_node_data], []))
-        mock_knowledge_extractor_persistence.extract = AsyncMock(return_value=([sample_node_data], []))
-        
+        mock_knowledge_extractor_persistence.extract = AsyncMock(
+            return_value=([sample_node_data], [])
+        )
+
         mock_document_repository.exists = AsyncMock(return_value=False)
         mock_document_repository.save = AsyncMock(return_value=document_persistence)
-        mock_document_repository.update_with_knowledge = AsyncMock(return_value=document_persistence)
+        mock_document_repository.update_with_knowledge = AsyncMock(
+            return_value=document_persistence
+        )
 
         # When
         result_memory = await processor_memory.process_document(document_memory)
@@ -739,10 +743,17 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
 
         # Then - 두 처리 방식의 결과가 일관성 있는지 확인
         self.assertEqual(document_memory.status, document_persistence.status)
-        self.assertEqual(len(document_memory.connected_nodes), len(document_persistence.connected_nodes))
-        self.assertEqual(len(document_memory.connected_relationships), len(document_persistence.connected_relationships))
+        self.assertEqual(
+            len(document_memory.connected_nodes), len(document_persistence.connected_nodes)
+        )
+        self.assertEqual(
+            len(document_memory.connected_relationships),
+            len(document_persistence.connected_relationships),
+        )
         self.assertEqual(result_memory.get_node_count(), result_persistence.get_node_count())
-        self.assertEqual(result_memory.get_relationship_count(), result_persistence.get_relationship_count())
+        self.assertEqual(
+            result_memory.get_relationship_count(), result_persistence.get_relationship_count()
+        )
 
     # === Mock 검증 로직 강화 테스트 추가 ===
 
@@ -780,13 +791,13 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         expected_call_sequence = [
             ("exists", str(document.id)),
             ("save", "document_data"),
-            ("extract", "document_data"), 
-            ("update_with_knowledge", "document_data", "node_ids", "relationship_ids")
+            ("extract", "document_data"),
+            ("update_with_knowledge", "document_data", "node_ids", "relationship_ids"),
         ]
 
         # 실제 호출 순서 추적
         actual_calls = []
-        
+
         # exists 호출 확인
         mock_document_repository.exists.assert_called_once_with(str(document.id))
         actual_calls.append(("exists", str(document.id)))
@@ -801,7 +812,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
 
         # extract 호출 확인 및 매개변수 검증
         mock_knowledge_extractor.extract.assert_called_once()
-        extract_call_args = mock_knowledge_extractor.extract.call_args[0][0] 
+        extract_call_args = mock_knowledge_extractor.extract.call_args[0][0]
         self.assertEqual(extract_call_args.id, str(document.id))
         self.assertEqual(extract_call_args.title, document.title)
         actual_calls.append(("extract", "document_data"))
@@ -809,28 +820,33 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         # update_with_knowledge 호출 확인 및 매개변수 검증
         mock_document_repository.update_with_knowledge.assert_called_once()
         update_call_args = mock_document_repository.update_with_knowledge.call_args
-        
+
         # 첫 번째 인자: document_data
         document_data_arg = update_call_args[0][0]
         self.assertEqual(document_data_arg.id, str(document.id))
-        
+
         # 두 번째 인자: node_ids 리스트
         node_ids_arg = update_call_args[0][1]
         self.assertEqual(len(node_ids_arg), 1)
         self.assertEqual(node_ids_arg[0], sample_node_data.id)
-        
-        # 세 번째 인자: relationship_ids 리스트  
+
+        # 세 번째 인자: relationship_ids 리스트
         relationship_ids_arg = update_call_args[0][2]
         self.assertEqual(len(relationship_ids_arg), 0)
-        
-        actual_calls.append(("update_with_knowledge", "document_data", "node_ids", "relationship_ids"))
+
+        actual_calls.append(
+            ("update_with_knowledge", "document_data", "node_ids", "relationship_ids")
+        )
 
         # 전체 호출 순서가 예상과 일치하는지 확인
         self.assertEqual(len(actual_calls), 4)
         for i, (expected_method, _) in enumerate(expected_call_sequence):
             actual_method, _ = actual_calls[i]
-            self.assertEqual(actual_method, expected_method, 
-                           f"호출 순서 {i}에서 {expected_method} 예상, {actual_method} 실제")
+            self.assertEqual(
+                actual_method,
+                expected_method,
+                f"호출 순서 {i}에서 {expected_method} 예상, {actual_method} 실제",
+            )
 
     async def test_mock_call_args_deep_inspection(self):
         """Mock 호출 인자의 깊이 있는 검사 테스트."""
@@ -845,7 +861,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
             content="복잡한 내용 with 특수문자 & 유니코드 한글",
             doc_type=DocumentType.TEXT,
         )
-        
+
         # 메타데이터 추가
         document.update_metadata("author", "테스트 작성자")
         document.update_metadata("priority", "high")
@@ -877,30 +893,30 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         await processor.process_document(document)
 
         # Then - 인자의 상세 내용 검사
-        
+
         # 1. save 호출 인자 깊이 검사
         save_args = mock_document_repository.save.call_args[0][0]
         self.assertEqual(save_args.title, "깊이 있는 검사")
         self.assertIn("특수문자", save_args.content)
         self.assertIn("한글", save_args.content)
 
-        # 2. extract 호출 인자 깊이 검사  
+        # 2. extract 호출 인자 깊이 검사
         extract_args = mock_knowledge_extractor.extract.call_args[0][0]
         self.assertEqual(extract_args.title, "깊이 있는 검사")
         self.assertEqual(extract_args.doc_type.value, "text")
 
         # 3. update_with_knowledge 호출 인자 깊이 검사
         update_args = mock_document_repository.update_with_knowledge.call_args[0]
-        
+
         # 문서 데이터 검사
         doc_data = update_args[0]
         self.assertEqual(doc_data.title, "깊이 있는 검사")
-        
+
         # 노드 ID 리스트 검사
         node_ids = update_args[1]
         self.assertEqual(len(node_ids), 1)
         self.assertEqual(node_ids[0], sample_node_data.id)
-        
+
         # 관계 ID 리스트 검사
         relationship_ids = update_args[2]
         self.assertEqual(len(relationship_ids), 1)
@@ -909,7 +925,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
     async def test_mock_partial_argument_matching(self):
         """Mock 부분 매개변수 매칭 및 타입 검증 테스트."""
         from unittest.mock import ANY
-        
+
         # Given
         mock_knowledge_extractor = Mock()
         mock_document_repository = AsyncMock()
@@ -932,36 +948,36 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         await processor.process_document(document)
 
         # Then - 부분 매개변수 매칭 검증
-        
+
         # 1. exists 호출에서 문서 ID 타입 검증
         exists_call = mock_document_repository.exists.call_args[0][0]
         self.assertIsInstance(exists_call, str)  # 문서 ID는 문자열로 전달되어야 함
-        
+
         # 2. save 호출에서 DocumentData 타입 검증
         save_call = mock_document_repository.save.call_args[0][0]
         # DocumentData의 필수 속성들 존재 확인
-        self.assertTrue(hasattr(save_call, 'id'))
-        self.assertTrue(hasattr(save_call, 'title'))
-        self.assertTrue(hasattr(save_call, 'content'))
-        self.assertTrue(hasattr(save_call, 'doc_type'))
-        self.assertTrue(hasattr(save_call, 'status'))
-        
+        self.assertTrue(hasattr(save_call, "id"))
+        self.assertTrue(hasattr(save_call, "title"))
+        self.assertTrue(hasattr(save_call, "content"))
+        self.assertTrue(hasattr(save_call, "doc_type"))
+        self.assertTrue(hasattr(save_call, "status"))
+
         # 3. extract 호출에서 DocumentData 타입 및 내용 검증
         extract_call = mock_knowledge_extractor.extract.call_args[0][0]
         self.assertEqual(extract_call.title, "부분 매칭 테스트")
-        
+
         # 4. update_with_knowledge 호출에서 리스트 타입 검증
         update_call = mock_document_repository.update_with_knowledge.call_args[0]
         node_ids_arg = update_call[1]
         relationship_ids_arg = update_call[2]
-        
+
         self.assertIsInstance(node_ids_arg, list)
         self.assertIsInstance(relationship_ids_arg, list)
-        
+
         # 빈 리스트여야 함 (extract가 빈 결과를 반환하므로)
         self.assertEqual(len(node_ids_arg), 0)
         self.assertEqual(len(relationship_ids_arg), 0)
-        
+
         # ANY 매처를 사용한 유연한 검증
         mock_document_repository.exists.assert_called_once_with(ANY)
         mock_document_repository.save.assert_called_once_with(ANY)

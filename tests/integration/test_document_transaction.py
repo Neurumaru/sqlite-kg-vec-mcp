@@ -294,8 +294,10 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
 
         # 트랜잭션 컨텍스트가 실제로 사용되었는지 확인
         # 트랜잭션이 제대로 설정되지 않았을 수 있으므로 예외 처리 자체를 검증
-        self.assertTrue(len(transaction_operations) >= 1 or True)  # Mock이 호출되었거나 예외가 발생했음
-        
+        self.assertTrue(
+            len(transaction_operations) >= 1 or True
+        )  # Mock이 호출되었거나 예외가 발생했음
+
         # 실제 중요한 검증: 예외 발생과 상태 변경
         self.assertIn("Knowledge extraction service unavailable", str(context.exception))
 
@@ -512,8 +514,7 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
         # 각 프로세서마다 별도의 지식 추출기
         extractors = [AsyncMock() for _ in range(2)]
         processors = [
-            DocumentProcessor(extractor, self.document_repository)
-            for extractor in extractors
+            DocumentProcessor(extractor, self.document_repository) for extractor in extractors
         ]
 
         # 동시성 제어
@@ -534,7 +535,7 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
                 elif processor_id == 2:
                     await processor1_started.wait()
                     # 두 번째 프로세서는 첫 번째가 시작된 후 진행
-                
+
                 yield None
                 transaction_logs.append(f"P{processor_id}_COMMIT")
             except Exception as e:
@@ -575,9 +576,7 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
             return await processor.process_document(document)
 
         tasks = [
-            asyncio.create_task(
-                process_with_name(processors[i], documents[i], f"processor_{i+1}")
-            )
+            asyncio.create_task(process_with_name(processors[i], documents[i], f"processor_{i+1}"))
             for i in range(2)
         ]
 
