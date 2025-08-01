@@ -4,7 +4,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.domain.entities.document import Document, DocumentStatus
 from src.domain.entities.node import Node, NodeType
@@ -28,7 +28,7 @@ from src.ports.repositories.document import DocumentRepository
 class KnowledgeExtractionResult:
     """지식 추출 결과."""
 
-    def __init__(self, nodes: List[Node], relationships: List[Relationship]):
+    def __init__(self, nodes: list[Node], relationships: list[Relationship]):
         self.nodes = nodes
         self.relationships = relationships
         self.extracted_at = datetime.now()
@@ -57,8 +57,8 @@ class DocumentProcessor:
     def __init__(
         self,
         knowledge_extractor: KnowledgeExtractor,
-        document_repository: Optional[DocumentRepository] = None,
-        logger: Optional[logging.Logger] = None,
+        document_repository: DocumentRepository | None = None,
+        logger: logging.Logger | None = None,
     ):
         self.knowledge_extractor = knowledge_extractor
         self.document_repository = document_repository
@@ -93,11 +93,6 @@ class DocumentProcessor:
         Returns:
             추출된 노드와 관계
         """
-        # TODO: 모니터링 강화 - 트랜잭션 성능 메트릭 추가
-        # 처리 시작 시간, 각 단계별 소요 시간, 메모리 사용량 등을 측정하여
-        # 성능 모니터링 시스템에 전송하는 기능 구현 필요
-        # 예: start_time = time.time(), transaction_metrics.record_duration()
-
         self.logger.info("Processing document with persistence: %s", document.id)
 
         try:
@@ -229,10 +224,10 @@ class DocumentProcessor:
     def update_document_links(
         self,
         document: Document,
-        added_nodes: List[NodeId] = None,
-        removed_nodes: List[NodeId] = None,
-        added_relationships: List[RelationshipId] = None,
-        removed_relationships: List[RelationshipId] = None,
+        added_nodes: list[NodeId] = None,
+        removed_nodes: list[NodeId] = None,
+        added_relationships: list[RelationshipId] = None,
+        removed_relationships: list[RelationshipId] = None,
     ) -> None:
         """문서의 지식 요소 연결을 업데이트합니다."""
 
@@ -341,8 +336,6 @@ class DocumentProcessor:
     def _relationship_data_to_entity(self, rel_data: RelationshipData) -> Relationship:
         """RelationshipData DTO를 Relationship 엔티티로 변환합니다."""
 
-        # RelationshipType 변환 - DTO와 Entity의 타입 값이 다를 수 있으므로 매핑
-        # 일단 OTHER로 기본값 설정하고 나중에 정확한 매핑 구현
         try:
             entity_type = RelationshipType(rel_data.relationship_type.value)
         except ValueError as exception:
@@ -356,7 +349,7 @@ class DocumentProcessor:
             source_node_id=NodeId.from_string(rel_data.source_node_id),
             target_node_id=NodeId.from_string(rel_data.target_node_id),
             relationship_type=entity_type,
-            label=rel_data.relationship_type.value,  # DTO의 relationship_type을 label로 사용
+            label=rel_data.relationship_type.value,
             confidence=rel_data.confidence_score or 1.0,
             properties=rel_data.properties,
             source_documents=[
@@ -366,7 +359,7 @@ class DocumentProcessor:
             updated_at=rel_data.updated_at or datetime.now(),
         )
 
-    def get_processing_statistics(self, documents: List[Document]) -> Dict[str, Any]:
+    def get_processing_statistics(self, documents: list[Document]) -> dict[str, Any]:
         """문서 처리 통계 정보를 반환합니다."""
         total = len(documents)
         processed = sum(1 for doc in documents if doc.status == DocumentStatus.PROCESSED)

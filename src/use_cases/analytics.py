@@ -4,7 +4,7 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -14,33 +14,33 @@ class KnowledgeGraphAnalyticsUseCase(ABC):
     """지식 그래프 분석 Use Case 인터페이스."""
 
     @abstractmethod
-    async def get_graph_statistics(self) -> Dict[str, Any]:
+    async def get_graph_statistics(self) -> dict[str, Any]:
         """지식 그래프 전체 통계를 조회합니다."""
 
     @abstractmethod
-    async def get_document_statistics(self) -> Dict[str, Any]:
+    async def get_document_statistics(self) -> dict[str, Any]:
         """문서 처리 통계를 조회합니다."""
 
     @abstractmethod
-    async def get_node_statistics(self) -> Dict[str, Any]:
+    async def get_node_statistics(self) -> dict[str, Any]:
         """노드 통계를 조회합니다."""
 
     @abstractmethod
-    async def get_relationship_statistics(self) -> Dict[str, Any]:
+    async def get_relationship_statistics(self) -> dict[str, Any]:
         """관계 통계를 조회합니다."""
 
     @abstractmethod
-    async def get_embedding_statistics(self) -> Dict[str, Any]:
+    async def get_embedding_statistics(self) -> dict[str, Any]:
         """임베딩 통계를 조회합니다."""
 
     @abstractmethod
     async def analyze_document_processing_performance(
-        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
-    ) -> Dict[str, Any]:
+        self, start_date: datetime | None = None, end_date: datetime | None = None
+    ) -> dict[str, Any]:
         """문서 처리 성능을 분석합니다."""
 
     @abstractmethod
-    async def get_most_connected_nodes(self, limit: int = 10) -> List[Tuple[NodeId, int]]:
+    async def get_most_connected_nodes(self, limit: int = 10) -> list[tuple[NodeId, int]]:
         """가장 많이 연결된 노드들을 조회합니다.
 
         Args:
@@ -54,7 +54,7 @@ class KnowledgeGraphAnalyticsUseCase(ABC):
         """
 
     @abstractmethod
-    async def get_most_referenced_documents(self, limit: int = 10) -> List[Tuple[DocumentId, int]]:
+    async def get_most_referenced_documents(self, limit: int = 10) -> list[tuple[DocumentId, int]]:
         """가장 많이 참조된 문서들을 조회합니다.
 
         Args:
@@ -80,15 +80,15 @@ class SearchAnalyticsUseCase(ABC):
     @abstractmethod
     async def get_popular_search_terms(
         self, limit: int = 10, period_days: int = 30
-    ) -> List[Tuple[str, int]]:
+    ) -> list[tuple[str, int]]:
         """인기 검색어를 조회합니다."""
 
     @abstractmethod
-    async def get_search_performance_metrics(self, period_days: int = 7) -> Dict[str, Any]:
+    async def get_search_performance_metrics(self, period_days: int = 7) -> dict[str, Any]:
         """검색 성능 지표를 조회합니다."""
 
     @abstractmethod
-    async def analyze_search_patterns(self, period_days: int = 30) -> Dict[str, Any]:
+    async def analyze_search_patterns(self, period_days: int = 30) -> dict[str, Any]:
         """검색 패턴을 분석합니다."""
 
 
@@ -96,13 +96,13 @@ class QualityAnalyticsUseCase(ABC):
     """품질 분석 Use Case 인터페이스."""
 
     @abstractmethod
-    async def analyze_knowledge_completeness(self) -> Dict[str, Any]:
+    async def analyze_knowledge_completeness(self) -> dict[str, Any]:
         """지식의 완성도를 분석합니다."""
 
     @abstractmethod
     async def detect_duplicate_nodes(
         self, similarity_threshold: float = 0.9
-    ) -> List[Tuple[NodeId, NodeId, float]]:
+    ) -> list[tuple[NodeId, NodeId, float]]:
         """중복 노드를 탐지합니다.
 
         Args:
@@ -116,17 +116,17 @@ class QualityAnalyticsUseCase(ABC):
         """
 
     @abstractmethod
-    async def detect_orphaned_nodes(self) -> List[NodeId]:
+    async def detect_orphaned_nodes(self) -> list[NodeId]:
         """고립된 노드들을 탐지합니다."""
 
     @abstractmethod
-    async def analyze_embedding_quality(self) -> Dict[str, Any]:
+    async def analyze_embedding_quality(self) -> dict[str, Any]:
         """임베딩 품질을 분석합니다."""
 
     @abstractmethod
     async def batch_analyze_documents(
-        self, document_ids: List[DocumentId], analysis_types: List[str]
-    ) -> Dict[DocumentId, Dict[str, Any]]:
+        self, document_ids: list[DocumentId], analysis_types: list[str]
+    ) -> dict[DocumentId, dict[str, Any]]:
         """여러 문서에 대한 일괄 분석을 수행합니다.
 
         Args:
@@ -141,5 +141,5 @@ class QualityAnalyticsUseCase(ABC):
         """
 
     @abstractmethod
-    async def validate_relationship_consistency(self) -> Dict[str, Any]:
+    async def validate_relationship_consistency(self) -> dict[str, Any]:
         """관계의 일관성을 검증합니다."""

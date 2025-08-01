@@ -5,7 +5,7 @@ Graph traversal algorithms for exploring the knowledge graph.
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from src.common.observability import get_observable_logger
 
@@ -18,12 +18,12 @@ class PathNode:
     """Represents a node in a path during graph traversal."""
 
     entity: Entity
-    relationship: Optional[Relationship] = None
+    relationship: Relationship | None = None
     parent: Optional["PathNode"] = None
     depth: int = 0
 
     @property
-    def path_to_root(self) -> List["PathNode"]:
+    def path_to_root(self) -> list["PathNode"]:
         """Get the path from this node back to the root."""
         result = [self]
         current = self
@@ -50,10 +50,10 @@ class GraphTraversal:
         self,
         entity_id: int,
         direction: str = "both",
-        relation_types: Optional[List[str]] = None,
-        entity_types: Optional[List[str]] = None,
+        relation_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
         limit: int = 100,
-    ) -> List[Tuple[Entity, Relationship]]:
+    ) -> list[tuple[Entity, Relationship]]:
         """
         Get neighboring entities connected to the given entity.
         Args:
@@ -68,11 +68,11 @@ class GraphTraversal:
         if direction not in ("outgoing", "incoming", "both"):
             raise ValueError("Direction must be 'outgoing', 'incoming', or 'both'")
         queries = []
-        params: List[Any] = []
+        params: list[Any] = []
         # Outgoing relationships (entity_id -> neighbor)
         if direction in ("outgoing", "both"):
             conditions = ["r.source_id = ?"]
-            query_params: List[Any] = [entity_id]
+            query_params: list[Any] = [entity_id]
             if relation_types:
                 placeholders = ", ".join(["?"] * len(relation_types))
                 conditions.append(f"r.relation_type IN ({placeholders})")
@@ -94,7 +94,7 @@ class GraphTraversal:
         # Incoming relationships (neighbor -> entity_id)
         if direction in ("incoming", "both"):
             conditions = ["r.target_id = ?"]
-            query_params_inc: List[Any] = [entity_id]
+            query_params_inc: list[Any] = [entity_id]
             if relation_types:
                 placeholders = ", ".join(["?"] * len(relation_types))
                 conditions.append(f"r.relation_type IN ({placeholders})")
@@ -151,33 +151,23 @@ class GraphTraversal:
             results.append((entity, relationship))
         return results
 
-    def find_paths(
+    def breadth_first_search(
         self,
         start_id: int,
-        end_id: int,
         max_depth: int = 5,
-        relation_types: Optional[List[str]] = None,
-        entity_types: Optional[List[str]] = None,
-    ) -> List[List[PathNode]]:
-        """
-        Find paths between start and end entities using breadth-first search.
-        Args:
-            start_id: Start entity ID
-            end_id: End entity ID
-            max_depth: Maximum path length
-            relation_types: Optional list of relationship types to filter
-            entity_types: Optional list of entity types to filter
-        Returns:
-            List of paths (each path is a list of PathNodes)
-        """
-        if max_depth <= 0:
+        relation_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
+    ) -> list[PathNode]:
+        """BFS to find all nodes reachable from start_id within max_depth."""
+        if max_depth < 0:
             return []
-        # Get start entity
+
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM entities WHERE id = ?", (start_id,))
         start_row = cursor.fetchone()
         if not start_row:
             return []
+
         start_entity = Entity(
             id=start_row["id"],
             uuid=start_row["uuid"],
@@ -187,18 +177,18 @@ class GraphTraversal:
             created_at=start_row["created_at"],
             updated_at=start_row["updated_at"],
         )
-        # Queue for BFS
+
         queue = [PathNode(entity=start_entity, depth=0)]
-        # Track visited entities to avoid cycles
-        visited = {start_id}
-        # Store found paths
-        paths = []
+        visited: dict[int, PathNode] = {start_id: queue[0]}
+        results: list[PathNode] = []
+
         while queue:
             current = queue.pop(0)
-            # If we've reached max depth, don't explore further
+            results.append(current)
+
             if current.depth >= max_depth:
                 continue
-            # Get neighbors
+
             try:
                 neighbors = self.get_neighbors(
                     current.entity.id,
@@ -206,47 +196,80 @@ class GraphTraversal:
                     relation_types=relation_types,
                     entity_types=entity_types,
                 )
+
                 for neighbor_entity, relationship in neighbors:
-                    # Skip if we've already visited this entity
-                    if neighbor_entity.id in visited:
-                        continue
-                    # Create new path node
-                    new_node = PathNode(
-                        entity=neighbor_entity,
-                        relationship=relationship,
-                        parent=current,
-                        depth=current.depth + 1,
-                    )
-                    # If we found the target entity, add the path to results
-                    if neighbor_entity.id == end_id:
-                        paths.append(new_node.path_to_root)
-                        # We don't mark the end node as visited
-                        # to allow finding multiple paths to it
-                    else:
-                        # Add to queue for further exploration
+                    if neighbor_entity.id not in visited:
+                        new_node = PathNode(
+                            entity=neighbor_entity,
+                            relationship=relationship,
+                            parent=current,
+                            depth=current.depth + 1,
+                        )
                         queue.append(new_node)
-                        visited.add(neighbor_entity.id)
+                        visited[neighbor_entity.id] = new_node
             except Exception as exception:
-                # Log the error but continue with other paths
-                # Use structured logging instead of print
                 logger = get_observable_logger("graph_traversal", "adapter")
                 logger.error(
-                    "neighbor_query_failed",
+                    "neighbor_query_failed_bfs",
                     entity_id=current.entity.id,
                     error_type=type(exception).__name__,
                     error_message=str(exception),
                 )
-        return paths
+
+        return results
+
+    def find_shortest_path(
+        self,
+        start_id: int,
+        end_id: int,
+        max_depth: int = 5,
+        relation_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
+    ) -> list[PathNode] | None:
+        """Finds the shortest path between two entities using BFS."""
+        if start_id == end_id:
+            cursor = self.connection.cursor()
+            cursor.execute("SELECT * FROM entities WHERE id = ?", (start_id,))
+            start_row = cursor.fetchone()
+            if start_row:
+                start_entity = Entity(
+                    id=start_row["id"],
+                    uuid=start_row["uuid"],
+                    name=start_row["name"],
+                    type=start_row["type"],
+                    properties=(
+                        json.loads(start_row["properties"]) if start_row["properties"] else {}
+                    ),
+                    created_at=start_row["created_at"],
+                    updated_at=start_row["updated_at"],
+                )
+                return [PathNode(entity=start_entity)]
+            return None
+
+        # Use BFS to find all reachable nodes, and check if end_id is among them
+        reachable_nodes = self.breadth_first_search(
+            start_id=start_id,
+            max_depth=max_depth,
+            relation_types=relation_types,
+            entity_types=entity_types,
+        )
+
+        # Find the PathNode corresponding to the end_id
+        end_node = next((node for node in reachable_nodes if node.entity.id == end_id), None)
+
+        if end_node:
+            return end_node.path_to_root
+        return None
 
     def recursive_query(
         self,
         start_id: int,
         direction: str = "outgoing",
-        relation_types: Optional[List[str]] = None,
-        entity_types: Optional[List[str]] = None,
+        relation_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
         max_depth: int = 3,
         limit: int = 100,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Perform a recursive query to find a subgraph using SQLite's recursive CTE.
         Args:
@@ -285,7 +308,7 @@ class GraphTraversal:
             # Single direction needs start_id once
             base_params = [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
-        final_params = entity_filter_params + [limit if limit else 1000]
+        final_params = entity_filter_params + [limit]
         # Combine all parameters in order
         params = base_params + recursive_params + final_params
         # Build the recursive CTE query based on direction
@@ -387,7 +410,7 @@ class GraphTraversal:
             LIMIT ?
             """
             # For 'both' direction, start_id is used twice
-            both_params: List[Any] = [start_id, start_id, max_depth] + params[2:]
+            both_params: list[Any] = [start_id, start_id, max_depth] + params[2:]
             params = both_params
         params.append(limit)
         # Execute the recursive query
@@ -409,3 +432,102 @@ class GraphTraversal:
                 result_dict["rel_properties"] = {}
             results.append(result_dict)
         return results
+
+    def depth_first_search(
+        self,
+        start_id: int,
+        max_depth: int = 5,
+        relation_types: list[str] | None = None,
+        entity_types: list[str] | None = None,
+    ) -> list[PathNode]:
+        """DFS to find all nodes reachable from start_id within max_depth."""
+        if max_depth < 0:
+            return []
+
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM entities WHERE id = ?", (start_id,))
+        start_row = cursor.fetchone()
+        if not start_row:
+            return []
+
+        start_entity = Entity(
+            id=start_row["id"],
+            uuid=start_row["uuid"],
+            name=start_row["name"],
+            type=start_row["type"],
+            properties=(json.loads(start_row["properties"]) if start_row["properties"] else {}),
+            created_at=start_row["created_at"],
+            updated_at=start_row["updated_at"],
+        )
+
+        stack = [PathNode(entity=start_entity, depth=0)]
+        visited: dict[int, PathNode] = {start_id: stack[0]}
+        results: list[PathNode] = []
+
+        while stack:
+            current = stack.pop()
+            results.append(current)
+
+            if current.depth >= max_depth:
+                continue
+
+            try:
+                # Get neighbors in reverse order to simulate DFS (stack behavior)
+                neighbors = self.get_neighbors(
+                    current.entity.id,
+                    direction="both",
+                    relation_types=relation_types,
+                    entity_types=entity_types,
+                )
+                # Add neighbors to stack in reverse to process in natural order
+                for neighbor_entity, relationship in reversed(neighbors):
+                    if neighbor_entity.id not in visited:
+                        new_node = PathNode(
+                            entity=neighbor_entity,
+                            relationship=relationship,
+                            parent=current,
+                            depth=current.depth + 1,
+                        )
+                        stack.append(new_node)
+                        visited[neighbor_entity.id] = new_node
+            except Exception as exception:
+                logger = get_observable_logger("graph_traversal", "adapter")
+                logger.error(
+                    "neighbor_query_failed_dfs",
+                    entity_id=current.entity.id,
+                    error_type=type(exception).__name__,
+                    error_message=str(exception),
+                )
+
+        return results
+
+    def get_connected_components(self) -> list[list[int]]:
+        """Finds all connected components in the graph (undirected)."""
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT id FROM entities")
+        all_entity_ids = [row[0] for row in cursor.fetchall()]
+
+        visited_all = set()
+        components = []
+
+        for entity_id in all_entity_ids:
+            if entity_id not in visited_all:
+                component_nodes = []
+                queue = [entity_id]
+                visited_component = {entity_id}
+
+                while queue:
+                    current_id = queue.pop(0)
+                    component_nodes.append(current_id)
+                    visited_all.add(current_id)
+
+                    # Get neighbors (undirected for connected components)
+                    neighbors = self.get_neighbors(current_id, direction="both")
+                    for neighbor_entity, _ in neighbors:
+                        if neighbor_entity.id not in visited_component:
+                            queue.append(neighbor_entity.id)
+                            visited_component.add(neighbor_entity.id)
+
+                components.append(component_nodes)
+
+        return components

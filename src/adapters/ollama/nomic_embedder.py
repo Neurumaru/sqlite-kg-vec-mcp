@@ -4,15 +4,15 @@ Nomic Embed Text integration for vector embeddings.
 
 import json
 import logging
-from typing import List, Union
 
 import numpy as np
 import requests
 
-from ..hnsw.text_embedder import VectorTextEmbedder
+from src.dto.embedding import EmbeddingResult
+from src.ports.text_embedder import TextEmbedder
 
 
-class NomicEmbedder(VectorTextEmbedder):
+class NomicEmbedder(TextEmbedder):
     """Nomic Embed Text embedder using Ollama."""
 
     def __init__(
@@ -76,7 +76,7 @@ class NomicEmbedder(VectorTextEmbedder):
             )
             return False
 
-    def embed(self, text: Union[str, List[str]]) -> np.ndarray:
+    def embed(self, text: str | list[str]) -> np.ndarray:
         """
         Generate embeddings for text using Nomic Embed.
 
@@ -128,7 +128,7 @@ class NomicEmbedder(VectorTextEmbedder):
             return embeddings_array[0]  # type: ignore[no-any-return]
         return embeddings_array
 
-    def embed_batch(self, texts: List[str]) -> List[np.ndarray]:
+    def embed_batch(self, texts: list[str]) -> list[np.ndarray]:
         """Convert batch of texts to embedding vectors."""
         embeddings = []
         for text in texts:
@@ -158,7 +158,59 @@ class NomicEmbedder(VectorTextEmbedder):
         """Get the embedding dimension for Nomic Embed Text."""
         return self.dimension
 
-    def batch_embed(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
+    # TextEmbedder port implementation (async methods)
+
+    async def embed_text(self, text: str) -> EmbeddingResult:
+        """
+        단일 텍스트를 임베딩합니다.
+
+        Args:
+            text: 임베딩할 텍스트
+
+        Returns:
+            임베딩 결과
+        """
+        embedding = self.embed(text)
+        return EmbeddingResult(
+            text=text,
+            embedding=embedding.tolist(),
+            model_name=self.model_name,
+            dimension=len(embedding),
+        )
+
+    async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
+        """
+        여러 텍스트를 일괄 임베딩합니다.
+
+        Args:
+            texts: 임베딩할 텍스트들
+
+        Returns:
+            임베딩 결과들
+        """
+        embeddings = self.embed(texts)
+        results = []
+        for i, embedding in enumerate(embeddings):
+            results.append(
+                EmbeddingResult(
+                    text=texts[i],
+                    embedding=embedding.tolist(),
+                    model_name=self.model_name,
+                    dimension=len(embedding),
+                )
+            )
+        return results
+
+    async def is_available(self) -> bool:
+        """
+        임베딩 서비스가 사용 가능한지 확인합니다.
+
+        Returns:
+            사용 가능 여부
+        """
+        return self._ensure_model_available()
+
+    def batch_embed(self, texts: list[str], batch_size: int = 32) -> np.ndarray:
         """
         Generate embeddings for a batch of texts.
 
@@ -173,12 +225,11 @@ class NomicEmbedder(VectorTextEmbedder):
 
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
-            batch_embeddings = self.embed(batch)
 
-            if len(batch) == 1:
-                all_embeddings.append(batch_embeddings)
-            else:
-                all_embeddings.extend(batch_embeddings)
+            # Process each text individually to ensure consistent shape
+            for text in batch:
+                embedding = self.embed(text)  # This returns a 1D array for single text
+                all_embeddings.append(embedding)
 
             # Log progress for large batches
             if len(texts) > 100:
@@ -209,8 +260,8 @@ class NomicEmbedder(VectorTextEmbedder):
         return float(similarity)
 
     def most_similar_texts(
-        self, query_text: str, candidate_texts: List[str], top_k: int = 5
-    ) -> List[tuple]:
+        self, query_text: str, candidate_texts: list[str], top_k: int = 5
+    ) -> list[tuple]:
         """
         Find most similar texts to a query.
 

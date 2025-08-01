@@ -5,7 +5,7 @@ These exceptions handle vector operations, embeddings generation,
 and vector database errors.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.data import DataValidationException
@@ -23,10 +23,10 @@ class VectorException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        vector_dimension: Optional[int] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        vector_dimension: int | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector exception.
@@ -67,10 +67,10 @@ class EmbeddingGenerationException(VectorException):
         text: str,
         model_name: str,
         message: str,
-        expected_dimension: Optional[int] = None,
-        actual_dimension: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        expected_dimension: int | None = None,
+        actual_dimension: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize embedding generation exception.
@@ -116,9 +116,9 @@ class VectorDimensionException(DataValidationException):
         expected_dimension: int,
         actual_dimension: int,
         operation: str,
-        vector_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        vector_id: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector dimension exception.
@@ -162,11 +162,11 @@ class VectorSearchException(VectorException):
     def __init__(
         self,
         query_vector_dimension: int,
-        index_dimension: Optional[int] = None,
-        search_params: Optional[Dict[str, Any]] = None,
-        message: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        index_dimension: int | None = None,
+        search_params: dict[str, Any] | None = None,
+        message: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector search exception.
@@ -211,10 +211,10 @@ class VectorIndexException(VectorException):
         index_name: str,
         operation: str,
         message: str,
-        vector_count: Optional[int] = None,
-        dimension: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        vector_count: int | None = None,
+        dimension: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector index exception.
@@ -257,10 +257,10 @@ class VectorStorageException(VectorException):
         self,
         storage_type: str,
         operation: str,
-        entity_id: Optional[str] = None,
-        message: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        entity_id: str | None = None,
+        message: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector storage exception.
@@ -303,9 +303,9 @@ class VectorNormalizationException(VectorException):
         vector_shape: tuple,
         normalization_type: str,
         message: str,
-        vector_stats: Optional[Dict[str, float]] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        vector_stats: dict[str, float] | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize vector normalization exception.

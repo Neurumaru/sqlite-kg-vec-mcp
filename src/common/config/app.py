@@ -3,7 +3,6 @@ Main application configuration combining all component configs.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -56,7 +55,7 @@ class AppConfig(BaseSettings):
         default_factory=ObservabilityConfig, description="Observability configuration"
     )
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context: Any) -> None:  # pylint: disable=arguments-differ
         """Post-initialization validation and setup."""
         # Update nested configs with environment-specific settings
         self._update_nested_configs()
@@ -77,7 +76,7 @@ class AppConfig(BaseSettings):
             self.mcp.vector_index_dir = str(self.data_directory / "vector_index")
 
     @classmethod
-    def from_env(cls, env_file: Optional[str] = None) -> "AppConfig":
+    def from_env(cls, env_file: str | None = None) -> "AppConfig":
         """
         Create configuration from environment variables and .env file.
 

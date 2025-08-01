@@ -5,7 +5,7 @@ Ollama client for LLM integration with SQLite KG Vec MCP.
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 import requests
 
@@ -30,7 +30,7 @@ class LLMResponse:
     model: str
     tokens_used: int
     response_time: float
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 class OllamaClient:
@@ -38,10 +38,10 @@ class OllamaClient:
 
     def __init__(
         self,
-        config: Optional[OllamaConfig] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
-        timeout: Optional[int] = None,
+        config: OllamaConfig | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        timeout: int | None = None,
     ):
         """
         Initialize Ollama client.
@@ -111,9 +111,9 @@ class OllamaClient:
     def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
     ) -> LLMResponse:
         """
@@ -132,11 +132,11 @@ class OllamaClient:
         start_time = time.time()
 
         # Prepare request data
-        options: Dict[str, Any] = {"temperature": temperature}
+        options: dict[str, Any] = {"temperature": temperature}
         if max_tokens:
             options["num_predict"] = max_tokens
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "model": self.model,
             "prompt": prompt,
             "stream": stream,
@@ -146,16 +146,19 @@ class OllamaClient:
         if system_prompt:
             data["system"] = system_prompt
 
+        # Initialize response_text to handle potential exceptions
+        response_text = ""
+
         try:
             response = self.session.post(
                 f"{self.base_url}/api/generate", json=data, timeout=self.timeout
             )
             response.raise_for_status()
+            response_text = response.text
 
             # Parse response
             generated_text = ""
             total_tokens = 0
-            response_text = response.text  # Initialize response_text here
 
             if stream:
                 # Handle streaming response
@@ -188,14 +191,16 @@ class OllamaClient:
             )
 
         except requests.ConnectionError as exception:
-            raise OllamaConnectionException.from_requests_error(self.base_url, exception)
+            raise OllamaConnectionException.from_requests_error(
+                self.base_url, exception
+            ) from exception
         except requests.Timeout as exception:
             raise OllamaTimeoutException(
                 base_url=self.base_url,
                 operation="text generation",
                 timeout_duration=self.timeout,
                 original_error=exception,
-            )
+            ) from exception
         except requests.HTTPError as exception:
             status_code = getattr(exception.response, "status_code", None)
             raise OllamaConnectionException(
@@ -203,11 +208,11 @@ class OllamaClient:
                 message=f"HTTP {status_code} error during generation",
                 status_code=status_code,
                 original_error=exception,
-            )
+            ) from exception
         except json.JSONDecodeError as exception:
             raise OllamaResponseException(
                 response_text=response_text, parsing_error=str(exception), original_error=exception
-            )
+            ) from exception
         except (ValueError, KeyError, TypeError) as exception:
             raise OllamaGenerationException(
                 model_name=self.model,
@@ -218,9 +223,9 @@ class OllamaClient:
                     "max_tokens": max_tokens,
                 },
                 original_error=exception,
-            )
+            ) from exception
 
-    def extract_entities_and_relationships(self, text: str) -> Dict[str, Any]:
+    def extract_entities_and_relationships(self, text: str) -> dict[str, Any]:
         """
         Extract entities and relationships from text using LLM.
 
@@ -305,7 +310,7 @@ Return only valid JSON, no additional text or explanation."""
             # Return empty structure on parse failure
             return {"entities": [], "relationships": []}
 
-    def generate_embeddings_description(self, entity: Dict[str, Any]) -> str:
+    def generate_embeddings_description(self, entity: dict[str, Any]) -> str:
         """
         Generate a rich description for an entity to improve embeddings.
 
@@ -337,7 +342,7 @@ Properties: {json.dumps(entity.get('properties', {}), indent=2)}"""
 
         return str(response.text).strip()
 
-    def list_available_models(self) -> List[str]:
+    def list_available_models(self) -> list[str]:
         """Get list of available models from Ollama."""
         try:
             response = self.session.get(f"{self.base_url}/api/tags", timeout=10)

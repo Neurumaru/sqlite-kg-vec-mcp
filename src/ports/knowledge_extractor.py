@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.dto import DocumentData, NodeData, RelationshipData
 
@@ -18,7 +17,7 @@ class KnowledgeExtractor(ABC):
     @abstractmethod
     async def extract(
         self, document: DocumentData
-    ) -> tuple[List[NodeData], List[RelationshipData]]:
+    ) -> tuple[list[NodeData], list[RelationshipData]]:
         """
         문서에서 지식(노드와 관계)을 추출합니다.
 

@@ -17,7 +17,7 @@ class TestVectorStoreInterface(unittest.TestCase):
 
         # 직접 인스턴스화할 수 없어야 함
         with self.assertRaises(TypeError):
-            VectorStore()
+            VectorStore()  # pylint: disable=abstract-class-instantiated
 
     def test_abstract_methods_exist(self):
         """추상 메서드들이 정의되어 있는지 테스트."""

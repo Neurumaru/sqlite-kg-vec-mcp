@@ -3,7 +3,8 @@ LLM 서비스 포트.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, List
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from langchain_core.messages import BaseMessage
 
@@ -18,7 +19,7 @@ class LLM(ABC):
     @abstractmethod
     async def invoke(
         self,
-        messages: List[BaseMessage],
+        messages: list[BaseMessage],
         **kwargs: Any,
     ) -> BaseMessage:
         """
@@ -33,9 +34,9 @@ class LLM(ABC):
         """
 
     @abstractmethod
-    def stream(
+    async def stream(
         self,
-        messages: List[BaseMessage],
+        messages: list[BaseMessage],
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         """
@@ -52,9 +53,9 @@ class LLM(ABC):
     @abstractmethod
     async def batch(
         self,
-        inputs: List[List[BaseMessage]],
+        inputs: list[list[BaseMessage]],
         **kwargs: Any,
-    ) -> List[BaseMessage]:
+    ) -> list[BaseMessage]:
         """
         여러 메시지 시퀀스를 배치로 처리합니다 (LangChain batch 스타일).
 

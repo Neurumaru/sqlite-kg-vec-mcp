@@ -2,7 +2,7 @@
 Authentication and authorization related infrastructure exceptions.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -20,9 +20,9 @@ class AuthenticationException(InfrastructureException):
         service: str,
         auth_type: str,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize authentication exception.
@@ -61,10 +61,10 @@ class AuthorizationException(InfrastructureException):
         service: str,
         resource: str,
         required_permission: str,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize authorization exception.

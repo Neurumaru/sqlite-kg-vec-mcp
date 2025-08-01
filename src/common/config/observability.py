@@ -4,8 +4,6 @@ Observability and monitoring configuration settings.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -15,13 +13,13 @@ class LangfuseConfig(BaseSettings):
 
     enabled: bool = Field(default=False, description="Enable Langfuse integration")
 
-    host: Optional[str] = Field(default=None, description="Langfuse server host")
+    host: str | None = Field(default=None, description="Langfuse server host")
 
-    public_key: Optional[str] = Field(default=None, description="Langfuse public key")
+    public_key: str | None = Field(default=None, description="Langfuse public key")
 
-    secret_key: Optional[str] = Field(default=None, description="Langfuse secret key")
+    secret_key: str | None = Field(default=None, description="Langfuse secret key")
 
-    project_name: Optional[str] = Field(default=None, description="Langfuse project name")
+    project_name: str | None = Field(default=None, description="Langfuse project name")
 
     flush_interval: float = Field(default=5.0, description="Flush interval for batched events")
 
@@ -65,7 +63,7 @@ class OpenTelemetryConfig(BaseSettings):
 
     service_version: str = Field(default="0.2.0", description="Service version for tracing")
 
-    endpoint: Optional[str] = Field(default=None, description="OpenTelemetry collector endpoint")
+    endpoint: str | None = Field(default=None, description="OpenTelemetry collector endpoint")
 
     headers: dict[str, str] = Field(
         default_factory=dict, description="Additional headers for tracing export"
@@ -89,7 +87,7 @@ class LoggingObservabilityConfig(BaseSettings):
 
     output: str = Field(default="console", description="Log output (console, file)")
 
-    file_path: Optional[str] = Field(default=None, description="Log file path")
+    file_path: str | None = Field(default=None, description="Log file path")
 
     include_trace: bool = Field(default=True, description="Include trace information in logs")
 

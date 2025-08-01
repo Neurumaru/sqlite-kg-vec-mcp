@@ -3,9 +3,9 @@ Observable logger that integrates with trace context and structured logging.
 """
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 
@@ -30,7 +30,7 @@ class ObservableLogger:
     consistent structured logging across all components.
     """
 
-    def __init__(self, component: str, layer: str, observability_service: Optional[Any] = None):
+    def __init__(self, component: str, layer: str, observability_service: Any | None = None):
         """
         Initialize observable logger.
 
@@ -46,15 +46,14 @@ class ObservableLogger:
         # Initialize underlying logger
         self.logger = structlog.get_logger(component)
 
-    def _get_base_context(self) -> Dict[str, Any]:
+    def _get_base_context(self) -> dict[str, Any]:
         """Get base logging context with trace information."""
         context = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "layer": self.layer,
             "component": self.component,
         }
 
-        # Add trace context if available
         trace_context = get_current_trace_context()
         if trace_context:
             context.update(
@@ -77,17 +76,14 @@ class ObservableLogger:
             event: Event name/description
             **kwargs: Additional context
         """
-        # Build log entry
         log_data = self._get_base_context()
         log_data["event"] = event
         log_data["level"] = level.value
         log_data.update(kwargs)
 
-        # Log with structlog
         log_method = getattr(self.logger, level.value.lower())
         log_method(**log_data)
 
-        # Send to observability service if available
         if self.observability_service and hasattr(self.observability_service, "log_event"):
             trace_context = get_current_trace_context()
             if trace_context:
@@ -132,7 +128,6 @@ class ObservableLogger:
             **kwargs,
         )
 
-        # Record exception metric if observability service available
         if self.observability_service and hasattr(self.observability_service, "record_metric"):
             self.observability_service.record_metric(
                 "exception_count",
@@ -180,7 +175,6 @@ class ObservableLogger:
             **kwargs,
         )
 
-        # Record performance metric
         if self.observability_service and hasattr(self.observability_service, "record_metric"):
             self.observability_service.record_metric(
                 "operation_duration_ms",
@@ -215,7 +209,6 @@ class ObservableLogger:
             **kwargs,
         )
 
-        # Record failure metrics
         if self.observability_service:
             if hasattr(self.observability_service, "record_metric"):
                 self.observability_service.record_metric(
@@ -230,12 +223,11 @@ class ObservableLogger:
                 )
 
 
-# Global logger registry
-_logger_registry: Dict[str, ObservableLogger] = {}
+_logger_registry: dict[str, ObservableLogger] = {}
 
 
 def get_observable_logger(
-    component: str, layer: str, observability_service: Optional[Any] = None
+    component: str, layer: str, observability_service: Any | None = None
 ) -> ObservableLogger:
     """
     Get or create an observable logger for a component.

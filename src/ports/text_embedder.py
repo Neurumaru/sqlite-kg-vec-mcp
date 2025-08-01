@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.dto import EmbeddingResult
 
@@ -28,7 +27,7 @@ class TextEmbedder(ABC):
         """
 
     @abstractmethod
-    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
+    async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
         """
         여러 텍스트를 일괄 임베딩합니다.
 

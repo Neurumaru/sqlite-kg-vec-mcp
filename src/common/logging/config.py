@@ -7,9 +7,10 @@ import logging as stdlib_logging
 import os
 import sys
 import traceback
+from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Union
+from typing import Any
 
 import structlog
 
@@ -35,7 +36,7 @@ class LoggingConfig:
     level: LogLevel = LogLevel.INFO
     format: str = "json"  # json or text
     output: str = "console"  # console or file
-    file_path: Optional[str] = None
+    file_path: str | None = None
     max_file_size: int = 10 * 1024 * 1024  # 10MB
     backup_count: int = 5
     include_trace: bool = True
@@ -44,8 +45,8 @@ class LoggingConfig:
 
 
 def configure_structured_logging(
-    config: Optional[LoggingConfig] = None,
-    observability_config: Optional[LoggingObservabilityConfig] = None,
+    config: LoggingConfig | None = None,
+    observability_config: LoggingObservabilityConfig | None = None,
 ) -> None:
     """
     Configure structured logging for the application.
@@ -82,10 +83,10 @@ def _configure_structlog(config: LoggingConfig) -> None:
     )
 
     # Build processor chain
-    processors: List[
+    processors: list[
         Callable[
             [Any, str, MutableMapping[str, Any]],
-            Union[Mapping[str, Any], str, bytes, bytearray, tuple],
+            Mapping[str, Any] | str | bytes | bytearray | tuple,
         ]
     ] = [
         # Filter by level

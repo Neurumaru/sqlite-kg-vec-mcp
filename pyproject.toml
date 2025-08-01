@@ -53,6 +53,14 @@ dependencies = [
     "langchain-core>=0.3.72",
     "structlog>=25.4.0",
     "streamlit>=1.47.1",
+    "opentelemetry-api>=1.36.0",
+    "opentelemetry-sdk>=1.36.0",
+    "opentelemetry-exporter-otlp>=1.36.0",
+    "opentelemetry-exporter-jaeger-thrift>=1.21.0",
+    "opentelemetry-instrumentation>=0.45b0",
+    "opentelemetry-instrumentation-requests>=0.45b0",
+    "opentelemetry-instrumentation-sqlite3>=0.45b0",
+    "deprecated>=1.2.18",
 ]
 
 [project.optional-dependencies]
@@ -106,6 +114,7 @@ Documentation = "https://github.com/neurumaru/sqlite-kg-vec-mcp/blob/main/README
 dev = [
     "black>=25.1.0",
     "flake8>=7.3.0",
+    "flake8-pyproject>=1.2.3",
     "isort>=6.0.1",
     "mypy>=1.17.0",
     "pylint>=3.3.7",
@@ -192,6 +201,31 @@ per-file-ignores = [
     "tests/*:S101,S106",
 ]
 
+# Ruff configuration
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E203", # whitespace before ':'
+    "E501", # line too long (handled by black)
+    "I001", # import sorting (handled by isort)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "S106"]
+
 # Coverage configuration
 [tool.coverage.run]
 source = ["src"]
@@ -237,6 +271,11 @@ disable = [
     "R0915",  # too-many-statements
     "R0914",  # too-many-locals
     "R0904",  # too-many-public-methods
+
+    # 외부 라이브러리 관련 오류들
+    "E1101",  # no-member (외부 라이브러리의 동적 속성)
+    "I1101",  # c-extension-no-member (C 확장 모듈)
+    "E1121",  # too-many-function-args (외부 라이브러리 호출)
 
     "C0103",
     "W0718",

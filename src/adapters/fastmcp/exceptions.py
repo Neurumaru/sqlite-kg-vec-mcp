@@ -5,7 +5,7 @@ These exceptions handle MCP protocol errors, server lifecycle issues,
 and message processing failures.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import ConnectionException
@@ -24,10 +24,10 @@ class MCPException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        mcp_method: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        mcp_method: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP exception.
@@ -67,10 +67,10 @@ class MCPServerException(MCPException):
         server_state: str,
         operation: str,
         message: str,
-        port: Optional[int] = None,
-        host: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        port: int | None = None,
+        host: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP server exception.
@@ -114,9 +114,9 @@ class MCPMessageException(DataParsingException):
         message_type: str,
         message_content: str,
         validation_error: str,
-        mcp_method: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        mcp_method: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP message exception.
@@ -159,9 +159,9 @@ class MCPToolException(MCPException):
         tool_name: str,
         operation: str,
         message: str,
-        tool_args: Optional[Dict[str, Any]] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        tool_args: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP tool exception.
@@ -201,9 +201,9 @@ class MCPResourceException(MCPException):
         resource_uri: str,
         operation: str,
         message: str,
-        resource_type: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        resource_type: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP resource exception.
@@ -245,9 +245,9 @@ class MCPPromptException(MCPException):
         prompt_name: str,
         operation: str,
         message: str,
-        prompt_args: Optional[Dict[str, Any]] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        prompt_args: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP prompt exception.
@@ -287,9 +287,9 @@ class MCPConnectionException(ConnectionException):
         transport_type: str,
         endpoint: str,
         message: str,
-        client_id: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        client_id: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize MCP connection exception.

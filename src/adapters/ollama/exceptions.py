@@ -5,7 +5,7 @@ These exceptions handle Ollama LLM service errors and provide
 meaningful abstractions for common API failure scenarios.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -27,9 +27,9 @@ class OllamaConnectionException(HTTPConnectionException):
         self,
         base_url: str,
         message: str,
-        status_code: Optional[int] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        status_code: int | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize Ollama connection exception.
@@ -95,8 +95,8 @@ class OllamaTimeoutException(HTTPTimeoutException):
         base_url: str,
         operation: str,
         timeout_duration: float,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize Ollama timeout exception.
@@ -133,9 +133,9 @@ class OllamaModelException(InfrastructureException):
         model_name: str,
         operation: str,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize Ollama model exception.
@@ -172,9 +172,9 @@ class OllamaModelNotFoundException(OllamaModelException):
     def __init__(
         self,
         model_name: str,
-        available_models: Optional[list] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        available_models: list | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize model not found exception.
@@ -214,9 +214,9 @@ class OllamaGenerationException(InfrastructureException):
         model_name: str,
         prompt: str,
         message: str,
-        generation_params: Optional[Dict[str, Any]] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        generation_params: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize generation exception.
@@ -255,9 +255,9 @@ class OllamaResponseException(DataParsingException):
         self,
         response_text: str,
         expected_format: str = "JSON",
-        parsing_error: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        parsing_error: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize response parsing exception.
@@ -296,8 +296,8 @@ class OllamaConfigurationException(InfrastructureException):
         config_parameter: str,
         invalid_value: Any,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize configuration exception.

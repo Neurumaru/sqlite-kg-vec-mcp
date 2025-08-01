@@ -5,7 +5,7 @@ meaningful abstractions for common database failure scenarios.
 """
 
 import sqlite3
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import DatabaseConnectionException
@@ -24,9 +24,9 @@ class SQLiteConnectionException(DatabaseConnectionException):
         self,
         db_path: str,
         message: str,
-        sqlite_error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        sqlite_error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize SQLite connection exception.
@@ -84,11 +84,11 @@ class SQLiteIntegrityException(DataIntegrityException):
     def __init__(
         self,
         constraint: str,
-        table: Optional[str] = None,
-        column: Optional[str] = None,
-        value: Optional[Any] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        table: str | None = None,
+        column: str | None = None,
+        value: Any | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize SQLite integrity exception.
@@ -122,7 +122,7 @@ class SQLiteIntegrityException(DataIntegrityException):
 
     @classmethod
     def from_sqlite_error(
-        cls, sqlite_error: sqlite3.IntegrityError, table: Optional[str] = None
+        cls, sqlite_error: sqlite3.IntegrityError, table: str | None = None
     ) -> "SQLiteIntegrityException":
         """
         Create exception from SQLite IntegrityError.
@@ -163,9 +163,9 @@ class SQLiteOperationalException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        db_path: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        db_path: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize SQLite operational exception.
@@ -193,7 +193,7 @@ class SQLiteOperationalException(InfrastructureException):
         cls,
         operation: str,
         sqlite_error: sqlite3.OperationalError,
-        db_path: Optional[str] = None,
+        db_path: str | None = None,
     ) -> "SQLiteOperationalException":
         """
         Create exception from SQLite OperationalError.
@@ -222,10 +222,10 @@ class SQLiteTimeoutException(DatabaseTimeoutException):
         self,
         operation: str,
         timeout_duration: float,
-        db_path: Optional[str] = None,
-        query: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        db_path: str | None = None,
+        query: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize SQLite timeout exception.
@@ -259,8 +259,8 @@ class SQLiteTransactionException(InfrastructureException):
         transaction_id: str,
         state: str,
         message: str,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize SQLite transaction exception.

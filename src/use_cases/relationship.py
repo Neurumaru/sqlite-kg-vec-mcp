@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
 
 from src.domain.entities.relationship import Relationship, RelationshipType
 from src.domain.value_objects.node_id import NodeId
@@ -21,33 +20,33 @@ class RelationshipManagementUseCase(ABC):
         target_node_id: NodeId,
         relationship_type: RelationshipType,
         label: str,
-        properties: Optional[Dict] = None,
+        properties: dict | None = None,
         weight: float = 1.0,
     ) -> Relationship:
         """새 관계를 생성합니다."""
 
     @abstractmethod
-    async def get_relationship(self, relationship_id: RelationshipId) -> Optional[Relationship]:
+    async def get_relationship(self, relationship_id: RelationshipId) -> Relationship | None:
         """관계를 조회합니다."""
 
     @abstractmethod
     async def list_relationships(
         self,
-        relationship_type: Optional[RelationshipType] = None,
-        source_node_id: Optional[NodeId] = None,
-        target_node_id: Optional[NodeId] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> List[Relationship]:
+        relationship_type: RelationshipType | None = None,
+        source_node_id: NodeId | None = None,
+        target_node_id: NodeId | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[Relationship]:
         """관계 목록을 조회합니다."""
 
     @abstractmethod
     async def update_relationship(
         self,
         relationship_id: RelationshipId,
-        label: Optional[str] = None,
-        properties: Optional[Dict] = None,
-        weight: Optional[float] = None,
+        label: str | None = None,
+        properties: dict | None = None,
+        weight: float | None = None,
     ) -> Relationship:
         """관계를 업데이트합니다."""
 
@@ -58,7 +57,7 @@ class RelationshipManagementUseCase(ABC):
     @abstractmethod
     async def get_node_relationships(
         self, node_id: NodeId, direction: str = "both"
-    ) -> List[Relationship]:
+    ) -> list[Relationship]:
         """노드의 관계들을 조회합니다 (방향: in, out, both)."""
 
 
@@ -68,11 +67,11 @@ class RelationshipAnalysisUseCase(ABC):
     @abstractmethod
     async def find_shortest_path(
         self, source_node_id: NodeId, target_node_id: NodeId, max_depth: int = 5
-    ) -> Optional[List[Relationship]]:
+    ) -> list[Relationship] | None:
         """두 노드 간의 최단 경로를 찾습니다."""
 
     @abstractmethod
-    async def get_node_neighbors(self, node_id: NodeId, depth: int = 1) -> List[NodeId]:
+    async def get_node_neighbors(self, node_id: NodeId, depth: int = 1) -> list[NodeId]:
         """노드의 이웃 노드들을 조회합니다."""
 
     @abstractmethod
@@ -82,11 +81,11 @@ class RelationshipAnalysisUseCase(ABC):
         """두 노드 간의 관계 강도를 계산합니다."""
 
     @abstractmethod
-    async def find_influential_nodes(self, limit: int = 10) -> List[Tuple[NodeId, float]]:
+    async def find_influential_nodes(self, limit: int = 10) -> list[tuple[NodeId, float]]:
         """영향력 있는 노드들을 찾습니다."""
 
     @abstractmethod
-    async def cluster_nodes(self, algorithm: str = "community") -> Dict[str, List[NodeId]]:
+    async def cluster_nodes(self, algorithm: str = "community") -> dict[str, list[NodeId]]:
         """노드들을 클러스터링합니다."""
 
 
@@ -104,22 +103,20 @@ class RelationshipEmbeddingUseCase(ABC):
         """관계의 임베딩을 업데이트합니다."""
 
     @abstractmethod
-    async def get_relationship_embedding(self, relationship_id: RelationshipId) -> Optional[Vector]:
+    async def get_relationship_embedding(self, relationship_id: RelationshipId) -> Vector | None:
         """관계의 임베딩을 조회합니다."""
 
     @abstractmethod
     async def find_similar_relationships(
         self, relationship_id: RelationshipId, limit: int = 10, threshold: float = 0.7
-    ) -> List[Tuple[Relationship, float]]:
+    ) -> list[tuple[Relationship, float]]:
         """유사한 관계들을 찾습니다."""
 
     @abstractmethod
     async def batch_create_relationships(
         self,
-        relationship_data: List[
-            Tuple[NodeId, NodeId, RelationshipType, str, Optional[Dict], float]
-        ],
-    ) -> List[Relationship]:
+        relationship_data: list[tuple[NodeId, NodeId, RelationshipType, str, dict | None, float]],
+    ) -> list[Relationship]:
         """여러 관계를 일괄 생성합니다.
 
         Args:
@@ -134,8 +131,8 @@ class RelationshipEmbeddingUseCase(ABC):
 
     @abstractmethod
     async def batch_analyze_paths(
-        self, node_pairs: List[Tuple[NodeId, NodeId]], max_depth: int = 5
-    ) -> Dict[Tuple[NodeId, NodeId], Optional[List[Relationship]]]:
+        self, node_pairs: list[tuple[NodeId, NodeId]], max_depth: int = 5
+    ) -> dict[tuple[NodeId, NodeId], list[Relationship] | None]:
         """여러 노드 쌍 간의 경로를 일괄 분석합니다.
 
         Args:

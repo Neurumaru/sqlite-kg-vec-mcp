@@ -3,8 +3,8 @@ Transaction management for SQLite database operations.
 """
 
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, Optional
 
 
 class TransactionManager:
@@ -58,10 +58,10 @@ class UnitOfWork:
         """
         self.connection = connection
         self.transaction_manager = TransactionManager(connection)
-        self._correlation_id: Optional[str] = None
+        self._correlation_id: str | None = None
 
     @property
-    def correlation_id(self) -> Optional[str]:
+    def correlation_id(self) -> str | None:
         """Get the correlation ID for tracking related operations."""
         return self._correlation_id
 
@@ -89,7 +89,7 @@ class UnitOfWork:
         entity_type: str,
         entity_id: int,
         operation_type: str,
-        model_info: Optional[str] = None,
+        model_info: str | None = None,
     ) -> int:
         """
         Register a vector operation in the outbox for asynchronous processing.

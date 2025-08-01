@@ -4,8 +4,6 @@ LLM (Large Language Model) configuration settings.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -47,11 +45,11 @@ class OllamaConfig(BaseSettings):
 class OpenAIConfig(BaseSettings):
     """OpenAI API configuration."""
 
-    api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    api_key: str | None = Field(default=None, description="OpenAI API key")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+    def validate_api_key(cls, v: str | None) -> str | None:
         """Validate OpenAI API key format."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
@@ -66,7 +64,7 @@ class OpenAIConfig(BaseSettings):
         default="text-embedding-3-small", description="OpenAI embedding model"
     )
 
-    embedding_dimension: Optional[int] = Field(
+    embedding_dimension: int | None = Field(
         default=None, description="Embedding dimension (model-specific)"
     )
 
@@ -86,7 +84,7 @@ class OpenAIConfig(BaseSettings):
 
     @field_validator("embedding_dimension")
     @classmethod
-    def validate_embedding_dimension(cls, v: Optional[int]) -> Optional[int]:
+    def validate_embedding_dimension(cls, v: int | None) -> int | None:
         """Validate embedding dimension."""
         if v is not None and v <= 0:
             raise ValueError("Embedding dimension must be positive")
@@ -98,11 +96,11 @@ class OpenAIConfig(BaseSettings):
 class AnthropicConfig(BaseSettings):
     """Anthropic (Claude) API configuration."""
 
-    api_key: Optional[str] = Field(default=None, description="Anthropic API key")
+    api_key: str | None = Field(default=None, description="Anthropic API key")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+    def validate_api_key(cls, v: str | None) -> str | None:
         """Validate Anthropic API key format."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():

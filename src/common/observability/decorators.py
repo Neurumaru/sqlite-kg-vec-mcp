@@ -4,7 +4,8 @@ Decorators for automatic observability integration.
 
 import functools
 import inspect
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from .context import (
     TraceContextManager,
@@ -15,9 +16,9 @@ from .logger import get_observable_logger
 
 
 def with_observability(
-    operation: Optional[str] = None,
-    layer: Optional[str] = None,
-    component: Optional[str] = None,
+    operation: str | None = None,
+    layer: str | None = None,
+    component: str | None = None,
     include_args: bool = False,
     include_result: bool = False,
 ):
@@ -67,7 +68,7 @@ def with_observability(
             logger = get_observable_logger(func_component, func_layer)
 
             # Prepare logging context
-            log_context: Dict[str, Any] = {}
+            log_context: dict[str, Any] = {}
             if include_args and args:
                 log_context["args"] = _sanitize_args(args)
             if include_args and kwargs:
@@ -108,10 +109,10 @@ def with_observability(
 
 
 def with_trace(
-    operation: Optional[str] = None,
-    layer: Optional[str] = None,
-    component: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    operation: str | None = None,
+    layer: str | None = None,
+    component: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ):
     """
     Decorator to add trace context to functions.
@@ -147,7 +148,7 @@ def with_trace(
     return decorator
 
 
-def with_metrics(metric_name: Optional[str] = None, tags: Optional[Dict[str, str]] = None):
+def with_metrics(metric_name: str | None = None, tags: dict[str, str] | None = None):
     """
     Decorator to add automatic metrics collection.
 
@@ -219,14 +220,14 @@ def _infer_component(func: Callable) -> str:
     return str(func.__name__)
 
 
-def _sanitize_args(args: tuple) -> List[str]:
+def _sanitize_args(args: tuple) -> list[str]:
     """Sanitize function arguments for logging."""
-    sanitized: List[str] = []
+    sanitized: list[str] = []
     for arg in args:
         if hasattr(arg, "__dict__"):
             # Object - just include type name
             sanitized.append(f"<{type(arg).__name__}>")
-        elif isinstance(arg, (str, int, float, bool, type(None))):
+        elif isinstance(arg, str | int | float | bool | type(None)):
             sanitized.append(str(arg))
         else:
             sanitized.append(f"<{type(arg).__name__}>")
@@ -237,7 +238,7 @@ def _sanitize_kwargs(kwargs: dict) -> dict:
     """Sanitize function keyword arguments for logging."""
     sanitized = {}
     for key, value in kwargs.items():
-        if isinstance(value, (str, int, float, bool, type(None))):
+        if isinstance(value, str | int | float | bool | type(None)):
             sanitized[key] = value
         else:
             sanitized[key] = f"<{type(value).__name__}>"
@@ -246,7 +247,7 @@ def _sanitize_kwargs(kwargs: dict) -> dict:
 
 def _sanitize_result(result: Any) -> Any:
     """Sanitize function result for logging."""
-    if isinstance(result, (str, int, float, bool, type(None))):
+    if isinstance(result, str | int | float | bool | type(None)):
         return result
     if hasattr(result, "__dict__"):
         return f"<{type(result).__name__}>"

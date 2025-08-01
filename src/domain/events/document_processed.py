@@ -45,7 +45,7 @@ class DocumentProcessed(DomainEvent):
         self.processing_time_seconds = processing_time_seconds
 
     @classmethod
-    def create(  # type: ignore[override]
+    def create(  # pylint: disable=arguments-differ
         cls,
         aggregate_id: str,
         extracted_node_count: int,

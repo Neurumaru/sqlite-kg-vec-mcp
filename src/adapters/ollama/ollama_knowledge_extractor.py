@@ -10,7 +10,7 @@ import logging
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, cast
 
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
@@ -19,6 +19,12 @@ from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship, RelationshipType
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
+from src.dto import DocumentData
+from src.dto.node import NodeData, NodeType
+from src.dto.relationship import (
+    RelationshipData,
+)
+from src.dto.relationship import RelationshipType as DTORelationshipType
 from src.ports.knowledge_extractor import KnowledgeExtractor
 
 from .ollama_client import OllamaClient
@@ -30,7 +36,7 @@ class ExtractionResult:
 
     entities_created: int = 0
     relationships_created: int = 0
-    errors: Optional[List[str]] = None
+    errors: list[str] | None = None
     processing_time: float = 0.0
 
     def __post_init__(self):
@@ -65,12 +71,12 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         self.embedding_manager = EmbeddingManager(connection) if auto_embed else None
 
         # Entity ID mapping for batch processing
-        self.entity_id_mapping: Dict[str, int] = {}
+        self.entity_id_mapping: dict[str, int] = {}
 
     def extract_from_text(
         self,
         text: str,
-        source_id: Optional[str] = None,
+        source_id: str | None = None,
         enhance_descriptions: bool = True,
     ) -> ExtractionResult:
         """
@@ -88,7 +94,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
         entities_created = 0
         relationships_created = 0
-        errors: List[str] = []
+        errors: list[str] = []
 
         try:
             # Extract entities and relationships using LLM
@@ -114,12 +120,12 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                     processed_count = self.embedding_manager.process_outbox()
                     logging.info("Generated embeddings for %s entities", processed_count)
                 except Exception as exception:
-                    error_msg = "Embedding generation failed: %s" % exception
+                    error_msg = f"Embedding generation failed: {exception}"
                     logging.error(error_msg)
                     errors.append(error_msg)
 
         except Exception as exception:
-            error_msg = "Knowledge extraction failed: %s" % exception
+            error_msg = f"Knowledge extraction failed: {exception}"
             logging.error(error_msg)
             errors.append(error_msg)
 
@@ -143,10 +149,10 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
     def _process_entities(
         self,
-        entities: List[Dict[str, Any]],
-        source_id: Optional[str],
+        entities: list[dict[str, Any]],
+        source_id: str | None,
         enhance_descriptions: bool,
-        errors: List[str],
+        errors: list[str],
     ) -> int:
         """Process and create entities from extraction data."""
         created_count = 0
@@ -179,7 +185,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
                 # Create entity
                 entity = self.entity_manager.create_entity(
-                    type=entity_data["type"],
+                    entity_type=entity_data["type"],
                     name=entity_data["name"],
                     properties=properties,
                     custom_uuid=entity_data.get("id"),
@@ -193,16 +199,15 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 logging.debug("Created entity: %s (%s)", entity.name, entity.type)
 
             except Exception as exception:
-                error_msg = "Failed to create entity %s: %s" % (
-                    entity_data.get("name", "unknown"),
-                    exception,
+                error_msg = (
+                    f"Failed to create entity {entity_data.get('name', 'unknown')}: {exception}"
                 )
                 logging.error(error_msg)
                 errors.append(error_msg)
 
         return created_count
 
-    def _process_relationships(self, relationships: List[Dict[str, Any]], errors: List[str]) -> int:
+    def _process_relationships(self, relationships: list[dict[str, Any]], errors: list[str]) -> int:
         """Process and create relationships from extraction data."""
         created_count = 0
 
@@ -217,18 +222,25 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 source_id = self.entity_id_mapping.get(rel_data["source"])
                 target_id = self.entity_id_mapping.get(rel_data["target"])
 
+                current_rel_errors = []
                 if source_id is None:
-                    errors.append(f"Source entity not found: {rel_data['source']}")
-                    continue
+                    current_rel_errors.append(
+                        f"Source entity not found for relationship: {rel_data['source']}"
+                    )
 
                 if target_id is None:
-                    errors.append(f"Target entity not found: {rel_data['target']}")
+                    current_rel_errors.append(
+                        f"Target entity not found for relationship: {rel_data['target']}"
+                    )
+
+                if current_rel_errors:
+                    errors.extend(current_rel_errors)
                     continue
 
                 # Create relationship
                 self.relationship_manager.create_relationship(
-                    source_id=source_id,
-                    target_id=target_id,
+                    source_id=cast(int, source_id),
+                    target_id=cast(int, target_id),
                     relation_type=rel_data["type"],
                     properties=rel_data.get("properties", {}),
                 )
@@ -242,9 +254,8 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 )
 
             except Exception as exception:
-                error_msg = "Failed to create relationship %s: %s" % (
-                    rel_data.get("type", "unknown"),
-                    exception,
+                error_msg = (
+                    f"Failed to create relationship {rel_data.get('type', 'unknown')}: {exception}"
                 )
                 logging.error(error_msg)
                 errors.append(error_msg)
@@ -252,8 +263,8 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         return created_count
 
     def extract_from_documents(
-        self, documents: List[Dict[str, str]], batch_size: int = 10
-    ) -> List[ExtractionResult]:
+        self, documents: list[dict[str, str]], batch_size: int = 10
+    ) -> list[ExtractionResult]:
         """
         Extract knowledge from multiple documents in batches.
 
@@ -290,7 +301,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
         return results
 
-    def get_extraction_statistics(self) -> Dict[str, Any]:
+    def get_extraction_statistics(self) -> dict[str, Any]:
         """Get statistics about the knowledge graph."""
         cursor = self.connection.cursor()
 
@@ -334,7 +345,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         """Extract entities and relationships from text using Ollama LLM."""
         return self.extract_from_text(text)
 
-    async def extract_entities(self, text: str) -> List[Node]:
+    async def extract_entities(self, text: str) -> list[Node]:
         """Extract only entities from text."""
         # Extract entities using the existing synchronous method
         extraction_data = await asyncio.to_thread(
@@ -356,7 +367,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
 
         return entities
 
-    async def extract_relationships(self, text: str, entities: List[Node]) -> List[Relationship]:
+    async def extract_relationships(self, text: str, entities: list[Node]) -> list[Relationship]:
         """Extract relationships from text given existing entities."""
         # Extract relationships using the existing synchronous method
         extraction_data = await asyncio.to_thread(
@@ -373,22 +384,28 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 source_id = entity_map.get(rel_data.get("source"))
                 target_id = entity_map.get(rel_data.get("target"))
 
-                if source_id and target_id:
+                if source_id is not None and target_id is not None:
                     rel_type_str = rel_data.get("type", "RELATED_TO").upper()
                     rel_type = getattr(RelationshipType, rel_type_str, RelationshipType.OTHER)
 
-                    relationship = Relationship(
-                        id=RelationshipId.generate(),
-                        source_node_id=source_id,
-                        target_node_id=target_id,
-                        relationship_type=rel_type,
-                        label=rel_data.get("type", "RELATED_TO"),
-                        properties=rel_data.get("properties", {}),
-                    )
-                    relationships.append(relationship)
+                    try:
+                        relationship = Relationship(
+                            id=RelationshipId.generate(),
+                            source_node_id=NodeId(str(cast(int, source_id))),
+                            target_node_id=NodeId(str(cast(int, target_id))),
+                            relationship_type=rel_type,
+                            label=rel_data.get("type", "RELATED_TO"),
+                            properties=rel_data.get("properties", {}),
+                        )
+                        relationships.append(relationship)
+                    except Exception as exception:
+                        logging.warning(
+                            "Failed to create relationship from data %s: %s", rel_data, exception
+                        )
+
             except Exception as exception:
                 logging.warning(
-                    "Failed to create relationship from data %s: %s", rel_data, exception
+                    "Failed to process relationship from data %s: %s", rel_data, exception
                 )
 
         return relationships
@@ -436,3 +453,63 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         # Combine scores
         confidence = length_score * 0.3 + structure_score * 0.7
         return min(confidence, 1.0)
+
+    # KnowledgeExtractor abstract methods implementation
+
+    async def extract(
+        self, document: DocumentData
+    ) -> tuple[list[NodeData], list[RelationshipData]]:
+        """
+        문서에서 지식(노드와 관계)을 추출합니다.
+
+        Args:
+            document: 분석할 문서 데이터
+
+        Returns:
+            (노드 데이터 리스트, 관계 데이터 리스트) 튜플
+        """
+        # Extract knowledge from document text
+        extraction_data = await asyncio.to_thread(
+            self.ollama_client.extract_entities_and_relationships, document.content
+        )
+
+        # Convert extracted entities to NodeData
+        nodes: list[NodeData] = []
+        for entity_data in extraction_data.get("entities", []):
+            node_data = NodeData(
+                id=entity_data.get("id", f"node_{len(nodes)}"),
+                name=entity_data.get("name", "Unknown"),
+                node_type=NodeType.CONCEPT,  # 기본값으로 CONCEPT 타입 사용
+                properties=entity_data.get("properties", {}),
+            )
+            nodes.append(node_data)
+
+        # Convert extracted relationships to RelationshipData
+        relationships: list[RelationshipData] = []
+        for rel_data in extraction_data.get("relationships", []):
+            relationship_data = RelationshipData(
+                id=rel_data.get("id", f"rel_{len(relationships)}"),
+                source_node_id=rel_data.get("source", ""),
+                target_node_id=rel_data.get("target", ""),
+                relationship_type=DTORelationshipType.RELATES_TO,  # 기본값으로 RELATES_TO 타입 사용
+                properties=rel_data.get("properties", {}),
+            )
+            relationships.append(relationship_data)
+
+        return nodes, relationships
+
+    async def is_available(self) -> bool:
+        """
+        지식 추출 서비스가 사용 가능한지 확인합니다.
+
+        Returns:
+            사용 가능 여부
+        """
+        try:
+            # Test with a simple request
+            test_response = await asyncio.to_thread(
+                self.ollama_client.generate, prompt="Test", max_tokens=5
+            )
+            return test_response is not None
+        except Exception:
+            return False

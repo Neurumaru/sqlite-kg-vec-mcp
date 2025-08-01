@@ -6,7 +6,7 @@ with basic search functionality.
 
 import logging
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class SearchContext:
@@ -14,18 +14,18 @@ class SearchContext:
 
     def __init__(self, original_query: str):
         self.original_query = original_query
-        self.entities: List[Dict] = []
-        self.relationships: List[Dict] = []
-        self.history: List[Dict] = []
+        self.entities: list[dict] = []
+        self.relationships: list[dict] = []
+        self.history: list[dict] = []
         self.current_step = 0
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
-    def add_findings(self, entities: List[Dict], relationships: List[Dict]):
+    def add_findings(self, entities: list[dict], relationships: list[dict]):
         """새로운 발견 사항을 추가합니다."""
         self.entities.extend(entities)
         self.relationships.extend(relationships)
 
-    def add_history_step(self, step_info: Dict):
+    def add_history_step(self, step_info: dict):
         """탐색 히스토리에 단계를 추가합니다."""
         self.history.append(step_info)
         self.current_step += 1
@@ -41,7 +41,7 @@ class SearchContext:
             summary_parts.append(f"Step {i+1}: {action} -> {result_count}개 결과")
         return " | ".join(summary_parts)
 
-    def get_entity_names(self) -> List[str]:
+    def get_entity_names(self) -> list[str]:
         """현재 발견한 엔티티 이름 목록을 반환합니다."""
         return [entity.get("name", entity.get("id", "unknown")) for entity in self.entities]
 
@@ -74,9 +74,9 @@ class InteractiveSearchEngine:
     async def search(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        session_metadata: Optional[Dict] = None,
-    ) -> Dict[str, Any]:
+        user_id: str | None = None,
+        session_metadata: dict | None = None,
+    ) -> dict[str, Any]:
         """
         Simplified interactive 검색을 수행합니다.
         Args:
@@ -120,7 +120,7 @@ class InteractiveSearchEngine:
                 "success": False,
             }
 
-    def _prepare_final_results(self, context: SearchContext) -> Dict[str, Any]:
+    def _prepare_final_results(self, context: SearchContext) -> dict[str, Any]:
         """최종 결과를 정리합니다."""
         # 중복 제거 및 정렬
         unique_entities = {}

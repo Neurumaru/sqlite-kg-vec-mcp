@@ -17,7 +17,7 @@ class TestTextEmbedderInterface(unittest.TestCase):
 
         # 직접 인스턴스화할 수 없어야 함
         with self.assertRaises(TypeError):
-            TextEmbedder()
+            TextEmbedder()  # pylint: disable=abstract-class-instantiated
 
     def test_core_abstract_methods_exist(self):
         """핵심 추상 메서드들이 정의되어 있는지 테스트."""

@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from src.dto import NodeData
 
@@ -32,7 +31,7 @@ class NodeRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, node_id: str) -> Optional[NodeData]:
+    async def find_by_id(self, node_id: str) -> NodeData | None:
         """
         ID로 노드를 찾습니다.
 
@@ -44,7 +43,7 @@ class NodeRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_document(self, document_id: str) -> List[NodeData]:
+    async def find_by_document(self, document_id: str) -> list[NodeData]:
         """
         특정 문서에서 추출된 노드들을 찾습니다.
 

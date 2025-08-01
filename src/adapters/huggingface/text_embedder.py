@@ -3,7 +3,6 @@ HuggingFace SentenceTransformers 텍스트 임베딩 어댑터.
 """
 
 import time
-from typing import List, Optional
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -49,7 +48,7 @@ class HuggingFaceTextEmbedder(TextEmbedder):
         try:
             self.model = SentenceTransformer(model_name)
             self.model_name = model_name
-            dimension: Optional[int] = self.model.get_sentence_embedding_dimension()
+            dimension: int | None = self.model.get_sentence_embedding_dimension()
             if dimension is None:
                 raise ValueError(f"Unable to determine embedding dimension for model {model_name}")
             self._dimension: int = dimension
@@ -118,7 +117,7 @@ class HuggingFaceTextEmbedder(TextEmbedder):
                 f"텍스트 임베딩 중 오류가 발생했습니다: {str(exception)}"
             ) from exception
 
-    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
+    async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
         """여러 텍스트를 일괄 임베딩합니다.
 
         Args:
@@ -153,7 +152,7 @@ class HuggingFaceTextEmbedder(TextEmbedder):
 
             # 2D 배열인 경우 각 행을 EmbeddingResult로 변환
             if embeddings.ndim == 2:
-                for i, (text, embedding) in enumerate(zip(texts, embeddings)):
+                for i, (text, embedding) in enumerate(zip(texts, embeddings, strict=False)):
                     results.append(
                         EmbeddingResult(
                             text=text,

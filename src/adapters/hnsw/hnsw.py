@@ -6,14 +6,13 @@ Uses hnswlib backend for fast approximate nearest neighbor search.
 import pickle
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 import hnswlib
 import numpy as np
 
-from src.common.observability import get_observable_logger
-
-from .embeddings import EmbeddingManager
+if TYPE_CHECKING:
+    from ..hnsw.embeddings import EmbeddingManager
 
 
 class HNSWBackend(Enum):
@@ -34,8 +33,8 @@ class HNSWIndex:
         dim: int = 128,
         ef_construction: int = 200,
         m_parameter: int = 16,
-        index_dir: Optional[Union[str, Path]] = None,
-        backend: Union[str, HNSWBackend] = HNSWBackend.HNSWLIB,
+        index_dir: str | Path | None = None,
+        backend: str | HNSWBackend = HNSWBackend.HNSWLIB,
     ):
         """
         Initialize the HNSW index.
@@ -64,8 +63,8 @@ class HNSWIndex:
         self._init_backend()
 
         # Maps from SQLite ID to index ID
-        self.id_to_idx: Dict[Tuple[str, int], int] = {}
-        self.idx_to_id: Dict[int, Tuple[str, int]] = {}
+        self.id_to_idx: dict[tuple[str, int], int] = {}
+        self.idx_to_id: dict[int, tuple[str, int]] = {}
 
         # Track the current size
         self.current_size = 0
@@ -98,7 +97,7 @@ class HNSWIndex:
         self.idx_to_id = {}
         self.is_initialized = True
 
-    def load_index(self, filename: Optional[str] = None) -> None:
+    def load_index(self, filename: str | None = None) -> None:
         """
         Load a previously saved index and mappings.
 
@@ -140,7 +139,7 @@ class HNSWIndex:
         else:
             raise FileNotFoundError(f"Index file not found: {index_path}")
 
-    def save_index(self, filename: Optional[str] = None) -> None:
+    def save_index(self, filename: str | None = None) -> None:
         """
         Save the index and ID mappings to disk.
 
@@ -246,11 +245,11 @@ class HNSWIndex:
 
     def add_items_batch(
         self,
-        entity_types: List[str],
-        entity_ids: List[int],
+        entity_types: list[str],
+        entity_ids: list[int],
         vectors: np.ndarray,
         replace_existing: bool = True,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Add multiple items to the index efficiently using batch operations.
 
@@ -274,9 +273,7 @@ class HNSWIndex:
 
         # Prepare data
         vectors = vectors.astype(np.float32)
-        item_keys = [
-            (entity_type, entity_id) for entity_type, entity_id in zip(entity_types, entity_ids)
-        ]
+        item_keys = list(zip(entity_types, entity_ids, strict=False))
 
         # Filter out existing items if not replacing
         if not replace_existing:
@@ -319,7 +316,7 @@ class HNSWIndex:
             self.index.add_items(vectors, indices)
 
         # Batch update mappings
-        for i, (item_key, idx) in enumerate(zip(item_keys, indices)):
+        for item_key, idx in zip(item_keys, indices, strict=False):
             self.id_to_idx[item_key] = idx
             self.idx_to_id[idx] = item_key
 
@@ -360,9 +357,9 @@ class HNSWIndex:
         self,
         query_vector: np.ndarray,
         k: int = 10,
-        ef_search: Optional[int] = None,
-        filter_entity_types: Optional[List[str]] = None,
-    ) -> List[Tuple[str, int, float]]:
+        ef_search: int | None = None,
+        filter_entity_types: list[str] | None = None,
+    ) -> list[tuple[str, int, float]]:
         """
         Search for the nearest vectors to the query vector.
 
@@ -407,7 +404,7 @@ class HNSWIndex:
             filter_set = set(filter_entity_types)
             results = [
                 (entity_type, entity_id, float(dist))
-                for idx, dist in zip(indices, distances)
+                for idx, dist in zip(indices, distances, strict=False)
                 if idx in self.idx_to_id
                 and (entity_type := self.idx_to_id[idx][0]) in filter_set
                 and (entity_id := self.idx_to_id[idx][1]) is not None
@@ -415,7 +412,7 @@ class HNSWIndex:
         else:
             results = [
                 (entity_type, entity_id, float(dist))
-                for idx, dist in zip(indices, distances)
+                for idx, dist in zip(indices, distances, strict=False)
                 if idx in self.idx_to_id
                 and (entity_type := self.idx_to_id[idx][0]) is not None
                 and (entity_id := self.idx_to_id[idx][1]) is not None
@@ -425,9 +422,9 @@ class HNSWIndex:
 
     def build_from_embeddings(
         self,
-        embedding_manager: EmbeddingManager,
-        entity_types: Optional[List[str]] = None,
-        model_info: Optional[str] = None,
+        embedding_manager: "EmbeddingManager",
+        entity_types: list[str] | None = None,
+        model_info: str | None = None,
         batch_size: int = 1000,
     ) -> int:
         """
@@ -516,7 +513,7 @@ class HNSWIndex:
 
         return total_embeddings
 
-    def sync_with_outbox(self, embedding_manager: EmbeddingManager, batch_size: int = 100) -> int:
+    def sync_with_outbox(self, embedding_manager: "EmbeddingManager", batch_size: int = 100) -> int:
         """
         Process vector operations from the outbox and update the index.
 
@@ -575,14 +572,7 @@ class HNSWIndex:
 
             except Exception as exception:
                 # Log error but continue with other operations
-                # Use structured logging instead of print
-                logger = get_observable_logger("hnsw_index", "adapter")
-                logger.error(
-                    "entity_sync_failed",
-                    entity_type=entity_type,
-                    entity_id=entity_id,
-                    error_type=type(exception).__name__,
-                    error_message=str(exception),
-                )
+                # Use simple print for now (can be replaced with proper logging later)
+                print(f"Error syncing entity {entity_type}:{entity_id} - {exception}")
 
         return sync_count

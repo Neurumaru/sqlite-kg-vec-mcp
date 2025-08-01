@@ -6,7 +6,6 @@ import datetime
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Optional, Union
 
 from src.common.observability import get_observable_logger
 
@@ -19,14 +18,14 @@ def adapt_datetime(dt: datetime.datetime) -> str:
     return dt.isoformat()
 
 
-def convert_datetime(s: Union[str, bytes]) -> Union[datetime.datetime, str, bytes]:
+def convert_datetime(s: str | bytes) -> datetime.datetime | str | bytes:
     """Convert string from SQLite back to datetime."""
     try:
         if isinstance(s, bytes):
             s = s.decode("utf-8")
         return datetime.datetime.fromisoformat(s)
     except (ValueError, AttributeError, UnicodeDecodeError) as exception:
-        warnings.warn(f"Failed to convert datetime {s!r}: {exception}")
+        warnings.warn(f"Failed to convert datetime {s!r}: {exception}", stacklevel=2)
         return s
 
 
@@ -40,7 +39,7 @@ class DatabaseConnection:
     Manages SQLite database connections with optimized settings.
     """
 
-    def __init__(self, db_path: Union[str, Path], optimize: bool = True):
+    def __init__(self, db_path: str | Path, optimize: bool = True):
         """
         Initialize a database connection.
         Args:
@@ -48,7 +47,7 @@ class DatabaseConnection:
             optimize: Whether to apply optimization PRAGMAs
         """
         self.db_path = Path(db_path)
-        self.connection: Optional[sqlite3.Connection] = None
+        self.connection: sqlite3.Connection | None = None
         self.optimize = optimize
         self.logger = get_observable_logger("database_connection", "adapter")
 
@@ -62,20 +61,19 @@ class DatabaseConnection:
             PermissionError: If database file cannot be created/accessed
         """
         try:
-            # Create directory if it doesn't exist
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         except PermissionError as exception:
             raise PermissionError(
                 f"Cannot create database directory {self.db_path.parent}: {exception}"
-            )
+            ) from exception
         try:
             # Connect to database
             self.connection = sqlite3.connect(
-                self.db_path,
+                str(self.db_path),
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
                 isolation_level=None,  # We'll manage transactions explicitly
                 check_same_thread=False,  # Allow use from multiple threads
-                timeout=30.0,  # Add connection timeout
+                timeout=30.0,
             )
             # Enable returning rows as dictionaries
             self.connection.row_factory = sqlite3.Row
@@ -85,26 +83,24 @@ class DatabaseConnection:
             if self.optimize:
                 self._apply_optimizations()
             return self.connection
-        except sqlite3.OperationalError as exception:
-            raise SQLiteConnectionException.from_sqlite_error(str(self.db_path), exception)
         except sqlite3.Error as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"Database connection failed: {exception}",
+                message=f"Failed to connect to SQLite database: {exception}",
                 original_error=exception,
-            )
+            ) from exception
         except PermissionError as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
                 message=f"Permission denied accessing database: {exception}",
                 original_error=exception,
-            )
+            ) from exception
         except Exception as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"Unexpected error connecting to database: {exception}",
+                message=f"An unexpected error occurred during connection: {exception}",
                 original_error=exception,
-            )
+            ) from exception
 
     def _apply_optimizations(self) -> None:
         """Apply SQLite optimizations via PRAGMA statements."""

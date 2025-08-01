@@ -1,9 +1,8 @@
 """
-노드 관련 Use Cases 포트.
+Node-related Use Cases port.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple
 
 from src.domain.entities.node import Node, NodeType
 from src.domain.value_objects.document_id import DocumentId
@@ -12,41 +11,41 @@ from src.domain.value_objects.vector import Vector
 
 
 class NodeManagementUseCase(ABC):
-    """노드 관리 Use Case 인터페이스."""
+    """Node management Use Case interface."""
 
     @abstractmethod
     async def create_node(
         self,
         name: str,
         node_type: NodeType,
-        description: Optional[str] = None,
-        properties: Optional[Dict] = None,
-        source_documents: Optional[List[DocumentId]] = None,
+        description: str | None = None,
+        properties: dict | None = None,
+        source_documents: list[DocumentId] | None = None,
     ) -> Node:
-        """새 노드를 생성합니다."""
+        """Create a new node."""
 
     @abstractmethod
-    async def get_node(self, node_id: NodeId) -> Optional[Node]:
-        """노드를 조회합니다."""
+    async def get_node(self, node_id: NodeId) -> Node | None:
+        """Retrieve a node."""
 
     @abstractmethod
     async def list_nodes(
         self,
-        node_type: Optional[NodeType] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None,
-    ) -> List[Node]:
-        """노드 목록을 조회합니다."""
+        node_type: NodeType | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> list[Node]:
+        """Retrieve node list."""
 
     @abstractmethod
     async def update_node(
         self,
         node_id: NodeId,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        properties: Optional[Dict] = None,
+        name: str | None = None,
+        description: str | None = None,
+        properties: dict | None = None,
     ) -> Node:
-        """노드를 업데이트합니다."""
+        """Update a node."""
 
     @abstractmethod
     async def delete_node(self, node_id: NodeId) -> bool:
@@ -73,17 +72,17 @@ class NodeEmbeddingUseCase(ABC):
         """노드의 임베딩을 업데이트합니다."""
 
     @abstractmethod
-    async def get_node_embedding(self, node_id: NodeId) -> Optional[Vector]:
+    async def get_node_embedding(self, node_id: NodeId) -> Vector | None:
         """노드의 임베딩을 조회합니다."""
 
     @abstractmethod
     async def find_similar_nodes(
         self, node_id: NodeId, limit: int = 10, threshold: float = 0.7
-    ) -> List[Tuple[Node, float]]:
+    ) -> list[tuple[Node, float]]:
         """유사한 노드들을 찾습니다."""
 
     @abstractmethod
-    async def batch_generate_embeddings(self, node_ids: List[NodeId]) -> Dict[NodeId, Vector]:
+    async def batch_generate_embeddings(self, node_ids: list[NodeId]) -> dict[NodeId, Vector]:
         """노드들의 임베딩을 일괄 생성합니다.
 
         Args:
@@ -98,8 +97,8 @@ class NodeEmbeddingUseCase(ABC):
 
     @abstractmethod
     async def batch_create_nodes(
-        self, node_data: List[Tuple[str, NodeType, Optional[str], Optional[Dict]]]
-    ) -> List[Node]:
+        self, node_data: list[tuple[str, NodeType, str | None, dict | None]]
+    ) -> list[Node]:
         """여러 노드를 일괄 생성합니다.
 
         Args:

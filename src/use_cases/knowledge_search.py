@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
 
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
@@ -51,27 +50,27 @@ class KnowledgeSearchUseCase(ABC):
     @abstractmethod
     async def search_documents(
         self, query: str, limit: int = 10, similarity_threshold: float = 0.5
-    ) -> List[Document]:
+    ) -> list[Document]:
         """문서 검색을 수행합니다."""
 
     @abstractmethod
     async def search_nodes(
         self,
         query: str,
-        node_types: Optional[List[str]] = None,
+        node_types: list[str] | None = None,
         limit: int = 10,
         similarity_threshold: float = 0.5,
-    ) -> List[Node]:
+    ) -> list[Node]:
         """노드 검색을 수행합니다."""
 
     @abstractmethod
     async def search_relationships(
         self,
         query: str,
-        relationship_types: Optional[List[str]] = None,
+        relationship_types: list[str] | None = None,
         limit: int = 10,
         similarity_threshold: float = 0.5,
-    ) -> List[Relationship]:
+    ) -> list[Relationship]:
         """관계 검색을 수행합니다."""
 
     @abstractmethod
@@ -85,21 +84,21 @@ class KnowledgeNavigationUseCase(ABC):
     """지식 탐색 Use Case 인터페이스."""
 
     @abstractmethod
-    async def find_related_documents(self, node_id: NodeId) -> List[Document]:
+    async def find_related_documents(self, node_id: NodeId) -> list[Document]:
         """노드와 관련된 문서들을 찾습니다."""
 
     @abstractmethod
-    async def find_connected_nodes(self, document_id: DocumentId) -> List[Node]:
+    async def find_connected_nodes(self, document_id: DocumentId) -> list[Node]:
         """문서와 연결된 노드들을 찾습니다."""
 
     @abstractmethod
-    async def find_node_relationships(self, node_id: NodeId) -> List[Relationship]:
+    async def find_node_relationships(self, node_id: NodeId) -> list[Relationship]:
         """노드와 연결된 관계들을 찾습니다."""
 
     @abstractmethod
-    async def get_knowledge_graph_for_document(self, document_id: DocumentId) -> Dict:
+    async def get_knowledge_graph_for_document(self, document_id: DocumentId) -> dict:
         """문서와 관련된 지식 그래프를 조회합니다."""
 
     @abstractmethod
-    async def get_search_suggestions(self, partial_query: str, limit: int = 10) -> List[str]:
+    async def get_search_suggestions(self, partial_query: str, limit: int = 10) -> list[str]:
         """검색 자동완성 제안을 제공합니다."""

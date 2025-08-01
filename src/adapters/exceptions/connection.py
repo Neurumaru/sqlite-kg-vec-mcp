@@ -2,7 +2,7 @@
 Connection-related infrastructure exceptions.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -20,9 +20,9 @@ class ConnectionException(InfrastructureException):
         service: str,
         endpoint: str,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize connection exception.
@@ -59,9 +59,9 @@ class DatabaseConnectionException(ConnectionException):
         self,
         db_path: str,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize database connection exception.
@@ -96,10 +96,10 @@ class HTTPConnectionException(ConnectionException):
         self,
         url: str,
         message: str,
-        status_code: Optional[int] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        status_code: int | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize HTTP connection exception.

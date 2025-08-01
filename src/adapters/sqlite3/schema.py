@@ -5,7 +5,7 @@ SQLite database schema definitions and initialization.
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from .connection import DatabaseConnection
 
@@ -17,7 +17,7 @@ class SchemaManager:
 
     CURRENT_SCHEMA_VERSION = 3  # Current schema version
 
-    def __init__(self, db_path: Union[str, Path]):
+    def __init__(self, db_path: str | Path):
         """
         Initialize the schema manager.
         Args:
@@ -356,7 +356,7 @@ class SchemaManager:
                 # Schema version table doesn't exist, return 0
                 return 0
 
-    def migrate_schema(self, target_version: Optional[int] = None) -> bool:
+    def migrate_schema(self, target_version: int | None = None) -> bool:
         """
         Migrate schema to target version.
         Args:
@@ -392,7 +392,9 @@ class SchemaManager:
                 return True
             except Exception as exception:
                 conn.execute("ROLLBACK")
-                raise sqlite3.Error(f"Migration to version {target_version} failed: {exception}")
+                raise sqlite3.Error(
+                    f"Migration to version {target_version} failed: {exception}"
+                ) from exception
         finally:
             conn.close()
 
@@ -463,7 +465,7 @@ class SchemaManager:
                 )
         except sqlite3.Error as exception:
             # If generated columns are not supported (older SQLite), skip silently
-            warnings.warn(f"Could not add JSON optimization columns: {exception}")
+            warnings.warn(f"Could not add JSON optimization columns: {exception}", stacklevel=2)
 
     def backup_schema(self, backup_path: str) -> bool:
         """
@@ -480,7 +482,7 @@ class SchemaManager:
                 backup_conn.close()
             return True
         except Exception as exception:
-            raise sqlite3.Error(f"Backup failed: {exception}")
+            raise sqlite3.Error(f"Backup failed: {exception}") from exception
 
     def validate_schema(self) -> dict:
         """
@@ -493,7 +495,7 @@ class SchemaManager:
             version = self.get_schema_version()
         except (sqlite3.Error, Exception):
             version = 0
-        results: Dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "version": version}
+        results: dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "version": version}
         conn = self.db_connection.connect()
         try:
             # Check foreign key integrity

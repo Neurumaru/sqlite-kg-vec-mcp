@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -45,15 +45,15 @@ class Document:
     content: str
     doc_type: DocumentType
     status: DocumentStatus = DocumentStatus.PENDING
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     version: int = 1
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    processed_at: Optional[datetime] = None
+    processed_at: datetime | None = None
 
     # 연결된 노드와 관계들
-    connected_nodes: List[NodeId] = field(default_factory=list)
-    connected_relationships: List[RelationshipId] = field(default_factory=list)
+    connected_nodes: list[NodeId] = field(default_factory=list)
+    connected_relationships: list[RelationshipId] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.title.strip():

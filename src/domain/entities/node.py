@@ -1,11 +1,11 @@
 """
-노드 도메인 엔티티.
+Node domain entity.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -13,7 +13,7 @@ from src.domain.value_objects.vector import Vector
 
 
 class NodeType(Enum):
-    """노드 타입."""
+    """Node type."""
 
     PERSON = "person"
     ORGANIZATION = "organization"
@@ -28,38 +28,38 @@ class NodeType(Enum):
 @dataclass
 class Node:
     """
-    노드 도메인 엔티티.
+    Node domain entity.
 
-    지식 그래프의 노드를 나타냅니다.
-    문서로부터 추출된 개체(entity)를 표현하며,
-    원본 문서와의 연결 정보를 유지합니다.
+    Represents a node in the knowledge graph.
+    Expresses entities extracted from documents and
+    maintains connection information with source documents.
     """
 
     id: NodeId
     name: str
     node_type: NodeType
-    description: Optional[str] = None
-    properties: Dict[str, Any] = field(default_factory=dict)
+    description: str | None = None
+    properties: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
-    # 문서 연결 정보
-    source_documents: List[DocumentId] = field(default_factory=list)
+    # Document connection information
+    source_documents: list[DocumentId] = field(default_factory=list)
 
-    # 임베딩 정보
-    embedding: Optional[Vector] = None
-    embedding_model: Optional[str] = None
-    embedding_created_at: Optional[datetime] = None
+    # Embedding information
+    embedding: Vector | None = None
+    embedding_model: str | None = None
+    embedding_created_at: datetime | None = None
 
-    # 추출 정보 (문서 내에서의 위치, 컨텍스트 등)
-    extraction_metadata: Dict[str, Any] = field(default_factory=dict)
+    # Extraction information (position in document, context, etc.)
+    extraction_metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.name.strip():
             raise ValueError("Node name cannot be empty")
 
-    def add_source_document(self, document_id: DocumentId, context: Optional[str] = None) -> None:
-        """소스 문서 추가."""
+    def add_source_document(self, document_id: DocumentId, context: str | None = None) -> None:
+        """Add source document."""
         if document_id not in self.source_documents:
             self.source_documents.append(document_id)
             if context:
@@ -67,61 +67,61 @@ class Node:
             self.updated_at = datetime.now()
 
     def remove_source_document(self, document_id: DocumentId) -> None:
-        """소스 문서 제거."""
+        """Remove source document."""
         if document_id in self.source_documents:
             self.source_documents.remove(document_id)
-            # 관련 추출 메타데이터도 제거
+            # Also remove related extraction metadata
             key_to_remove = f"context_{document_id}"
             if key_to_remove in self.extraction_metadata:
                 del self.extraction_metadata[key_to_remove]
             self.updated_at = datetime.now()
 
     def add_extraction_context(self, document_id: DocumentId, context: str) -> None:
-        """문서 내 추출 컨텍스트 추가."""
+        """Add extraction context within document."""
         self.extraction_metadata[f"context_{document_id}"] = {
             "context": context,
             "extracted_at": datetime.now().isoformat(),
         }
         self.updated_at = datetime.now()
 
-    def get_extraction_context(self, document_id: DocumentId) -> Optional[str]:
-        """특정 문서에서의 추출 컨텍스트 조회."""
+    def get_extraction_context(self, document_id: DocumentId) -> str | None:
+        """Query extraction context from specific document."""
         context_data = self.extraction_metadata.get(f"context_{document_id}")
         return context_data.get("context") if context_data else None
 
     def set_embedding(self, embedding: Vector, model_name: str) -> None:
-        """노드 임베딩 설정."""
+        """Set node embedding."""
         self.embedding = embedding
         self.embedding_model = model_name
         self.embedding_created_at = datetime.now()
         self.updated_at = datetime.now()
 
     def has_embedding(self) -> bool:
-        """임베딩이 설정되어 있는지 확인."""
+        """Check if embedding is set."""
         return self.embedding is not None
 
     def calculate_similarity(self, other: "Node") -> float:
-        """다른 노드와의 유사도 계산."""
+        """Calculate similarity with another node."""
         if not self.has_embedding() or not other.has_embedding():
             raise ValueError("Both nodes must have embeddings for similarity calculation")
 
-        # mypy: embedding이 None이 아님을 확인했으므로 assert 사용
+        # mypy: assert used since we confirmed embedding is not None
         assert self.embedding is not None and other.embedding is not None
         return self.embedding.cosine_similarity(other.embedding)
 
     def update_property(self, key: str, value: Any) -> None:
-        """속성 업데이트."""
+        """Update property."""
         self.properties[key] = value
         self.updated_at = datetime.now()
 
     def remove_property(self, key: str) -> None:
-        """속성 제거."""
+        """Remove property."""
         if key in self.properties:
             del self.properties[key]
             self.updated_at = datetime.now()
 
-    def get_all_contexts(self) -> Dict[str, str]:
-        """모든 문서의 추출 컨텍스트 조회."""
+    def get_all_contexts(self) -> dict[str, str]:
+        """Query extraction contexts from all documents."""
         contexts = {}
         for key, value in self.extraction_metadata.items():
             if key.startswith("context_"):
@@ -130,31 +130,31 @@ class Node:
         return contexts
 
     def is_from_document(self, document_id: DocumentId) -> bool:
-        """특정 문서에서 추출된 노드인지 확인."""
+        """Check if node was extracted from specific document."""
         return document_id in self.source_documents
 
     def get_document_count(self) -> int:
-        """연결된 문서 수 반환."""
+        """Return number of connected documents."""
         return len(self.source_documents)
 
     def merge_with(self, other: "Node") -> None:
-        """다른 노드와 병합 (중복 제거)."""
-        # 소스 문서 병합
+        """Merge with another node (remove duplicates)."""
+        # Merge source documents
         for doc_id in other.source_documents:
             if doc_id not in self.source_documents:
                 self.source_documents.append(doc_id)
 
-        # 속성 병합 (기존 속성 우선)
+        # Merge properties (existing properties take priority)
         for key, value in other.properties.items():
             if key not in self.properties:
                 self.properties[key] = value
 
-        # 추출 메타데이터 병합
+        # Merge extraction metadata
         for key, value in other.extraction_metadata.items():
             if key not in self.extraction_metadata:
                 self.extraction_metadata[key] = value
 
-        # 더 나은 임베딩이 있다면 업데이트
+        # Update if there's a better embedding
         if not self.has_embedding() and other.has_embedding():
             self.embedding = other.embedding
             self.embedding_model = other.embedding_model

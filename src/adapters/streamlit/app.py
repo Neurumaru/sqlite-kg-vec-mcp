@@ -3,7 +3,7 @@ Streamlit web application for Knowledge Graph exploration.
 """
 
 import argparse
-from typing import Any, Dict, List
+from typing import Any
 
 import streamlit as st
 
@@ -157,7 +157,7 @@ class KnowledgeGraphStreamlitApp:
                     st.subheader(f"Total Entities: {len(entities)}")
 
                     # Entity filter
-                    entity_types = list(set(e.get("type", "Unknown") for e in entities))
+                    entity_types = list({e.get("type", "Unknown") for e in entities})
                     selected_types = st.multiselect(
                         "Entity Types Filter", entity_types, default=entity_types
                     )
@@ -349,7 +349,7 @@ class KnowledgeGraphStreamlitApp:
         result = cursor.fetchone()
         return result[0] if result else 0
 
-    def get_entity_types_distribution(self) -> Dict[str, int]:
+    def get_entity_types_distribution(self) -> dict[str, int]:
         """Get distribution of entity types."""
         if not self.db_connection.connection:
             raise SQLiteConnectionException(
@@ -359,7 +359,7 @@ class KnowledgeGraphStreamlitApp:
         cursor.execute("SELECT type, COUNT(*) as count FROM entities GROUP BY type")
         return {row[0] or "Unknown": row[1] for row in cursor.fetchall()}
 
-    def get_all_entities(self) -> List[Dict[str, Any]]:
+    def get_all_entities(self) -> list[dict[str, Any]]:
         """Get all entities."""
         if not self.db_connection.connection:
             raise SQLiteConnectionException(
@@ -372,7 +372,7 @@ class KnowledgeGraphStreamlitApp:
             entities.append({"id": row[0], "name": row[1], "type": row[2], "properties": row[3]})
         return entities
 
-    def get_all_relationships(self) -> List[Dict[str, Any]]:
+    def get_all_relationships(self) -> list[dict[str, Any]]:
         """Get all relationships with entity names."""
         if not self.db_connection.connection:
             raise SQLiteConnectionException(
@@ -403,7 +403,7 @@ class KnowledgeGraphStreamlitApp:
             )
         return relationships
 
-    def search_entities_by_text(self, query: str) -> List[Dict[str, Any]]:
+    def search_entities_by_text(self, query: str) -> list[dict[str, Any]]:
         """Search entities by text."""
         if not query or not query.strip():
             raise ValueError("Search query cannot be empty")
@@ -429,7 +429,7 @@ class KnowledgeGraphStreamlitApp:
             results.append({"id": row[0], "name": row[1], "type": row[2], "properties": row[3]})
         return results
 
-    def search_entities_semantic(self, query: str) -> List[Dict[str, Any]]:
+    def search_entities_semantic(self, query: str) -> list[dict[str, Any]]:
         """Search entities using semantic similarity."""
         try:
             # This would use the vector search functionality
@@ -439,7 +439,7 @@ class KnowledgeGraphStreamlitApp:
             st.error(f"시맨틱 검색 중 예상치 못한 오류: {exception}")
             return []
 
-    def create_entity(self, name: str, entity_type: str, properties: Dict[str, Any]):
+    def create_entity(self, name: str, entity_type: str, properties: dict[str, Any]):
         """Create a new entity."""
         if not name or not name.strip():
             raise ValueError("Entity name cannot be empty")
@@ -450,7 +450,7 @@ class KnowledgeGraphStreamlitApp:
         return entity
 
     def create_relationship(
-        self, source_id: str, target_id: str, rel_type: str, properties: Dict[str, Any]
+        self, source_id: str, target_id: str, rel_type: str, properties: dict[str, Any]
     ):
         """Create a new relationship."""
         if not source_id or not target_id:
@@ -464,8 +464,8 @@ class KnowledgeGraphStreamlitApp:
         try:
             source_id_int = int(source_id)
             target_id_int = int(target_id)
-        except ValueError:
-            raise ValueError("Entity IDs must be valid integers")
+        except ValueError as exception:
+            raise ValueError("Entity IDs must be valid integers") from exception
 
         relationship = self.relationship_manager.create_relationship(
             source_id_int, target_id_int, rel_type.strip(), properties

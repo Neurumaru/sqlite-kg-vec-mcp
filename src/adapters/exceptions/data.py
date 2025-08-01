@@ -3,7 +3,7 @@ Data-related infrastructure exceptions.
 """
 
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -20,10 +20,10 @@ class DataException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        data_type: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        data_type: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize data exception.
@@ -62,11 +62,11 @@ class DataIntegrityException(DataException):
     def __init__(
         self,
         constraint: str,
-        table: Optional[str] = None,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        table: str | None = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize data integrity exception.
@@ -109,12 +109,12 @@ class DataValidationException(DataException):
     def __init__(
         self,
         field: str,
-        value: Union[str, int, float, bool, None],
+        value: str | int | float | bool | None,
         expected_format: str,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize data validation exception.
@@ -157,10 +157,10 @@ class DataParsingException(DataException):
         self,
         data_format: str,
         message: str,
-        raw_data: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        raw_data: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize data parsing exception.

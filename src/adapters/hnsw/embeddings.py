@@ -6,11 +6,10 @@ import json
 import sqlite3
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional
 
 import numpy as np
 
-from .text_embedder import create_embedder
+# from .search import create_embedder  # 순환 임포트 방지를 위해 동적 임포트 사용
 
 # from .transactions import UnitOfWork  # TODO: Implement transactions module
 
@@ -171,7 +170,7 @@ class EmbeddingManager:
         self.connection.commit()
         return cursor.rowcount > 0
 
-    def get_embedding(self, entity_type: str, entity_id: int) -> Optional[Embedding]:
+    def get_embedding(self, entity_type: str, entity_id: int) -> Embedding | None:
         """
         Get the embedding for a specific entity.
 
@@ -235,10 +234,10 @@ class EmbeddingManager:
     def get_all_embeddings(
         self,
         entity_type: str,
-        model_info: Optional[str] = None,
+        model_info: str | None = None,
         batch_size: int = 1000,
         offset: int = 0,
-    ) -> List[Embedding]:
+    ) -> list[Embedding]:
         """
         Get all embeddings of a specific type, optionally filtered by model_info.
 
@@ -297,7 +296,7 @@ class EmbeddingManager:
 
     def get_outdated_embeddings(
         self, entity_type: str, current_version: int, batch_size: int = 1000
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Get IDs of entities with outdated embeddings (version < current_version).
 
@@ -455,7 +454,7 @@ class EmbeddingManager:
         return processed_count
 
     def _generate_embedding_for_entity(
-        self, entity_type: str, entity_id: int, model_info: Optional[str] = None
+        self, entity_type: str, entity_id: int, model_info: str | None = None
     ) -> np.ndarray:
         """
         Generate embedding for an entity by extracting its text content.
@@ -486,6 +485,8 @@ class EmbeddingManager:
                     pass
 
             # Create default sentence-transformers embedder
+            from .embedder_factory import create_embedder
+
             embedder = create_embedder(
                 embedder_type="sentence-transformers", model_name="all-MiniLM-L6-v2"
             )
@@ -496,7 +497,8 @@ class EmbeddingManager:
         except Exception as exception:
             # Fallback to random embedding with warning
             warnings.warn(
-                f"Failed to generate embedding for {entity_type} {entity_id}: {exception}. Using random embedding."
+                f"Failed to generate embedding for {entity_type} {entity_id}: {exception}. Using random embedding.",
+                stacklevel=2,
             )
             return np.random.rand(384).astype(np.float32)
 
@@ -542,7 +544,7 @@ class EmbeddingManager:
                 try:
                     props = json.loads(properties) if isinstance(properties, str) else properties
                     for key, value in props.items():
-                        if isinstance(value, (str, int, float)):
+                        if isinstance(value, str | int | float):
                             text_parts.append(f"{key}: {value}")
                 except Exception:
                     text_parts.append(f"Properties: {properties}")
@@ -582,7 +584,7 @@ class EmbeddingManager:
                 try:
                     props = json.loads(properties) if isinstance(properties, str) else properties
                     for key, value in props.items():
-                        if isinstance(value, (str, int, float)):
+                        if isinstance(value, str | int | float):
                             text_parts.append(f"{key}: {value}")
                 except Exception:
                     text_parts.append(f"Properties: {properties}")

@@ -5,8 +5,8 @@ Trace and span context management for observability.
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone
+from typing import Any
 
 
 @dataclass
@@ -17,17 +17,17 @@ class TraceContext:
 
     trace_id: str
     span_id: str
-    parent_span_id: Optional[str] = None
-    operation: Optional[str] = None
-    layer: Optional[str] = None
-    component: Optional[str] = None
-    start_time: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    parent_span_id: str | None = None
+    operation: str | None = None
+    layer: str | None = None
+    component: str | None = None
+    start_time: datetime | None = None
+    metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
         """Initialize default values."""
         if self.start_time is None:
-            self.start_time = datetime.utcnow()
+            self.start_time = datetime.now(timezone.utc)
         if self.metadata is None:
             self.metadata = {}
 
@@ -37,7 +37,7 @@ class TraceContext:
             self.metadata = {}
         self.metadata[key] = value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging."""
         return {
             "trace_id": self.trace_id,
@@ -52,10 +52,10 @@ class TraceContext:
 
 
 # Context variables for trace propagation
-_trace_context: ContextVar[Optional[TraceContext]] = ContextVar("trace_context", default=None)
+_trace_context: ContextVar[TraceContext | None] = ContextVar("trace_context", default=None)
 
 
-def get_current_trace_id() -> Optional[str]:
+def get_current_trace_id() -> str | None:
     """
     Get the current trace ID from context.
 
@@ -66,7 +66,7 @@ def get_current_trace_id() -> Optional[str]:
     return context.trace_id if context else None
 
 
-def get_current_span_id() -> Optional[str]:
+def get_current_span_id() -> str | None:
     """
     Get the current span ID from context.
 
@@ -77,7 +77,7 @@ def get_current_span_id() -> Optional[str]:
     return context.span_id if context else None
 
 
-def get_current_trace_context() -> Optional[TraceContext]:
+def get_current_trace_context() -> TraceContext | None:
     """
     Get the current trace context.
 
@@ -91,8 +91,8 @@ def create_trace_context(
     operation: str,
     layer: str,
     component: str,
-    parent_context: Optional[TraceContext] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    parent_context: TraceContext | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> TraceContext:
     """
     Create a new trace context.
@@ -127,7 +127,7 @@ def create_trace_context(
     )
 
 
-def set_trace_context(context: Optional[TraceContext]) -> None:
+def set_trace_context(context: TraceContext | None) -> None:
     """
     Set the current trace context.
 
@@ -150,7 +150,7 @@ class TraceContextManager:
             trace_context: Trace context to use
         """
         self.trace_context = trace_context
-        self.previous_context: Optional[TraceContext] = None
+        self.previous_context: TraceContext | None = None
 
     def __enter__(self) -> TraceContext:
         """Enter the context."""

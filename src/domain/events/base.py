@@ -1,12 +1,12 @@
 """
-도메인 이벤트 기본 클래스.
+Domain event base class.
 """
 
 import uuid
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T", bound="DomainEvent")
 
@@ -14,9 +14,9 @@ T = TypeVar("T", bound="DomainEvent")
 @dataclass
 class DomainEvent(ABC):
     """
-    도메인 이벤트 기본 클래스.
+    Domain event base class.
 
-    도메인에서 발생하는 중요한 사건들을 나타냅니다.
+    Represents important events that occur in the domain.
     """
 
     event_id: str
@@ -24,11 +24,7 @@ class DomainEvent(ABC):
     event_type: str
     aggregate_id: str
     version: int = 1
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self):
-        # metadata는 이제 field(default_factory=dict)로 처리됨
-        pass
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def create(cls: type[T], aggregate_id: str, **kwargs: Any) -> T:

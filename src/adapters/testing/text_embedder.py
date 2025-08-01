@@ -5,7 +5,6 @@
 import asyncio
 import hashlib
 import time
-from typing import List
 
 import numpy as np
 
@@ -59,7 +58,7 @@ class RandomTextEmbedder(TextEmbedder):
             processing_time_ms=processing_time,
         )
 
-    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
+    async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
         """
         여러 텍스트를 일괄 임베딩합니다.
 

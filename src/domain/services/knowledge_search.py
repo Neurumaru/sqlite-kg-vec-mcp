@@ -6,7 +6,6 @@ import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
 
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
@@ -34,8 +33,8 @@ class SearchCriteria:
     include_documents: bool = True
     include_nodes: bool = True
     include_relationships: bool = True
-    node_types: Optional[List[str]] = None
-    relationship_types: Optional[List[str]] = None
+    node_types: list[str] | None = None
+    relationship_types: list[str] | None = None
 
 
 @dataclass
@@ -43,31 +42,31 @@ class SearchResult:
     """검색 결과 항목."""
 
     score: float
-    document: Optional[Document] = None
-    node: Optional[Node] = None
-    relationship: Optional[Relationship] = None
-    explanation: Optional[str] = None
+    document: Document | None = None
+    node: Node | None = None
+    relationship: Relationship | None = None
+    explanation: str | None = None
 
 
 @dataclass
 class SearchResultCollection:
-    """검색 결과 컬렉션."""
+    """Search result collection."""
 
-    results: List[SearchResult]
+    results: list[SearchResult]
     total_count: int
     query: str
     strategy: SearchStrategy
     execution_time_ms: float = 0.0
 
-    def get_documents(self) -> List[Document]:
+    def get_documents(self) -> list[Document]:
         """검색 결과에서 문서들만 추출."""
         return [r.document for r in self.results if r.document is not None]
 
-    def get_nodes(self) -> List[Node]:
+    def get_nodes(self) -> list[Node]:
         """검색 결과에서 노드들만 추출."""
         return [r.node for r in self.results if r.node is not None]
 
-    def get_relationships(self) -> List[Relationship]:
+    def get_relationships(self) -> list[Relationship]:
         """검색 결과에서 관계들만 추출."""
         return [r.relationship for r in self.results if r.relationship is not None]
 
@@ -80,15 +79,15 @@ class KnowledgeSearchService:
     관련 정보를 연결하여 제공합니다.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: logging.Logger | None = None):
         self.logger = logger or logging.getLogger(__name__)
 
     def search(
         self,
         criteria: SearchCriteria,
-        documents: List[Document],
-        nodes: List[Node],
-        relationships: List[Relationship],
+        documents: list[Document],
+        nodes: list[Node],
+        relationships: list[Relationship],
     ) -> SearchResultCollection:
         """
         통합 검색을 수행합니다.
@@ -142,8 +141,8 @@ class KnowledgeSearchService:
         return result_collection
 
     def _search_documents(
-        self, criteria: SearchCriteria, documents: List[Document]
-    ) -> List[SearchResult]:
+        self, criteria: SearchCriteria, documents: list[Document]
+    ) -> list[SearchResult]:
         """문서 내용 기반 검색."""
         results = []
         query_lower = criteria.query.lower()
@@ -166,7 +165,7 @@ class KnowledgeSearchService:
 
         return results
 
-    def _search_nodes(self, criteria: SearchCriteria, nodes: List[Node]) -> List[SearchResult]:
+    def _search_nodes(self, criteria: SearchCriteria, nodes: list[Node]) -> list[SearchResult]:
         """노드 기반 검색."""
         results = []
         query_lower = criteria.query.lower()
@@ -205,8 +204,8 @@ class KnowledgeSearchService:
         return results
 
     def _search_relationships(
-        self, criteria: SearchCriteria, relationships: List[Relationship]
-    ) -> List[SearchResult]:
+        self, criteria: SearchCriteria, relationships: list[Relationship]
+    ) -> list[SearchResult]:
         """관계 기반 검색."""
         results = []
         query_lower = criteria.query.lower()
@@ -243,10 +242,10 @@ class KnowledgeSearchService:
     def _semantic_search(
         self,
         criteria: SearchCriteria,
-        documents: List[Document],
-        nodes: List[Node],
-        relationships: List[Relationship],
-    ) -> List[SearchResult]:
+        documents: list[Document],
+        nodes: list[Node],
+        relationships: list[Relationship],
+    ) -> list[SearchResult]:
         """임베딩 기반 의미적 검색."""
         results = []
 
@@ -288,10 +287,10 @@ class KnowledgeSearchService:
     def _hybrid_search(
         self,
         criteria: SearchCriteria,
-        documents: List[Document],
-        nodes: List[Node],
-        relationships: List[Relationship],
-    ) -> List[SearchResult]:
+        documents: list[Document],
+        nodes: list[Node],
+        relationships: list[Relationship],
+    ) -> list[SearchResult]:
         """복합 검색 (모든 전략 조합)."""
         all_results = []
 
@@ -314,7 +313,7 @@ class KnowledgeSearchService:
 
         return all_results
 
-    def find_related_documents(self, node: Node, all_documents: List[Document]) -> List[Document]:
+    def find_related_documents(self, node: Node, all_documents: list[Document]) -> list[Document]:
         """노드와 관련된 문서들을 찾습니다."""
         related_docs = []
 
@@ -324,7 +323,7 @@ class KnowledgeSearchService:
 
         return related_docs
 
-    def find_connected_nodes(self, document: Document, all_nodes: List[Node]) -> List[Node]:
+    def find_connected_nodes(self, document: Document, all_nodes: list[Node]) -> list[Node]:
         """문서와 연결된 노드들을 찾습니다."""
         connected_nodes = []
 
@@ -335,8 +334,8 @@ class KnowledgeSearchService:
         return connected_nodes
 
     def find_node_relationships(
-        self, node: Node, all_relationships: List[Relationship]
-    ) -> List[Relationship]:
+        self, node: Node, all_relationships: list[Relationship]
+    ) -> list[Relationship]:
         """노드와 연결된 관계들을 찾습니다."""
         node_relationships = []
 
@@ -362,8 +361,8 @@ class KnowledgeSearchService:
         return len(intersection) / len(query_words)
 
     def get_search_suggestions(
-        self, partial_query: str, documents: List[Document], nodes: List[Node]
-    ) -> List[str]:
+        self, partial_query: str, documents: list[Document], nodes: list[Node]
+    ) -> list[str]:
         """검색 자동완성 제안."""
         suggestions = set()
         partial_lower = partial_query.lower()
@@ -378,4 +377,4 @@ class KnowledgeSearchService:
             if partial_lower in node.name.lower():
                 suggestions.add(node.name)
 
-        return sorted(list(suggestions))[:10]  # 최대 10개 제안
+        return sorted(suggestions)[:10]  # 최대 10개 제안

@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
 from src.domain.entities.node import Node, NodeType
 from src.domain.entities.relationship import Relationship, RelationshipType
+from src.domain.exceptions.document_exceptions import DocumentProcessingException
 from src.domain.services.document_processor import (
     DocumentProcessor,
     KnowledgeExtractionResult,
@@ -15,9 +16,13 @@ from src.domain.services.document_processor import (
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
-from src.dto.node import NodeData
+from src.dto.node import (
+    NodeData,
+)
 from src.dto.node import NodeType as DTONodeType
-from src.dto.relationship import RelationshipData
+from src.dto.relationship import (
+    RelationshipData,
+)
 from src.dto.relationship import RelationshipType as DTORelationshipType
 
 
@@ -85,14 +90,17 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         )
 
         error_message = "추출 실패"
-        mock_knowledge_extractor.extract = AsyncMock(side_effect=Exception(error_message))
+        mock_knowledge_extractor.extract = AsyncMock(
+            side_effect=DocumentProcessingException(str(document.id), error_message)
+        )
 
         # When & Then
-        with self.assertRaises(Exception):
+        with self.assertRaises(DocumentProcessingException):
             await processor.process_document(document)
 
         self.assertEqual(document.status, DocumentStatus.FAILED)
-        self.assertEqual(document.metadata["error"], error_message)
+        expected_error_message = f"[DOCUMENT_PROCESSING_FAILED] Failed to process document '{document.id}': {error_message}"
+        self.assertEqual(document.metadata["error"], expected_error_message)
 
     async def test_process_document_empty_extraction_result(self):
         """빈 추출 결과로 문서 처리 테스트."""
@@ -316,7 +324,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         """Repository를 사용한 문서 처리 성공 테스트."""
         # Given
         mock_knowledge_extractor = Mock()
-        mock_document_repository = Mock()
+        mock_document_repository = AsyncMock()
         processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
 
         document = Document(
@@ -354,7 +362,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         """Repository를 사용한 문서 처리 실패 테스트."""
         # Given
         mock_knowledge_extractor = Mock()
-        mock_document_repository = Mock()
+        mock_document_repository = AsyncMock()
         processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
 
         document = Document(
@@ -365,17 +373,20 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         )
 
         error_message = "추출 실패"
-        mock_knowledge_extractor.extract = AsyncMock(side_effect=Exception(error_message))
+        mock_knowledge_extractor.extract = AsyncMock(
+            side_effect=DocumentProcessingException(str(document.id), error_message)
+        )
         mock_document_repository.exists = AsyncMock(return_value=False)
         mock_document_repository.save = AsyncMock(return_value=document)
         mock_document_repository.update = AsyncMock(return_value=document)
 
         # When & Then
-        with self.assertRaises(Exception):
+        with self.assertRaises(DocumentProcessingException):
             await processor.process_document(document)
 
         self.assertEqual(document.status, DocumentStatus.FAILED)
-        self.assertEqual(document.metadata["error"], error_message)
+        expected_error_message = f"[DOCUMENT_PROCESSING_FAILED] Failed to process document '{document.id}': {error_message}"
+        self.assertEqual(document.metadata["error"], expected_error_message)
 
         # 실패 상태 업데이트가 호출되었는지 확인 (DocumentData가 전달됨)
         mock_document_repository.update.assert_called_once()
@@ -417,7 +428,7 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         """Repository를 사용한 문서 재처리 테스트."""
         # Given
         mock_knowledge_extractor = Mock()
-        mock_document_repository = Mock()
+        mock_document_repository = AsyncMock()
         processor = DocumentProcessor(mock_knowledge_extractor, mock_document_repository)
 
         document = Document(
@@ -455,8 +466,8 @@ class TestDocumentProcessor(unittest.IsolatedAsyncioTestCase):
         # 상태 초기화를 위한 update와 재처리를 위한 update_with_knowledge 호출 확인
         self.assertEqual(
             mock_document_repository.update.call_count, 2
-        )  # 상태 초기화 + 재처리 중 상태 업데이트
-        mock_document_repository.update_with_knowledge.assert_called_once()  # 재처리 완료
+        )  # For status reset and processing
+        mock_document_repository.update_with_knowledge.assert_called_once()  # For final update
 
 
 class TestKnowledgeExtractionResult(unittest.TestCase):

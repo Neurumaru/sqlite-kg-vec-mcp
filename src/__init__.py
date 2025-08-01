@@ -241,7 +241,7 @@ class KnowledgeGraph:
 
     def find_paths(self, start_id, end_id, max_depth=5, relation_types=None, entity_types=None):
         """Find paths between nodes."""
-        return self.graph_traversal.find_paths(
+        return self.graph_traversal.find_shortest_path(
             start_id, end_id, max_depth, relation_types, entity_types
         )
 

@@ -2,72 +2,17 @@
 Vector similarity search functionality.
 """
 
-# from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
-import hashlib
 import sqlite3
-from abc import ABC, abstractmethod
+
+# from .relationships import Relationship, RelationshipManager  # TODO: Implement relationships module
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
-from .embeddings import EmbeddingManager
-
 # from .entities import Entity, EntityManager  # TODO: Implement entities module
-from .hnsw import HNSWIndex
-
-
-class VectorTextEmbedder(ABC):
-    """Synchronous text embedder interface for HNSW search."""
-
-    @abstractmethod
-    def embed(self, text: str) -> np.ndarray:
-        """Generate embedding for text."""
-
-    @property
-    @abstractmethod
-    def dimension(self) -> int:
-        """Return embedding dimension."""
-
-
-class SyncRandomTextEmbedder(VectorTextEmbedder):
-    """Synchronous random text embedder for testing."""
-
-    def __init__(self, dimension: int = 128):
-        self._dimension = dimension
-
-    def embed(self, text: str) -> np.ndarray:
-        """Generate deterministic random embedding."""
-        seed = int(hashlib.md5(text.encode()).hexdigest()[:8], 16) % (2**32)
-        np.random.seed(seed)
-        embedding = np.random.randn(self._dimension).astype(np.float32)
-        result = embedding / np.linalg.norm(embedding)
-        return np.asarray(result, dtype=np.float32)
-
-    @property
-    def dimension(self) -> int:
-        return self._dimension
-
-
-def create_embedder(embedder_type: str, **kwargs) -> VectorTextEmbedder:
-    """
-    Factory function to create text embedders.
-
-    Args:
-        embedder_type: Type of embedder to create
-        **kwargs: Additional arguments for embedder creation
-
-    Returns:
-        VectorTextEmbedder instance
-    """
-    if embedder_type == "random":
-        dimension = kwargs.get("dimension", 128)
-        return SyncRandomTextEmbedder(dimension=dimension)
-    if embedder_type == "sentence-transformers":
-        # Fallback to random for now
-        dimension = kwargs.get("dimension", 384)
-        return SyncRandomTextEmbedder(dimension=dimension)
-    raise ValueError(f"Unknown embedder type: {embedder_type}")
+# from .hnsw import HNSWIndex  # Import dynamically to avoid circular dependency
+from .embedder_factory import VectorTextEmbedder, create_embedder
 
 
 @dataclass
@@ -77,11 +22,9 @@ class SearchResult:
     entity_type: str
     entity_id: int
     distance: float
-    entity: Optional[Any] = (
-        None  # TODO: Type properly when Entity/Relationship classes are available
-    )
+    entity: Any | None = None  # TODO: Type properly when Entity/Relationship classes are available
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         result = {
             "entity_type": self.entity_type,
@@ -110,12 +53,12 @@ class VectorSearch:
     def __init__(
         self,
         connection: sqlite3.Connection,
-        index_dir: Optional[str] = None,
+        index_dir: str | None = None,
         embedding_dim: int = 128,
         space: str = "cosine",
-        text_embedder: Optional[VectorTextEmbedder] = None,
+        text_embedder: VectorTextEmbedder | None = None,
         embedder_type: str = "sentence-transformers",
-        embedder_kwargs: Optional[Dict[str, Any]] = None,
+        embedder_kwargs: dict[str, Any] | None = None,
     ):
         """
         Initialize the vector search functionality.
@@ -130,12 +73,17 @@ class VectorSearch:
             embedder_kwargs: Arguments for embedder creation
         """
         self.connection = connection
+        # Import EmbeddingManager dynamically to avoid circular import
+        from .embeddings import EmbeddingManager  # pylint: disable=import-outside-toplevel
+
         self.embedding_manager = EmbeddingManager(connection)
         # TODO: Initialize managers when classes are available
         # self.entity_manager = EntityManager(connection)
         # self.relationship_manager = RelationshipManager(connection)
 
-        # Initialize the index
+        # Initialize the index with dynamic import
+        from .hnsw import HNSWIndex  # pylint: disable=import-outside-toplevel
+
         self.index = HNSWIndex(
             space=space,
             dim=embedding_dim,
@@ -197,10 +145,10 @@ class VectorSearch:
         self,
         query_vector: np.ndarray,
         k: int = 10,
-        entity_types: Optional[List[str]] = None,
-        ef_search: Optional[int] = None,
+        entity_types: list[str] | None = None,
+        ef_search: int | None = None,
         include_entities: bool = True,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """
         Search for entities similar to the query vector.
 
@@ -250,9 +198,9 @@ class VectorSearch:
         entity_type: str,
         entity_id: int,
         k: int = 10,
-        result_entity_types: Optional[List[str]] = None,
+        result_entity_types: list[str] | None = None,
         include_entities: bool = True,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """
         Search for entities similar to a given entity.
 
@@ -292,15 +240,16 @@ class VectorSearch:
         Returns:
             Embedding vector
         """
-        return self.text_embedder.embed(text)
+        embedding = self.text_embedder.embed(text)
+        return np.asarray(embedding, dtype=np.float32)
 
     def search_by_text(
         self,
         query_text: str,
         k: int = 10,
-        entity_types: Optional[List[str]] = None,
+        entity_types: list[str] | None = None,
         include_entities: bool = True,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """
         Search for entities similar to a text query.
 

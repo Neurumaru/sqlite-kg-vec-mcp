@@ -3,7 +3,7 @@ Setup and initialization utilities for the observability system.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..logging.config import (
     LoggingConfig,
@@ -15,8 +15,8 @@ from .logger import get_observable_logger
 
 
 def setup_observability(
-    logging_config: Optional[Dict[str, Any]] = None,
-    observability_config: Optional[Dict[str, Any]] = None,
+    logging_config: dict[str, Any] | None = None,
+    observability_config: dict[str, Any] | None = None,
     auto_configure: bool = True,
 ) -> None:
     """
@@ -62,7 +62,7 @@ def setup_observability(
     )
 
 
-def get_observability_config_from_env() -> Dict[str, Any]:
+def get_observability_config_from_env() -> dict[str, Any]:
     """
     Get observability configuration from environment variables.
 
@@ -82,7 +82,7 @@ def get_observability_config_from_env() -> Dict[str, Any]:
     if service_type == "none":
         return {}
 
-    config: Dict[str, Any] = {"service_type": service_type}
+    config: dict[str, Any] = {"service_type": service_type}
 
     if service_type == "langfuse":
         langfuse_config = {

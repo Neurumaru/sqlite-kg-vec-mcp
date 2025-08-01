@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from src.dto import RelationshipData
 
@@ -32,7 +31,7 @@ class RelationshipRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, relationship_id: str) -> Optional[RelationshipData]:
+    async def find_by_id(self, relationship_id: str) -> RelationshipData | None:
         """
         ID로 관계를 찾습니다.
 
@@ -46,7 +45,7 @@ class RelationshipRepository(ABC):
     @abstractmethod
     async def find_by_nodes(
         self, source_node_id: str, target_node_id: str
-    ) -> List[RelationshipData]:
+    ) -> list[RelationshipData]:
         """
         두 노드 간의 관계들을 찾습니다.
 
@@ -59,7 +58,7 @@ class RelationshipRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_document(self, document_id: str) -> List[RelationshipData]:
+    async def find_by_document(self, document_id: str) -> list[RelationshipData]:
         """
         특정 문서에서 추출된 관계들을 찾습니다.
 

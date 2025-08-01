@@ -3,7 +3,7 @@ OpenAI 텍스트 임베딩 어댑터.
 """
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import openai
@@ -25,10 +25,10 @@ class OpenAITextEmbedder(TextEmbedder):
 
     def __init__(
         self,
-        config: Optional[OpenAIConfig] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        dimension: Optional[int] = None,
+        config: OpenAIConfig | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        dimension: int | None = None,
     ):
         """
         OpenAI 임베딩 어댑터를 초기화합니다.
@@ -75,7 +75,7 @@ class OpenAITextEmbedder(TextEmbedder):
         start_time = time.time()
 
         try:
-            kwargs: Dict[str, Any] = {"input": text, "model": self.model}
+            kwargs: dict[str, Any] = {"input": text, "model": self.model}
             if self.custom_dimension is not None and isinstance(self.custom_dimension, int):
                 kwargs["dimensions"] = self.custom_dimension
 
@@ -110,7 +110,7 @@ class OpenAITextEmbedder(TextEmbedder):
         except Exception as exception:
             raise RuntimeError(f"임베딩 생성 중 예상치 못한 오류: {str(exception)}") from exception
 
-    async def embed_texts(self, texts: List[str]) -> List[EmbeddingResult]:
+    async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
         """여러 텍스트를 일괄 임베딩합니다."""
         if not texts:
             return []
@@ -123,7 +123,7 @@ class OpenAITextEmbedder(TextEmbedder):
         start_time = time.time()
 
         try:
-            kwargs: Dict[str, Any] = {"input": texts, "model": self.model}
+            kwargs: dict[str, Any] = {"input": texts, "model": self.model}
             if self.custom_dimension is not None and isinstance(self.custom_dimension, int):
                 kwargs["dimensions"] = self.custom_dimension
 
@@ -135,7 +135,7 @@ class OpenAITextEmbedder(TextEmbedder):
             processing_time = (time.time() - start_time) * 1000  # milliseconds
 
             results = []
-            for i, (text, data) in enumerate(zip(texts, response.data)):
+            for i, (text, data) in enumerate(zip(texts, response.data, strict=False)):
                 embedding_data = np.array(data.embedding, dtype=np.float32)
                 results.append(
                     EmbeddingResult(

@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from ..transactions import UnitOfWork
 from .entities import Entity
@@ -21,12 +21,12 @@ class Relationship:
     source_id: int
     target_id: int
     relation_type: str
-    properties: Dict[str, Any]
+    properties: dict[str, Any]
     created_at: str
     updated_at: str
     # These fields are populated when loading details
-    source: Optional[Entity] = None
-    target: Optional[Entity] = None
+    source: Entity | None = None
+    target: Entity | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> Relationship:
@@ -73,7 +73,7 @@ class RelationshipManager:
         source_id: int,
         target_id: int,
         relation_type: str,
-        properties: Optional[Dict[str, Any]] = None,
+        properties: dict[str, Any] | None = None,
     ) -> Relationship:
         """
         Create a new relationship (edge) between two entities.
@@ -121,7 +121,7 @@ class RelationshipManager:
 
     def get_relationship(
         self, relationship_id: int, include_entities: bool = False
-    ) -> Optional[Relationship]:
+    ) -> Relationship | None:
         """
         Get a relationship by its ID.
         Args:
@@ -157,8 +157,8 @@ class RelationshipManager:
         relationship.target = entities.get(relationship.target_id)
 
     def update_relationship(
-        self, relationship_id: int, properties: Dict[str, Any]
-    ) -> Optional[Relationship]:
+        self, relationship_id: int, properties: dict[str, Any]
+    ) -> Relationship | None:
         """
         Update a relationship's properties.
         Args:
@@ -211,14 +211,14 @@ class RelationshipManager:
 
     def find_relationships(
         self,
-        source_id: Optional[int] = None,
-        target_id: Optional[int] = None,
-        relation_type: Optional[str] = None,
-        property_filters: Optional[Dict[str, Any]] = None,
+        source_id: int | None = None,
+        target_id: int | None = None,
+        relation_type: str | None = None,
+        property_filters: dict[str, Any] | None = None,
         include_entities: bool = False,
         limit: int = 100,
         offset: int = 0,
-    ) -> Tuple[List[Relationship], int]:
+    ) -> tuple[list[Relationship], int]:
         """
         Find relationships matching the given criteria.
         Args:
@@ -275,15 +275,73 @@ class RelationshipManager:
                 self._load_relationship_entities(relationship)
         return relationships, total_count
 
+    def bulk_create_relationships(
+        self, relationships_data: list[tuple[int, int, str, dict[str, Any] | None]]
+    ) -> list[int]:
+        """
+        Bulk create relationships.
+        Args:
+            relationships_data: List of tuples (source_id, target_id, relation_type, properties)
+        Returns:
+            List of created relationship IDs
+        """
+        if not relationships_data:
+            return []
+
+        created_ids = []
+        with self.unit_of_work.begin() as conn:
+            cursor = conn.cursor()
+            for source_id, target_id, relation_type, properties in relationships_data:
+                props = properties or {}
+                cursor.execute(
+                    """
+                INSERT INTO edges (source_id, target_id, relation_type, properties)
+                VALUES (?, ?, ?, ?)
+                """,
+                    (source_id, target_id, relation_type, json.dumps(props)),
+                )
+                edge_id = cursor.lastrowid
+                if edge_id is None:
+                    raise RuntimeError("Failed to insert edge during bulk creation")
+                self.unit_of_work.register_vector_operation(
+                    entity_type="edge", entity_id=edge_id, operation_type="insert"
+                )
+                created_ids.append(edge_id)
+        return created_ids
+
+    def get_relationship_count(self) -> int:
+        """
+        Get the total number of relationships in the graph.
+        Returns:
+            Total count of relationships
+        """
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM edges")
+        result = cursor.fetchone()
+        return int(result[0]) if result and result[0] is not None else 0
+
+    def get_relationship_count_by_type(self, relation_type: str) -> int:
+        """
+        Get the number of relationships of a specific type.
+        Args:
+            relation_type: Type of the relationship
+        Returns:
+            Count of relationships of the specified type
+        """
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM edges WHERE relation_type = ?", (relation_type,))
+        result = cursor.fetchone()
+        return int(result[0]) if result and result[0] is not None else 0
+
     def get_entity_relationships(
         self,
         entity_id: int,
         direction: str = "both",
-        relation_types: Optional[List[str]] = None,
+        relation_types: list[str] | None = None,
         include_entities: bool = True,
         limit: int = 100,
         offset: int = 0,
-    ) -> Tuple[List[Relationship], int]:
+    ) -> tuple[list[Relationship], int]:
         """
         Get relationships for a specific entity.
         Args:

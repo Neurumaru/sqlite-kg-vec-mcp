@@ -8,7 +8,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from src.adapters.sqlite3.transactions import UnitOfWork
 
@@ -19,9 +19,9 @@ class Entity:
 
     id: int
     uuid: str
-    name: Optional[str]
+    name: str | None
     type: str
-    properties: Dict[str, Any]
+    properties: dict[str, Any]
     created_at: str
     updated_at: str
 
@@ -67,15 +67,15 @@ class EntityManager:
 
     def create_entity(
         self,
-        type: str,
-        name: Optional[str] = None,
-        properties: Optional[Dict[str, Any]] = None,
-        custom_uuid: Optional[str] = None,
+        entity_type: str,
+        name: str | None = None,
+        properties: dict[str, Any] | None = None,
+        custom_uuid: str | None = None,
     ) -> Entity:
         """
         Create a new entity in the knowledge graph.
         Args:
-            type: Type of the entity
+            entity_type: Type of the entity
             name: Optional name of the entity
             properties: Optional properties dictionary
             custom_uuid: Optional custom UUID (generated if not provided)
@@ -92,7 +92,7 @@ class EntityManager:
             INSERT INTO entities (uuid, name, type, properties)
             VALUES (?, ?, ?, ?)
             """,
-                (entity_uuid, name, type, json.dumps(props)),
+                (entity_uuid, name, entity_type, json.dumps(props)),
             )
             entity_id = cursor.lastrowid
             if entity_id is None:
@@ -110,7 +110,7 @@ class EntityManager:
             )
             return Entity.from_row(cursor.fetchone())
 
-    def get_entity(self, entity_id: int) -> Optional[Entity]:
+    def get_entity(self, entity_id: int) -> Entity | None:
         """
         Get an entity by its ID.
         Args:
@@ -123,7 +123,7 @@ class EntityManager:
         row = cursor.fetchone()
         return Entity.from_row(row) if row else None
 
-    def get_entity_by_uuid(self, entity_uuid: str) -> Optional[Entity]:
+    def get_entity_by_uuid(self, entity_uuid: str) -> Entity | None:
         """
         Get an entity by its UUID.
         Args:
@@ -139,9 +139,9 @@ class EntityManager:
     def update_entity(
         self,
         entity_id: int,
-        name: Optional[str] = None,
-        properties: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Entity]:
+        name: str | None = None,
+        properties: dict[str, Any] | None = None,
+    ) -> Entity | None:
         """
         Update an entity's properties.
         Args:
@@ -204,12 +204,12 @@ class EntityManager:
 
     def find_entities(
         self,
-        entity_type: Optional[str] = None,
-        name_pattern: Optional[str] = None,
-        property_filters: Optional[Dict[str, Any]] = None,
+        entity_type: str | None = None,
+        name_pattern: str | None = None,
+        property_filters: dict[str, Any] | None = None,
         limit: int = 100,
         offset: int = 0,
-    ) -> Tuple[List[Entity], int]:
+    ) -> tuple[list[Entity], int]:
         """
         Find entities matching the given criteria.
         Args:
@@ -241,8 +241,8 @@ class EntityManager:
         if property_clauses:
             conditions.extend(property_clauses)
         # Build the final query
-        query = "SELECT DISTINCT * FROM entities"  # Added DISTINCT to remove duplicates
-        count_query = "SELECT COUNT(DISTINCT id) FROM entities"  # Use COUNT DISTINCT
+        query = "SELECT DISTINCT * FROM entities"
+        count_query = "SELECT COUNT(DISTINCT id) FROM entities"
         if conditions:
             where_clause = " WHERE " + " AND ".join(conditions)
             query += where_clause

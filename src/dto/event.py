@@ -5,7 +5,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 @dataclass
@@ -27,10 +27,10 @@ class EventData:
     event_type: str  # 이벤트 타입
     entity_id: str  # 엔티티 식별자
     entity_type: str  # 엔티티 타입
-    payload: Dict[str, Any]  # 이벤트 데이터
+    payload: dict[str, Any]  # 이벤트 데이터
     timestamp: datetime  # 이벤트 발생 시각
-    correlation_id: Optional[str] = None  # 상관관계 식별자
-    user_id: Optional[str] = None  # 사용자 식별자
+    correlation_id: str | None = None  # 상관관계 식별자
+    user_id: str | None = None  # 사용자 식별자
     version: int = 1  # 이벤트 스키마 버전
 
     def __post_init__(self) -> None:
@@ -98,7 +98,6 @@ class EventData:
         if self.timestamp > now and (self.timestamp - now).total_seconds() > 60:
             raise ValueError("timestamp는 현재 시간보다 1분 이상 미래일 수 없습니다")
 
-        # correlation_id 검증 및 기본값 설정
         if self.correlation_id is None:
             self.correlation_id = self.entity_id
         elif not isinstance(self.correlation_id, str):

@@ -1,32 +1,32 @@
 """
-벡터 저장소 포트 (LangChain 호환).
+Vector store port with LangChain compatibility.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from langchain_core.documents import Document
 
 
 class VectorStore(ABC):
     """
-    벡터 저장소 포트 (LangChain 호환).
+    Vector store port with LangChain compatibility.
 
-    LangChain의 VectorStore 인터페이스와 호환되는 벡터 저장 및 검색 기능을 제공합니다.
+    Provides vector storage and search functionality compatible with LangChain's VectorStore interface.
     """
 
-    # Core LangChain VectorStore 메서드들
+    # Core LangChain VectorStore methods
     @abstractmethod
-    async def add_documents(self, documents: List[Document], **kwargs: Any) -> List[str]:
+    async def add_documents(self, documents: list[Document], **kwargs: Any) -> list[str]:
         """
-        문서들을 벡터 저장소에 추가합니다 (LangChain 표준).
+        Add documents to the vector store (LangChain standard).
 
         Args:
-            documents: 추가할 Document 객체들
-            **kwargs: 추가 옵션들
+            documents: Document objects to add
+            **kwargs: Additional options
 
         Returns:
-            추가된 문서들의 ID 리스트
+            List of IDs of added documents
         """
 
     @abstractmethod
@@ -35,17 +35,17 @@ class VectorStore(ABC):
         query: str,
         k: int = 4,
         **kwargs: Any,
-    ) -> List[Document]:
+    ) -> list[Document]:
         """
-        유사도 검색을 수행합니다 (LangChain 표준).
+        Perform similarity search (LangChain standard).
 
         Args:
-            query: 검색 쿼리 문자열
-            k: 반환할 문서 수
-            **kwargs: 추가 검색 옵션들 (filter 등)
+            query: Search query string
+            k: Number of documents to return
+            **kwargs: Additional search options (filter, etc.)
 
         Returns:
-            유사한 Document 객체들의 리스트
+            List of similar Document objects
         """
 
     @abstractmethod
@@ -54,103 +54,103 @@ class VectorStore(ABC):
         query: str,
         k: int = 4,
         **kwargs: Any,
-    ) -> List[Tuple[Document, float]]:
+    ) -> list[tuple[Document, float]]:
         """
-        유사도 검색을 수행하고 점수와 함께 반환합니다 (LangChain 표준).
+        Perform similarity search and return with scores (LangChain standard).
 
         Args:
-            query: 검색 쿼리 문자열
-            k: 반환할 문서 수
-            **kwargs: 추가 검색 옵션들
+            query: Search query string
+            k: Number of documents to return
+            **kwargs: Additional search options
 
         Returns:
-            (Document, 유사도점수) 튜플들의 리스트
+            List of (Document, similarity_score) tuples
         """
 
     @abstractmethod
     async def similarity_search_by_vector(
         self,
-        embedding: List[float],
+        embedding: list[float],
         k: int = 4,
         **kwargs: Any,
-    ) -> List[Document]:
+    ) -> list[Document]:
         """
-        벡터로 유사도 검색을 수행합니다 (LangChain 표준).
+        Perform similarity search by vector (LangChain standard).
 
         Args:
-            embedding: 쿼리 벡터 (임베딩)
-            k: 반환할 문서 수
-            **kwargs: 추가 검색 옵션들
+            embedding: Query vector (embedding)
+            k: Number of documents to return
+            **kwargs: Additional search options
 
         Returns:
-            유사한 Document 객체들의 리스트
+            List of similar Document objects
         """
 
     @abstractmethod
-    async def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> Optional[bool]:
+    async def delete(self, ids: list[str] | None = None, **kwargs: Any) -> bool | None:
         """
-        문서들을 삭제합니다 (LangChain 표준).
+        Delete documents (LangChain standard).
 
         Args:
-            ids: 삭제할 문서 ID들
-            **kwargs: 추가 삭제 옵션들
+            ids: Document IDs to delete
+            **kwargs: Additional deletion options
 
         Returns:
-            삭제 성공 여부
+            Success status of deletion
         """
 
-    # 클래스 메서드들 (LangChain 패턴)
+    # Class methods (LangChain pattern)
     @classmethod
     @abstractmethod
     async def from_documents(
         cls,
-        documents: List[Document],
+        documents: list[Document],
         embedding: Any,
         **kwargs: Any,
     ) -> "VectorStore":
         """
-        문서들로부터 벡터 저장소를 생성합니다 (LangChain 표준).
+        Create vector store from documents (LangChain standard).
 
         Args:
-            documents: 초기 Document 객체들
-            embedding: 임베딩 모델
-            **kwargs: 추가 생성 옵션들
+            documents: Initial Document objects
+            embedding: Embedding model
+            **kwargs: Additional creation options
 
         Returns:
-            생성된 VectorStore 인스턴스
+            Created VectorStore instance
         """
 
     @classmethod
     @abstractmethod
     async def from_texts(
         cls,
-        texts: List[str],
+        texts: list[str],
         embedding: Any,
-        metadatas: Optional[List[Dict[str, Any]]] = None,
+        metadatas: list[dict[str, Any]] | None = None,
         **kwargs: Any,
     ) -> "VectorStore":
         """
-        텍스트들로부터 벡터 저장소를 생성합니다 (LangChain 표준).
+        Create vector store from texts (LangChain standard).
 
         Args:
-            texts: 텍스트 리스트
-            embedding: 임베딩 모델
-            metadatas: 각 텍스트의 메타데이터들
-            **kwargs: 추가 생성 옵션들
+            texts: List of texts
+            embedding: Embedding model
+            metadatas: Metadata for each text
+            **kwargs: Additional creation options
 
         Returns:
-            생성된 VectorStore 인스턴스
+            Created VectorStore instance
         """
 
-    # 추가 헬퍼 메서드들
+    # Additional helper methods
     @abstractmethod
     def as_retriever(self, **kwargs: Any) -> Any:
         """
-        벡터 저장소를 Retriever로 변환합니다 (LangChain 표준).
+        Convert vector store to Retriever (LangChain standard).
 
         Args:
-            **kwargs: Retriever 설정 옵션들
+            **kwargs: Retriever configuration options
 
         Returns:
-            Retriever 인스턴스
+            Retriever instance
         """

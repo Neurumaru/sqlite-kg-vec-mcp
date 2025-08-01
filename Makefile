@@ -31,8 +31,8 @@ lint: format type-check flake8 ruff pylint
 
 format:
 	@echo "🔧 Formatting code..."
-	$(UV) run black src/ tests/ examples/
-	$(UV) run isort src/ tests/ examples/
+	$(UV) run black src/ tests/
+	$(UV) run isort src/ tests/
 	@echo "✅ Code formatting complete!"
 
 type-check:
@@ -42,17 +42,17 @@ type-check:
 
 flake8:
 	@echo "🔍 Running flake8..."
-	$(UV) run flake8 src/ tests/ examples/
+	$(UV) run flake8 src/ tests/
 	@echo "✅ Flake8 checks complete!"
 
 ruff:
 	@echo "🔍 Running ruff..."
-	$(UV) run ruff check src/ tests/ examples/
+	$(UV) run ruff check src/ tests/
 	@echo "✅ Ruff checks complete!"
 
 pylint:
 	@echo "🔍 Running pylint..."
-	$(UV) run pylint src/ tests/ examples/
+	$(UV) run pylint src/ tests/
 	@echo "✅ Pylint checks complete!"
 
 # Testing

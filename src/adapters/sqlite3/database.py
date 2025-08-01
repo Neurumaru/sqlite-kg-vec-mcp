@@ -4,9 +4,10 @@ SQLite implementation of the Database port.
 
 import sqlite3
 import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any
 
 from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
@@ -23,9 +24,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     def __init__(
         self,
-        config: Optional[DatabaseConfig] = None,
-        db_path: Optional[str] = None,
-        optimize: Optional[bool] = None,
+        config: DatabaseConfig | None = None,
+        db_path: str | None = None,
+        optimize: bool | None = None,
     ):
         """
         Initialize SQLite database adapter.
@@ -36,15 +37,14 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         """
         if config is None:
             config = DatabaseConfig()
-        # Override config with individual parameters if provided (for backward compatibility)
         self.db_path = Path(db_path or config.db_path)
         self.optimize = optimize if optimize is not None else config.optimize
         self.timeout = config.timeout
         self.check_same_thread = config.check_same_thread
         self.max_connections = config.max_connections
         self._connection_manager = DatabaseConnection(str(self.db_path), self.optimize)
-        self._connection: Optional[sqlite3.Connection] = None
-        self._active_transactions: Dict[str, sqlite3.Connection] = {}
+        self._connection: sqlite3.Connection | None = None
+        self._active_transactions: dict[str, sqlite3.Connection] = {}
 
     # Connection management
     async def connect(self) -> bool:
@@ -66,7 +66,6 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             True if disconnection was successful
         """
         try:
-            # Close all active transactions
             for transaction_conn in self._active_transactions.values():
                 try:
                     transaction_conn.rollback()
@@ -74,7 +73,6 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 except Exception:
                     pass
             self._active_transactions.clear()
-            # Close main connection
             self._connection_manager.close()
             self._connection = None
             return True
@@ -128,7 +126,6 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         if not self._connection:
             raise RuntimeError("Database not connected")
         transaction_id = str(uuid.uuid4())
-        # For SQLite, we'll use the same connection but track transaction state
         self._active_transactions[transaction_id] = self._connection
         self._connection.execute("BEGIN")
         return transaction_id
@@ -173,9 +170,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
     async def execute_query(
         self,
         query: str,
-        parameters: Optional[Dict[str, Any]] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        parameters: dict[str, Any] | None = None,
+        transaction_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Execute a SELECT query.
         Args:
@@ -194,20 +191,19 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 cursor.execute(query, parameters)
             else:
                 cursor.execute(query)
-            # Convert rows to dictionaries
             columns = (
                 [description[0] for description in cursor.description] if cursor.description else []
             )
             rows = cursor.fetchall()
-            return [dict(zip(columns, row)) for row in rows]
+            return [dict(zip(columns, row, strict=False)) for row in rows]
         finally:
             cursor.close()
 
     async def execute_command(
         self,
         command: str,
-        parameters: Optional[Dict[str, Any]] = None,
-        transaction_id: Optional[str] = None,
+        parameters: dict[str, Any] | None = None,
+        transaction_id: str | None = None,
     ) -> int:
         """
         Execute a non-SELECT command (INSERT, UPDATE, DELETE).
@@ -233,10 +229,10 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def execute_batch(
         self,
-        commands: List[str],
-        parameters: Optional[List[Dict[str, Any]]] = None,
-        transaction_id: Optional[str] = None,
-    ) -> List[int]:
+        commands: list[str],
+        parameters: list[dict[str, Any]] | None = None,
+        transaction_id: str | None = None,
+    ) -> list[int]:
         """
         Execute multiple commands in batch.
         Args:
@@ -265,7 +261,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     # Schema management
     async def create_table(
-        self, table_name: str, schema: Dict[str, Any], if_not_exists: bool = True
+        self, table_name: str, schema: dict[str, Any], if_not_exists: bool = True
     ) -> bool:
         """
         Create a database table.
@@ -277,7 +273,6 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             True if table creation was successful
         """
         try:
-            # Build CREATE TABLE statement from schema
             columns = []
             for column_name, column_def in schema.items():
                 if isinstance(column_def, str):
@@ -333,7 +328,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    async def get_table_schema(self, table_name: str) -> Optional[Dict[str, Any]]:
+    async def get_table_schema(self, table_name: str) -> dict[str, Any] | None:
         """
         Get the schema of a table.
         Args:
@@ -361,7 +356,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         index_name: str,
         table_name: str,
-        columns: List[str],
+        columns: list[str],
         unique: bool = False,
         if_not_exists: bool = True,
     ) -> bool:
@@ -416,7 +411,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    async def analyze(self, table_name: Optional[str] = None) -> bool:
+    async def analyze(self, table_name: str | None = None) -> bool:
         """
         Analyze database statistics.
         Args:
@@ -433,7 +428,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    async def get_database_info(self) -> Dict[str, Any]:
+    async def get_database_info(self) -> dict[str, Any]:
         """
         Get database information and statistics.
         Returns:
@@ -467,7 +462,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return {"error": "Failed to get database info"}
 
-    async def get_table_info(self, table_name: str) -> Optional[Dict[str, Any]]:
+    async def get_table_info(self, table_name: str) -> dict[str, Any] | None:
         """
         Get information about a specific table.
         Args:
@@ -479,7 +474,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             # Check if table exists
             if not await self.table_exists(table_name):
                 return None
-            info: Dict[str, Any] = {"name": table_name}
+            info: dict[str, Any] = {"name": table_name}
             # Get row count
             count_result = await self.execute_query(f"SELECT COUNT(*) as count FROM {table_name}")
             if count_result:
@@ -493,13 +488,13 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             return None
 
     # Health and diagnostics
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform database health check.
         Returns:
             Health status information
         """
-        health: Dict[str, Any] = {
+        health: dict[str, Any] = {
             "connected": await self.is_connected(),
             "file_exists": self.db_path.exists(),
             "readable": False,
@@ -523,7 +518,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         )
         return health
 
-    async def get_connection_info(self) -> Dict[str, Any]:
+    async def get_connection_info(self) -> dict[str, Any]:
         """
         Get connection information and status.
         Returns:
@@ -537,14 +532,14 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             "transaction_ids": list(self._active_transactions.keys()),
         }
 
-    async def get_performance_stats(self) -> Dict[str, Any]:
+    async def get_performance_stats(self) -> dict[str, Any]:
         """
         Get database performance statistics.
         Returns:
             Performance statistics
         """
         try:
-            stats: Dict[str, Any] = {}
+            stats: dict[str, Any] = {}
             # Database size
             if self.db_path.exists():
                 stats["file_size_bytes"] = self.db_path.stat().st_size
@@ -553,7 +548,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 "SELECT name FROM sqlite_master WHERE type='table'"
             )
             stats["table_count"] = len(tables_result)
-            tables_dict: Dict[str, Any] = {}
+            tables_dict: dict[str, Any] = {}
             for table_row in tables_result:
                 table_name = table_row["name"]
                 table_info = await self.get_table_info(table_name)
@@ -564,7 +559,16 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return {"error": "Failed to get performance stats"}
 
-    def _get_connection(self, transaction_id: Optional[str] = None) -> Optional[sqlite3.Connection]:
+    @property
+    def connection(self) -> sqlite3.Connection | None:
+        """
+        Get the SQLite connection.
+        Returns:
+            SQLite connection or None if not connected
+        """
+        return self._connection
+
+    def _get_connection(self, transaction_id: str | None = None) -> sqlite3.Connection | None:
         """
         Get the appropriate connection for the transaction.
         Args:

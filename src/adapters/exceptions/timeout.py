@@ -2,7 +2,7 @@
 Timeout-related infrastructure exceptions.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -18,10 +18,10 @@ class TimeoutException(InfrastructureException):
         self,
         operation: str,
         timeout_duration: float,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        message: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize timeout exception.
@@ -60,10 +60,10 @@ class DatabaseTimeoutException(TimeoutException):
         self,
         operation: str,
         timeout_duration: float,
-        query: Optional[str] = None,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        query: str | None = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize database timeout exception.
@@ -104,9 +104,9 @@ class HTTPTimeoutException(TimeoutException):
         url: str,
         method: str,
         timeout_duration: float,
-        error_code: Optional[str] = None,
-        context: Optional[Dict[str, Any]] = None,
-        original_error: Optional[Exception] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        original_error: Exception | None = None,
     ):
         """
         Initialize HTTP timeout exception.

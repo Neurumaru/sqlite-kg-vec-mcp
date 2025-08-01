@@ -4,7 +4,7 @@
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -22,11 +22,11 @@ class EmbeddingResult:
     """
 
     text: str  # 임베딩된 원본 텍스트
-    embedding: List[float]  # 임베딩 벡터 값들
+    embedding: list[float]  # 임베딩 벡터 값들
     model_name: str  # 사용된 임베딩 모델명
     dimension: int  # 임베딩 벡터의 차원 수
-    metadata: Dict[str, Any] = field(default_factory=dict)  # 추가 메타데이터
-    processing_time_ms: Optional[float] = None  # 처리 시간 (밀리초)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    processing_time_ms: float | None = None  # 처리 시간 (밀리초)
 
     def __post_init__(self) -> None:
         """
@@ -52,7 +52,7 @@ class EmbeddingResult:
 
         # embedding 값들 검증
         for i, value in enumerate(self.embedding):
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, int | float):
                 raise TypeError(
                     f"embedding 인덱스 {i}의 값은 숫자여야 합니다. 받은 타입: {type(value)}"
                 )
@@ -90,7 +90,7 @@ class EmbeddingResult:
 
         # processing_time_ms 검증
         if self.processing_time_ms is not None:
-            if not isinstance(self.processing_time_ms, (int, float)):
+            if not isinstance(self.processing_time_ms, int | float):
                 raise TypeError("processing_time_ms는 숫자여야 합니다")
 
             if self.processing_time_ms < 0:

@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from src.dto import EventData
 
@@ -25,7 +24,7 @@ class EventPublisher(ABC):
         """
 
     @abstractmethod
-    async def publish_batch(self, events: List[EventData]) -> None:
+    async def publish_batch(self, events: list[EventData]) -> None:
         """
         여러 이벤트를 배치로 발행합니다.
 

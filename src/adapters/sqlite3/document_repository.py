@@ -5,7 +5,7 @@ SQLite implementation of the DocumentRepository port.
 import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
 from src.domain.exceptions.document_exceptions import (
@@ -16,7 +16,9 @@ from src.domain.exceptions.document_exceptions import (
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
-from src.dto import DocumentData
+from src.dto import (
+    DocumentData,
+)
 from src.dto import DocumentStatus as DTODocumentStatus
 from src.dto import DocumentType as DTODocumentType
 from src.ports.database import Database
@@ -30,7 +32,7 @@ class SQLiteDocumentRepository(DocumentRepository):
     using SQLite as the underlying storage engine.
     """
 
-    def __init__(self, database: Database, logger: Optional[logging.Logger] = None):
+    def __init__(self, database: Database, logger: logging.Logger | None = None):
         """
         Initialize SQLite document repository adapter.
         Args:
@@ -109,10 +111,10 @@ class SQLiteDocumentRepository(DocumentRepository):
         if existing:
             raise DocumentAlreadyExistsException(str(doc_entity.id))
         await self._insert_document(doc_entity)
-        self.logger.info(f"Document saved: {doc_entity.id}")
+        self.logger.info("Document saved: %s", doc_entity.id)
         return document
 
-    async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
+    async def find_by_id(self, document_id: str) -> DocumentData | None:
         """
         ID로 문서를 찾습니다.
         Args:
@@ -123,7 +125,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         doc_entity = await self._get_document_by_id(DocumentId(value=document_id))
         return self._document_to_data(doc_entity) if doc_entity else None
 
-    async def find_by_title(self, title: str) -> List[Document]:
+    async def find_by_title(self, title: str) -> list[Document]:
         """
         제목으로 문서를 찾습니다.
         Args:
@@ -140,7 +142,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query, parameters)
         return [self._row_to_document(row) for row in rows]
 
-    async def find_by_status(self, status: DTODocumentStatus) -> List[DocumentData]:
+    async def find_by_status(self, status: DTODocumentStatus) -> list[DocumentData]:
         """
         상태로 문서를 찾습니다.
         Args:
@@ -158,7 +160,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         doc_entities = [self._row_to_document(row) for row in rows]
         return [self._document_to_data(doc) for doc in doc_entities]
 
-    async def find_by_type(self, doc_type: DocumentType) -> List[Document]:
+    async def find_by_type(self, doc_type: DocumentType) -> list[Document]:
         """
         타입으로 문서를 찾습니다.
         Args:
@@ -175,7 +177,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query, parameters)
         return [self._row_to_document(row) for row in rows]
 
-    async def find_all(self, limit: int = 100, offset: int = 0) -> List[Document]:
+    async def find_all(self, limit: int = 100, offset: int = 0) -> list[Document]:
         """
         모든 문서를 조회합니다.
         Args:
@@ -193,7 +195,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query, parameters)
         return [self._row_to_document(row) for row in rows]
 
-    async def find_by_date_range(self, start_date: datetime, end_date: datetime) -> List[Document]:
+    async def find_by_date_range(self, start_date: datetime, end_date: datetime) -> list[Document]:
         """
         날짜 범위로 문서를 찾습니다.
         Args:
@@ -214,7 +216,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query, parameters)
         return [self._row_to_document(row) for row in rows]
 
-    async def search_content(self, query_text: str, limit: int = 10) -> List[Document]:
+    async def search_content(self, query_text: str, limit: int = 10) -> list[Document]:
         """
         문서 내용을 검색합니다.
         Args:
@@ -271,15 +273,15 @@ class SQLiteDocumentRepository(DocumentRepository):
         # 버전 증가
         doc_entity.increment_version()
         await self._update_document(doc_entity)
-        self.logger.info(f"Document updated: {doc_entity.id}, version: {doc_entity.version}")
+        self.logger.info("Document updated: %s, version: %s", doc_entity.id, doc_entity.version)
         # Return updated DTO
         return self._document_to_data(doc_entity)
 
     async def update_with_knowledge(
         self,
         document: DocumentData,
-        node_ids: List[str],
-        relationship_ids: List[str],
+        node_ids: list[str],
+        relationship_ids: list[str],
     ) -> DocumentData:
         """
         문서를 지식 요소들과 함께 업데이트합니다.
@@ -322,7 +324,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         affected_rows = await self.database.execute_command(command, parameters)
         success = affected_rows > 0
         if success:
-            self.logger.info(f"Document deleted: {document_id}")
+            self.logger.info("Document deleted: %s", document_id)
         return success
 
     async def exists(self, document_id: str) -> bool:
@@ -361,7 +363,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query)
         return rows[0]["count"] if rows else 0
 
-    async def find_with_connected_elements(self) -> List[Document]:
+    async def find_with_connected_elements(self) -> list[Document]:
         """
         연결된 노드나 관계가 있는 문서들을 찾습니다.
         Returns:
@@ -377,7 +379,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         rows = await self.database.execute_query(query)
         return [self._row_to_document(row) for row in rows]
 
-    async def find_unprocessed(self, limit: int = 100) -> List[DocumentData]:
+    async def find_unprocessed(self, limit: int = 100) -> list[DocumentData]:
         """
         처리되지 않은 문서들을 찾습니다.
         Args:
@@ -397,7 +399,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         return [self._document_to_data(doc) for doc in doc_entities]
 
     async def bulk_update_status(
-        self, document_ids: List[DocumentId], status: DocumentStatus
+        self, document_ids: list[DocumentId], status: DocumentStatus
     ) -> int:
         """
         여러 문서의 상태를 일괄 업데이트합니다.
@@ -424,11 +426,11 @@ class SQLiteDocumentRepository(DocumentRepository):
         for i, doc_id in enumerate(document_ids):
             parameters[f"id_{i}"] = str(doc_id)
         affected_rows = await self.database.execute_command(command, parameters)
-        self.logger.info(f"Bulk updated {affected_rows} documents to status {status.value}")
+        self.logger.info("Bulk updated %s documents to status %s", affected_rows, status.value)
         return affected_rows
 
     # Private helper methods
-    async def _get_document_by_id(self, document_id: DocumentId) -> Optional[Document]:
+    async def _get_document_by_id(self, document_id: DocumentId) -> Document | None:
         """문서 ID로 문서를 조회하는 내부 메서드."""
         query = "SELECT * FROM documents WHERE id = ?"
         parameters = {"id": str(document_id)}
@@ -488,7 +490,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         }
         await self.database.execute_command(command, parameters)
 
-    def _row_to_document(self, row: Dict[str, Any]) -> Document:
+    def _row_to_document(self, row: dict[str, Any]) -> Document:
         """데이터베이스 행을 Document 엔티티로 변환하는 내부 메서드."""
         # JSON 필드 파싱
         metadata = json.loads(row["metadata"]) if row["metadata"] else {}

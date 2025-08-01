@@ -4,7 +4,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -14,7 +14,7 @@ class NotificationMessage:
     recipient: str  # 수신자 (이메일, 전화번호, 사용자ID 등)
     title: str
     body: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class Notificator(ABC):
@@ -37,7 +37,7 @@ class Notificator(ABC):
         """
 
     @abstractmethod
-    async def send_batch_notifications(self, messages: List[NotificationMessage]) -> bool:
+    async def send_batch_notifications(self, messages: list[NotificationMessage]) -> bool:
         """
         여러 알림을 배치로 발송합니다.
 

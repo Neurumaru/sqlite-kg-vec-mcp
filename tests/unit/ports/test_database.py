@@ -17,7 +17,7 @@ class TestDatabaseInterface(unittest.TestCase):
 
         # 직접 인스턴스화할 수 없어야 함
         with self.assertRaises(TypeError):
-            Database()
+            Database()  # pylint: disable=abstract-class-instantiated
 
     def test_core_database_methods_exist(self):
         """핵심 Database 인터페이스의 추상 메서드들이 정의되어 있는지 테스트."""
@@ -77,7 +77,7 @@ class TestDatabaseInterface(unittest.TestCase):
 
         # 각 인터페이스를 독립적으로 인스턴스화할 수 없어야 함
         with self.assertRaises(TypeError):
-            DatabaseMaintenance()
+            DatabaseMaintenance()  # pylint: disable=abstract-class-instantiated
 
 
 if __name__ == "__main__":

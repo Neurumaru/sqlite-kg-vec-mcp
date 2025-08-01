@@ -5,7 +5,6 @@ Database configuration settings.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -41,7 +40,7 @@ class DatabaseConfig(BaseSettings):
 
     backup_interval: int = Field(default=3600, description="Backup interval in seconds")
 
-    backup_path: Optional[str] = Field(default=None, description="Path for database backups")
+    backup_path: str | None = Field(default=None, description="Path for database backups")
 
     @field_validator("db_path")
     @classmethod
@@ -62,7 +61,7 @@ class DatabaseConfig(BaseSettings):
 
     @field_validator("backup_path")
     @classmethod
-    def validate_backup_path(cls, v: Optional[str]) -> Optional[str]:
+    def validate_backup_path(cls, v: str | None) -> str | None:
         """Validate backup path format if provided."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
             raise ValueError("Backup path must be a non-empty string")
@@ -76,7 +75,7 @@ class DatabaseConfig(BaseSettings):
         return path.parent
 
     @property
-    def backup_directory(self) -> Optional[Path]:
+    def backup_directory(self) -> Path | None:
         """Get backup directory path, creating it if needed."""
         if self.backup_path is None:
             return None

@@ -4,7 +4,7 @@ Document 트랜잭션 통합 테스트.
 
 import asyncio
 import unittest
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock
 
 from src.adapters.sqlite3.document_repository import SQLiteDocumentRepository
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
@@ -19,9 +19,13 @@ from src.domain.services.document_processor import (
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
-from src.dto import NodeData
+from src.dto import (
+    NodeData,
+)
 from src.dto import NodeType as DTONodeType
-from src.dto import RelationshipData
+from src.dto import (
+    RelationshipData,
+)
 from src.dto import RelationshipType as DTORelationshipType
 
 
@@ -31,7 +35,7 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         """테스트 설정."""
         # Mock 데이터베이스
-        self.mock_database = Mock()
+        self.mock_database = AsyncMock()
 
         # Mock transaction context manager
         transaction_mock = MagicMock()
@@ -372,7 +376,7 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
         # When: 모든 프로세서를 동시에 실행
         tasks = [
             processor.process_document(document)
-            for processor, document in zip(processors, documents)
+            for processor, document in zip(processors, documents, strict=False)
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)

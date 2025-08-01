@@ -4,7 +4,6 @@
 
 import math
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass(frozen=True)
@@ -16,12 +15,12 @@ class Vector:
     벡터 간 유사도 계산 기능을 제공합니다.
     """
 
-    values: List[float]
+    values: list[float]
 
     def __post_init__(self):
         if not self.values:
             raise ValueError("Vector cannot be empty")
-        if not all(isinstance(v, (int, float)) for v in self.values):
+        if not all(isinstance(v, int | float) for v in self.values):
             raise ValueError("Vector values must be numeric")
 
     @property
@@ -38,7 +37,7 @@ class Vector:
         if self.dimension != other.dimension:
             raise ValueError("Vectors must have the same dimension")
 
-        dot_product = sum(a * b for a, b in zip(self.values, other.values))
+        dot_product = sum(a * b for a, b in zip(self.values, other.values, strict=False))
         magnitude_product = self.magnitude() * other.magnitude()
 
         if magnitude_product == 0:
@@ -51,7 +50,7 @@ class Vector:
         if self.dimension != other.dimension:
             raise ValueError("Vectors must have the same dimension")
 
-        return math.sqrt(sum((a - b) ** 2 for a, b in zip(self.values, other.values)))
+        return math.sqrt(sum((a - b) ** 2 for a, b in zip(self.values, other.values, strict=False)))
 
     def normalize(self) -> "Vector":
         """벡터 정규화."""

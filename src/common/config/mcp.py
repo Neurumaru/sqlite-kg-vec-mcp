@@ -5,7 +5,6 @@ MCP (Model Context Protocol) server configuration settings.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -31,7 +30,7 @@ class MCPConfig(BaseSettings):
     port: int = Field(default=8000, description="Server port number")
 
     # Vector settings
-    vector_index_dir: Optional[str] = Field(
+    vector_index_dir: str | None = Field(
         default=None, description="Directory for storing vector index files"
     )
 
@@ -116,14 +115,14 @@ class MCPConfig(BaseSettings):
 
     @field_validator("vector_index_dir")
     @classmethod
-    def validate_vector_index_dir(cls, v: Optional[str]) -> Optional[str]:
+    def validate_vector_index_dir(cls, v: str | None) -> str | None:
         """Validate vector index directory format."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
             raise ValueError("Vector index directory must be a non-empty string")
         return v
 
     @property
-    def vector_index_directory(self) -> Optional[Path]:
+    def vector_index_directory(self) -> Path | None:
         """Get vector index directory path, creating it if needed."""
         if self.vector_index_dir is None:
             return None

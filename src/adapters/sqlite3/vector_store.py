@@ -8,7 +8,9 @@ import shutil
 import sqlite3
 import struct
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
+
+from langchain_core.documents import Document
 
 from src.domain import Vector
 from src.ports.vector_store import VectorStore
@@ -35,8 +37,8 @@ class SQLiteVectorStore(VectorStore):
         self.table_name = table_name
         self.optimize = optimize
         self._connection_manager = DatabaseConnection(db_path, optimize)
-        self._connection: Optional[sqlite3.Connection] = None
-        self._dimension: Optional[int] = None
+        self._connection: sqlite3.Connection | None = None
+        self._dimension: int | None = None
         self._metric: str = "cosine"
 
     # Store management
@@ -44,7 +46,7 @@ class SQLiteVectorStore(VectorStore):
         self,
         dimension: int,
         metric: str = "cosine",
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
     ) -> bool:
         """
         Initialize the vector store.
@@ -153,7 +155,7 @@ class SQLiteVectorStore(VectorStore):
 
     # Vector operations
     async def add_vector(
-        self, vector_id: str, vector: Vector, metadata: Optional[Dict[str, Any]] = None
+        self, vector_id: str, vector: Vector, metadata: dict[str, Any] | None = None
     ) -> bool:
         """
         Add a vector to the store.
@@ -187,8 +189,8 @@ class SQLiteVectorStore(VectorStore):
 
     async def add_vectors(
         self,
-        vectors: Dict[str, Vector],
-        metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+        vectors: dict[str, Vector],
+        metadata: dict[str, dict[str, Any]] | None = None,
     ) -> bool:
         """
         Add multiple vectors to the store in batch.
@@ -223,7 +225,7 @@ class SQLiteVectorStore(VectorStore):
         except Exception:
             return False
 
-    async def get_vector(self, vector_id: str) -> Optional[Vector]:
+    async def get_vector(self, vector_id: str) -> Vector | None:
         """
         Retrieve a vector by ID.
         Args:
@@ -249,7 +251,7 @@ class SQLiteVectorStore(VectorStore):
         except Exception:
             return None
 
-    async def get_vectors(self, vector_ids: List[str]) -> Dict[str, Optional[Vector]]:
+    async def get_vectors(self, vector_ids: list[str]) -> dict[str, Vector | None]:
         """
         Retrieve multiple vectors by IDs.
         Args:
@@ -259,7 +261,7 @@ class SQLiteVectorStore(VectorStore):
         """
         try:
             if not self._connection:
-                return {vid: None for vid in vector_ids}
+                return dict.fromkeys(vector_ids)
             cursor = self._connection.cursor()
             # Create placeholders for IN clause
             placeholders = ", ".join("?" * len(vector_ids))
@@ -273,16 +275,16 @@ class SQLiteVectorStore(VectorStore):
             rows = cursor.fetchall()
             cursor.close()
             # Build result dictionary
-            result: Dict[str, Optional[Vector]] = {vid: None for vid in vector_ids}
+            result: dict[str, Vector | None] = dict.fromkeys(vector_ids)
             for row in rows:
                 vector_id, vector_blob = row
                 result[vector_id] = self._blob_to_vector(vector_blob)
             return result
         except Exception:
-            return {vid: None for vid in vector_ids}
+            return dict.fromkeys(vector_ids)
 
     async def update_vector(
-        self, vector_id: str, vector: Vector, metadata: Optional[Dict[str, Any]] = None
+        self, vector_id: str, vector: Vector, metadata: dict[str, Any] | None = None
     ) -> bool:
         """
         Update an existing vector.
@@ -321,7 +323,7 @@ class SQLiteVectorStore(VectorStore):
         except Exception:
             return False
 
-    async def delete_vectors(self, vector_ids: List[str]) -> int:
+    async def delete_vectors(self, vector_ids: list[str]) -> int:
         """
         Delete multiple vectors from the store.
         Args:
@@ -376,8 +378,8 @@ class SQLiteVectorStore(VectorStore):
         self,
         query_vector: Vector,
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None,
-    ) -> List[Tuple[str, float]]:
+        filter_criteria: dict[str, Any] | None = None,
+    ) -> list[tuple[str, float]]:
         """
         Search for similar vectors using basic similarity calculation.
         Note: This is a basic implementation without sqlite-vec extension.
@@ -429,8 +431,8 @@ class SQLiteVectorStore(VectorStore):
         self,
         query_vector: Vector,
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None,
-    ) -> List[Tuple[str, Vector, float]]:
+        filter_criteria: dict[str, Any] | None = None,
+    ) -> list[tuple[str, Vector, float]]:
         """
         Search for similar vectors and return the vectors themselves.
         Args:
@@ -457,8 +459,8 @@ class SQLiteVectorStore(VectorStore):
             return []
 
     async def search_by_ids(
-        self, query_vector: Vector, candidate_ids: List[str], k: Optional[int] = None
-    ) -> List[Tuple[str, float]]:
+        self, query_vector: Vector, candidate_ids: list[str], k: int | None = None
+    ) -> list[tuple[str, float]]:
         """
         Search within a specific set of vector IDs.
         Args:
@@ -485,10 +487,10 @@ class SQLiteVectorStore(VectorStore):
 
     async def batch_search(
         self,
-        query_vectors: List[Vector],
+        query_vectors: list[Vector],
         k: int = 10,
-        filter_criteria: Optional[Dict[str, Any]] = None,
-    ) -> List[List[Tuple[str, float]]]:
+        filter_criteria: dict[str, Any] | None = None,
+    ) -> list[list[tuple[str, float]]]:
         """
         Perform batch search for multiple query vectors.
         Args:
@@ -508,7 +510,7 @@ class SQLiteVectorStore(VectorStore):
             return [[] for _ in query_vectors]
 
     # Metadata operations
-    async def get_metadata(self, vector_id: str) -> Optional[Dict[str, Any]]:
+    async def get_metadata(self, vector_id: str) -> dict[str, Any] | None:
         """
         Get metadata for a vector.
         Args:
@@ -534,7 +536,7 @@ class SQLiteVectorStore(VectorStore):
         except Exception:
             return None
 
-    async def update_metadata(self, vector_id: str, metadata: Dict[str, Any]) -> bool:
+    async def update_metadata(self, vector_id: str, metadata: dict[str, Any]) -> bool:
         """
         Update metadata for a vector.
         Args:
@@ -564,8 +566,8 @@ class SQLiteVectorStore(VectorStore):
             return False
 
     async def search_by_metadata(
-        self, filter_criteria: Dict[str, Any], limit: int = 100
-    ) -> List[str]:
+        self, filter_criteria: dict[str, Any], limit: int = 100
+    ) -> list[str]:
         """
         Search vectors by metadata criteria.
         Args:
@@ -598,7 +600,7 @@ class SQLiteVectorStore(VectorStore):
             return []
 
     # Store information and maintenance
-    async def get_store_info(self) -> Dict[str, Any]:
+    async def get_store_info(self) -> dict[str, Any]:
         """
         Get information about the vector store.
         Returns:
@@ -646,7 +648,7 @@ class SQLiteVectorStore(VectorStore):
         """
         return self._dimension or 0
 
-    async def optimize_store(self) -> Dict[str, Any]:
+    async def optimize_store(self) -> dict[str, Any]:
         """
         Optimize the vector store for better performance.
         Returns:
@@ -665,7 +667,7 @@ class SQLiteVectorStore(VectorStore):
         except Exception as exception:
             return {"error": f"Optimization failed: {str(exception)}"}
 
-    async def rebuild_index(self, parameters: Optional[Dict[str, Any]] = None) -> bool:
+    async def rebuild_index(self, parameters: dict[str, Any] | None = None) -> bool:
         """
         Rebuild the vector index.
         Args:
@@ -753,13 +755,13 @@ class SQLiteVectorStore(VectorStore):
             return False
 
     # Health and diagnostics
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform health check on the vector store.
         Returns:
             Health status information
         """
-        health: Dict[str, Any] = {
+        health: dict[str, Any] = {
             "connected": await self.is_connected(),
             "table_exists": False,
             "config_loaded": self._dimension is not None,
@@ -784,7 +786,7 @@ class SQLiteVectorStore(VectorStore):
         )
         return health
 
-    async def get_performance_stats(self) -> Dict[str, Any]:
+    async def get_performance_stats(self) -> dict[str, Any]:
         """
         Get performance statistics for the vector store.
         Returns:
@@ -804,7 +806,7 @@ class SQLiteVectorStore(VectorStore):
             return {"error": "Failed to get performance stats"}
 
     # Helper methods
-    def _vector_to_blob(self, vector: Union[Vector, List[float]]) -> bytes:
+    def _vector_to_blob(self, vector: Vector | list[float]) -> bytes:
         """Convert Vector to bytes for storage."""
         if hasattr(vector, "values"):
             values = vector.values
@@ -818,7 +820,7 @@ class SQLiteVectorStore(VectorStore):
         return Vector(values)
 
     def _calculate_similarity(
-        self, vector1: Union[Vector, List[float]], vector2: Union[Vector, List[float]]
+        self, vector1: Vector | list[float], vector2: Vector | list[float]
     ) -> float:
         """Calculate cosine similarity between two vectors."""
         try:
@@ -829,7 +831,7 @@ class SQLiteVectorStore(VectorStore):
             if len(v1_values) != len(v2_values):
                 return 0.0
             # Calculate dot product and magnitudes
-            dot_product = sum(a * b for a, b in zip(v1_values, v2_values))
+            dot_product = sum(a * b for a, b in zip(v1_values, v2_values, strict=False))
             magnitude1 = math.sqrt(sum(a * a for a in v1_values))
             magnitude2 = math.sqrt(sum(a * a for a in v2_values))
             if magnitude1 == 0 or magnitude2 == 0:
@@ -861,3 +863,64 @@ class SQLiteVectorStore(VectorStore):
         except Exception:
             # Config table might not exist yet
             pass
+
+    # Implement abstract methods from VectorStore (LangChain compatibility)
+    async def add_documents(self, documents: list[Document], **kwargs: Any) -> list[str]:
+        raise NotImplementedError("add_documents not implemented for SQLiteVectorStore")
+
+    async def similarity_search(
+        self,
+        query: str,
+        k: int = 4,
+        **kwargs: Any,
+    ) -> list[Document]:
+        # This can be implemented by embedding the query and calling search_similar
+        raise NotImplementedError("similarity_search not implemented for SQLiteVectorStore")
+
+    async def similarity_search_with_score(
+        self,
+        query: str,
+        k: int = 4,
+        **kwargs: Any,
+    ) -> list[tuple[Document, float]]:
+        # This can be implemented by embedding the query and calling search_similar
+        raise NotImplementedError(
+            "similarity_search_with_score not implemented for SQLiteVectorStore"
+        )
+
+    async def similarity_search_by_vector(
+        self,
+        embedding: list[float],
+        k: int = 4,
+        **kwargs: Any,
+    ) -> list[Document]:
+        # This can be implemented by calling search_similar directly
+        raise NotImplementedError(
+            "similarity_search_by_vector not implemented for SQLiteVectorStore"
+        )
+
+    async def delete(self, ids: list[str] | None = None, **kwargs: Any) -> bool | None:
+        # This can be implemented by calling delete_vectors
+        raise NotImplementedError("delete not implemented for SQLiteVectorStore")
+
+    @classmethod
+    async def from_documents(
+        cls,
+        documents: list[Document],
+        embedding: Any,
+        **kwargs: Any,
+    ) -> "VectorStore":
+        raise NotImplementedError("from_documents not implemented for SQLiteVectorStore")
+
+    @classmethod
+    async def from_texts(
+        cls,
+        texts: list[str],
+        embedding: Any,
+        metadatas: list[dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> "VectorStore":
+        raise NotImplementedError("from_texts not implemented for SQLiteVectorStore")
+
+    def as_retriever(self, **kwargs: Any) -> Any:
+        raise NotImplementedError("as_retriever not implemented for SQLiteVectorStore")

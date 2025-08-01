@@ -4,7 +4,7 @@
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -18,9 +18,9 @@ class VectorData:
         metadata: 벡터와 관련된 추가 메타데이터
     """
 
-    values: List[float]  # 벡터의 실제 값들
+    values: list[float]  # 벡터의 실제 값들
     dimension: int  # 벡터의 차원 수
-    metadata: Dict[str, Any] = field(default_factory=dict)  # 추가 메타데이터
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """
@@ -40,7 +40,7 @@ class VectorData:
 
         # 모든 값이 숫자인지 검증
         for i, value in enumerate(self.values):
-            if not isinstance(value, (int, float)):
+            if not isinstance(value, int | float):
                 raise TypeError(f"인덱스 {i}의 값은 숫자여야 합니다. 받은 타입: {type(value)}")
             # NaN이나 무한대 값 검증
             if math.isnan(value):  # NaN 체크

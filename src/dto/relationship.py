@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class RelationshipType(Enum):
@@ -44,12 +44,12 @@ class RelationshipData:
     source_node_id: str  # 시작 노드 식별자
     target_node_id: str  # 끝 노드 식별자
     relationship_type: RelationshipType  # 관계 타입
-    properties: Dict[str, Any]  # 관계 속성
-    embedding: Optional[List[float]] = None  # 임베딩 벡터
-    created_at: Optional[datetime] = None  # 생성 시각
-    updated_at: Optional[datetime] = None  # 업데이트 시각
-    source_documents: List[str] = field(default_factory=list)  # 원본 문서 목록
-    confidence_score: Optional[float] = None  # 신뢰도 점수
+    properties: dict[str, Any]  # 관계 속성
+    embedding: list[float] | None = None  # 임베딩 벡터
+    created_at: datetime | None = None  # 생성 시각
+    updated_at: datetime | None = None  # 업데이트 시각
+    source_documents: list[str] = field(default_factory=list)  # 원본 문서 목록
+    confidence_score: float | None = None  # 신뢰도 점수
 
     def __post_init__(self) -> None:
         """
@@ -103,7 +103,7 @@ class RelationshipData:
                 raise ValueError("embedding이 제공된 경우 비어있을 수 없습니다")
 
             for i, value in enumerate(self.embedding):
-                if not isinstance(value, (int, float)):
+                if not isinstance(value, int | float):
                     raise TypeError(f"embedding[{i}]는 숫자여야 합니다. 받은 타입: {type(value)}")
 
                 # NaN이나 무한대 값 검증
@@ -140,7 +140,7 @@ class RelationshipData:
 
         # confidence_score 검증
         if self.confidence_score is not None:
-            if not isinstance(self.confidence_score, (int, float)):
+            if not isinstance(self.confidence_score, int | float):
                 raise TypeError("confidence_score는 숫자여야 합니다")
 
             if 0.0 > self.confidence_score or self.confidence_score > 1.0:

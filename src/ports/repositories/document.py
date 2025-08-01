@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from src.dto import DocumentData, DocumentStatus
 
@@ -33,7 +32,7 @@ class DocumentRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
+    async def find_by_id(self, document_id: str) -> DocumentData | None:
         """
         ID로 문서를 찾습니다.
 
@@ -82,7 +81,7 @@ class DocumentRepository(ABC):
 
     # 실제 사용되는 특수 기능들
     @abstractmethod
-    async def find_by_status(self, status: DocumentStatus) -> List[DocumentData]:
+    async def find_by_status(self, status: DocumentStatus) -> list[DocumentData]:
         """
         상태로 문서를 찾습니다.
 
@@ -94,7 +93,7 @@ class DocumentRepository(ABC):
         """
 
     @abstractmethod
-    async def find_unprocessed(self, limit: int = 100) -> List[DocumentData]:
+    async def find_unprocessed(self, limit: int = 100) -> list[DocumentData]:
         """
         처리되지 않은 문서들을 찾습니다.
 
@@ -109,8 +108,8 @@ class DocumentRepository(ABC):
     async def update_with_knowledge(
         self,
         document: DocumentData,
-        node_ids: List[str],
-        relationship_ids: List[str],
+        node_ids: list[str],
+        relationship_ids: list[str],
     ) -> DocumentData:
         """
         문서를 지식 요소들과 함께 업데이트합니다.

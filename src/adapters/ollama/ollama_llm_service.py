@@ -6,7 +6,8 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union, cast
+from collections.abc import AsyncGenerator
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, BaseMessage
 
@@ -29,10 +30,10 @@ class OllamaLLMService(LLM):
 
     def __init__(
         self,
-        ollama_client: Optional[OllamaClient] = None,
-        config: Optional[OllamaConfig] = None,
-        default_temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        ollama_client: OllamaClient | None = None,
+        config: OllamaConfig | None = None,
+        default_temperature: float | None = None,
+        max_tokens: int | None = None,
     ):
         """
         Initialize Ollama LLM service.
@@ -57,7 +58,7 @@ class OllamaLLMService(LLM):
 
     async def invoke(
         self,
-        messages: List[BaseMessage],
+        messages: list[BaseMessage],
         **kwargs: Any,
     ) -> BaseMessage:
         """
@@ -89,7 +90,7 @@ class OllamaLLMService(LLM):
 
     async def stream(
         self,
-        messages: List[BaseMessage],
+        messages: list[BaseMessage],
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
         """
@@ -127,9 +128,9 @@ class OllamaLLMService(LLM):
 
     async def batch(
         self,
-        inputs: List[List[BaseMessage]],
+        inputs: list[list[BaseMessage]],
         **kwargs: Any,
-    ) -> List[BaseMessage]:
+    ) -> list[BaseMessage]:
         """
         Process multiple message sequences in batch (LangChain batch style).
 
@@ -150,7 +151,7 @@ class OllamaLLMService(LLM):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process results and handle exceptions
-        processed_results: List[BaseMessage] = []
+        processed_results: list[BaseMessage] = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 # Create error message for failed requests
@@ -166,7 +167,7 @@ class OllamaLLMService(LLM):
 
         return processed_results
 
-    def _messages_to_text(self, messages: List[BaseMessage]) -> str:
+    def _messages_to_text(self, messages: list[BaseMessage]) -> str:
         """Convert BaseMessage list to text."""
         text_parts = []
         for message in messages:
@@ -183,8 +184,8 @@ class OllamaLLMService(LLM):
     # Interactive search guidance
 
     async def analyze_query(
-        self, query: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, query: str, context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Analyze a search query to determine optimal search strategy."""
         system_prompt = """You are an expert search analyst. Analyze the given query and recommend the best search strategy.
 
@@ -218,7 +219,7 @@ class OllamaLLMService(LLM):
             result = self._parse_json_response(response.text)
             if isinstance(result, dict):
                 return result
-            raise ValueError("Expected dict response")
+            raise ValueError("Expected dict response") from None
         except Exception as exception:
             logging.warning("Failed to parse query analysis response: %s", exception)
             return {
@@ -231,11 +232,11 @@ class OllamaLLMService(LLM):
 
     async def guide_search_navigation(
         self,
-        current_results: List[SearchResult],
+        current_results: list[SearchResult],
         original_query: str,
-        search_history: List[Dict[str, Any]],
+        search_history: list[dict[str, Any]],
         step_number: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Guide the next step in interactive search navigation."""
         system_prompt = """You are a search navigation guide. Based on current results and search history, recommend the next search action.
 
@@ -279,7 +280,7 @@ class OllamaLLMService(LLM):
             result = self._parse_json_response(response.text)
             if isinstance(result, dict):
                 return result
-            raise ValueError("Expected dict response")
+            raise ValueError("Expected dict response") from None
         except Exception as exception:
             logging.warning("Failed to parse navigation guidance: %s", exception)
             return {
@@ -292,8 +293,8 @@ class OllamaLLMService(LLM):
             }
 
     async def evaluate_search_results(
-        self, results: List[SearchResult], query: str, search_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, results: list[SearchResult], query: str, search_context: dict[str, Any]
+    ) -> dict[str, Any]:
         """Evaluate search results quality and relevance."""
         system_prompt = """You are a search quality evaluator. Assess the relevance and quality of search results.
 
@@ -341,7 +342,7 @@ class OllamaLLMService(LLM):
             result = self._parse_json_response(response.text)
             if isinstance(result, dict):
                 return result
-            raise ValueError("Expected dict response")
+            raise ValueError("Expected dict response") from None
         except Exception as exception:
             logging.warning("Failed to parse result evaluation: %s", exception)
             return {
@@ -359,16 +360,15 @@ class OllamaLLMService(LLM):
     async def extract_knowledge_from_text(
         self,
         text: str,
-        extraction_schema: Optional[Dict[str, Any]] = None,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        extraction_schema: dict[str, Any] | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Extract structured knowledge from unstructured text."""
         # Use existing Ollama client method
         result = await asyncio.to_thread(
             self.ollama_client.extract_entities_and_relationships, text
         )
 
-        # Add extraction metadata
         result["extraction_metadata"] = {
             "text_length": len(text),
             "schema_used": extraction_schema is not None,
@@ -380,8 +380,8 @@ class OllamaLLMService(LLM):
 
     async def generate_entity_summary(
         self,
-        entity_data: Dict[str, Any],
-        related_entities: Optional[List[Dict[str, Any]]] = None,
+        entity_data: dict[str, Any],
+        related_entities: list[dict[str, Any]] | None = None,
     ) -> str:
         """Generate a summary for an entity based on its data and relationships."""
         # Use existing Ollama client method
@@ -393,10 +393,10 @@ class OllamaLLMService(LLM):
 
     async def suggest_relationships(
         self,
-        source_entity: Dict[str, Any],
-        target_entities: List[Dict[str, Any]],
-        context: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        source_entity: dict[str, Any],
+        target_entities: list[dict[str, Any]],
+        context: str | None = None,
+    ) -> list[dict[str, Any]]:
         """Suggest potential relationships between entities."""
         system_prompt = """You are a knowledge graph relationship expert. Suggest potential relationships between entities.
 
@@ -437,8 +437,8 @@ class OllamaLLMService(LLM):
     # Query enhancement
 
     async def expand_query(
-        self, original_query: str, search_context: Optional[Dict[str, Any]] = None
-    ) -> List[str]:
+        self, original_query: str, search_context: dict[str, Any] | None = None
+    ) -> list[str]:
         """Expand a query with related terms and concepts."""
         system_prompt = """You are a query expansion expert. Generate related terms and concepts for the given query.
 
@@ -468,8 +468,8 @@ class OllamaLLMService(LLM):
             return [original_query]
 
     async def generate_search_suggestions(
-        self, partial_query: str, search_history: Optional[List[str]] = None
-    ) -> List[str]:
+        self, partial_query: str, search_history: list[str] | None = None
+    ) -> list[str]:
         """Generate search suggestions for partial queries."""
         system_prompt = """You are a search suggestion generator. Complete and suggest variations of the partial query.
 
@@ -503,8 +503,8 @@ class OllamaLLMService(LLM):
     # Content analysis
 
     async def classify_content(
-        self, content: str, classification_schema: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, content: str, classification_schema: dict[str, Any]
+    ) -> dict[str, Any]:
         """Classify content according to a given schema."""
         system_prompt = f"""You are a content classifier. Classify the given content according to the provided schema.
 
@@ -526,7 +526,7 @@ class OllamaLLMService(LLM):
             result = self._parse_json_response(response.text)
             if isinstance(result, dict):
                 return result
-            raise ValueError("Expected dict response")
+            raise ValueError("Expected dict response") from None
         except Exception as exception:
             logging.warning("Failed to parse content classification: %s", exception)
             return {"error": "Classification failed", "confidence": 0.0}
@@ -555,7 +555,7 @@ class OllamaLLMService(LLM):
     # Streaming responses
 
     async def stream_analysis(
-        self, prompt: str, context: Optional[Dict[str, Any]] = None
+        self, prompt: str, context: dict[str, Any] | None = None
     ) -> AsyncGenerator[str, None]:
         """Stream analysis results for real-time processing."""
         context_str = f"Context: {json.dumps(context)}\n" if context else ""
@@ -620,7 +620,7 @@ class OllamaLLMService(LLM):
 
     # Configuration and health
 
-    async def get_model_info(self) -> Dict[str, Any]:
+    async def get_model_info(self) -> dict[str, Any]:
         """Get information about the current LLM model."""
         available_models = await asyncio.to_thread(self.ollama_client.list_available_models)
 
@@ -633,7 +633,7 @@ class OllamaLLMService(LLM):
             "provider": "ollama",
         }
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Check the health status of the LLM service."""
         try:
             # Test connection with a simple request
@@ -657,7 +657,7 @@ class OllamaLLMService(LLM):
                 "last_check": "now",
             }
 
-    async def get_usage_stats(self) -> Dict[str, Any]:
+    async def get_usage_stats(self) -> dict[str, Any]:
         """Get usage statistics for the LLM service."""
         # Note: This would require tracking usage in a real implementation
         return {
@@ -671,7 +671,7 @@ class OllamaLLMService(LLM):
 
     # Helper methods
 
-    def _parse_json_response(self, response_text: str) -> Union[Dict[str, Any], List[Any]]:
+    def _parse_json_response(self, response_text: str) -> dict[str, Any] | list[Any]:
         """Parse JSON response from LLM, handling common formatting issues."""
         response_text = response_text.strip()
 
@@ -688,11 +688,16 @@ class OllamaLLMService(LLM):
 
         try:
             parsed = json.loads(response_text)
-            return cast(Union[Dict[str, Any], List[Any]], parsed)
-        except json.JSONDecodeError:
+            return cast(dict[str, Any] | list[Any], parsed)
+        except json.JSONDecodeError as exception:
             # Try to extract JSON from response
             json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
             if json_match:
-                parsed = json.loads(json_match.group())
-                return cast(Union[Dict[str, Any], List[Any]], parsed)
-            raise ValueError(f"Could not parse JSON from response: {response_text}")
+                try:
+                    parsed = json.loads(json_match.group())
+                    return cast(dict[str, Any] | list[Any], parsed)
+                except json.JSONDecodeError as inner_exception:
+                    raise ValueError(
+                        f"Could not parse extracted JSON from response: {response_text}"
+                    ) from inner_exception
+            raise ValueError(f"No valid JSON found in response: {response_text}") from exception

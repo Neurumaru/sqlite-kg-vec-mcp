@@ -3,6 +3,7 @@ Integration tests for database components.
 """
 
 import shutil
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -161,7 +162,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         self.assertIsNotNone(result)
 
         # Try to create edge with non-existent entity (should fail)
-        with self.assertRaises(Exception):  # Should raise foreign key constraint error
+        with self.assertRaises(sqlite3.IntegrityError):  # Should raise foreign key constraint error
             cursor.execute(
                 """
                 INSERT INTO edges (source_id, target_id, relation_type, properties, created_at, updated_at)

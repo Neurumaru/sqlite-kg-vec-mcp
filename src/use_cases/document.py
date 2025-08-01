@@ -1,9 +1,8 @@
 """
-문서 관련 Use Cases 포트.
+Document-related Use Cases port.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
 
 from src.domain.entities.document import Document
 from src.domain.services.document_processor import KnowledgeExtractionResult
@@ -11,43 +10,43 @@ from src.domain.value_objects.document_id import DocumentId
 
 
 class DocumentManagementUseCase(ABC):
-    """문서 관리 Use Case 인터페이스."""
+    """Document management Use Case interface."""
 
     @abstractmethod
     async def create_document(
-        self, title: str, content: str, metadata: Optional[Dict] = None
+        self, title: str, content: str, metadata: dict | None = None
     ) -> Document:
-        """새 문서를 생성합니다.
+        """Create a new document.
 
         Args:
-            title: 문서 제목 (비어있지 않아야 함)
-            content: 문서 내용 (비어있지 않아야 함)
-            metadata: 추가 메타데이터
+            title: Document title (must not be empty)
+            content: Document content (must not be empty)
+            metadata: Additional metadata
 
         Returns:
-            생성된 Document 객체
+            Created Document object
 
         Raises:
-            ValueError: title 또는 content가 비어있는 경우
+            ValueError: When title or content is empty
         """
 
     @abstractmethod
-    async def get_document(self, document_id: DocumentId) -> Optional[Document]:
-        """문서를 조회합니다."""
+    async def get_document(self, document_id: DocumentId) -> Document | None:
+        """Retrieve a document."""
 
     @abstractmethod
     async def list_documents(
-        self, limit: Optional[int] = None, offset: Optional[int] = None
-    ) -> List[Document]:
-        """문서 목록을 조회합니다."""
+        self, limit: int | None = None, offset: int | None = None
+    ) -> list[Document]:
+        """Retrieve document list."""
 
     @abstractmethod
     async def update_document(
         self,
         document_id: DocumentId,
-        title: Optional[str] = None,
-        content: Optional[str] = None,
-        metadata: Optional[Dict] = None,
+        title: str | None = None,
+        content: str | None = None,
+        metadata: dict | None = None,
     ) -> Document:
         """문서를 업데이트합니다."""
 
@@ -88,8 +87,8 @@ class DocumentProcessingUseCase(ABC):
 
     @abstractmethod
     async def batch_process_documents(
-        self, document_ids: List[DocumentId], max_concurrent: int = 5
-    ) -> Dict[DocumentId, KnowledgeExtractionResult]:
+        self, document_ids: list[DocumentId], max_concurrent: int = 5
+    ) -> dict[DocumentId, KnowledgeExtractionResult]:
         """여러 문서를 일괄 처리합니다.
 
         Args:
