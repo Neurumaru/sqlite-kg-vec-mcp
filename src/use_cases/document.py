@@ -1,0 +1,103 @@
+"""
+Document-related Use Cases port.
+"""
+
+from abc import ABC, abstractmethod
+
+from src.domain.entities.document import Document
+from src.domain.services.document_processor import KnowledgeExtractionResult
+from src.domain.value_objects.document_id import DocumentId
+
+
+class DocumentManagementUseCase(ABC):
+    """Document management Use Case interface."""
+
+    @abstractmethod
+    async def create_document(
+        self, title: str, content: str, metadata: dict | None = None
+    ) -> Document:
+        """Create a new document.
+
+        Args:
+            title: Document title (must not be empty)
+            content: Document content (must not be empty)
+            metadata: Additional metadata
+
+        Returns:
+            Created Document object
+
+        Raises:
+            ValueError: When title or content is empty
+        """
+
+    @abstractmethod
+    async def get_document(self, document_id: DocumentId) -> Document | None:
+        """Retrieve a document."""
+
+    @abstractmethod
+    async def list_documents(
+        self, limit: int | None = None, offset: int | None = None
+    ) -> list[Document]:
+        """Retrieve document list."""
+
+    @abstractmethod
+    async def update_document(
+        self,
+        document_id: DocumentId,
+        title: str | None = None,
+        content: str | None = None,
+        metadata: dict | None = None,
+    ) -> Document:
+        """문서를 업데이트합니다."""
+
+    @abstractmethod
+    async def delete_document(self, document_id: DocumentId) -> bool:
+        """문서를 삭제합니다."""
+
+
+class DocumentProcessingUseCase(ABC):
+    """문서 처리 Use Case 인터페이스."""
+
+    @abstractmethod
+    async def process_document(self, document_id: DocumentId) -> KnowledgeExtractionResult:
+        """문서를 처리하여 지식을 추출합니다."""
+
+    @abstractmethod
+    async def reprocess_document(self, document_id: DocumentId) -> KnowledgeExtractionResult:
+        """문서를 재처리합니다."""
+
+    @abstractmethod
+    async def get_processing_status(self, document_id: DocumentId) -> str:
+        """문서 처리 상태를 조회합니다."""
+
+    @abstractmethod
+    async def validate_document_for_processing(self, document_id: DocumentId) -> bool:
+        """문서가 처리 가능한 상태인지 검증합니다.
+
+        Args:
+            document_id: 검증할 문서 ID
+
+        Returns:
+            처리 가능 여부
+
+        Raises:
+            ValueError: document_id가 유효하지 않은 경우
+            DocumentNotFoundException: 문서를 찾을 수 없는 경우
+        """
+
+    @abstractmethod
+    async def batch_process_documents(
+        self, document_ids: list[DocumentId], max_concurrent: int = 5
+    ) -> dict[DocumentId, KnowledgeExtractionResult]:
+        """여러 문서를 일괄 처리합니다.
+
+        Args:
+            document_ids: 처리할 문서 ID 목록
+            max_concurrent: 최대 동시 처리 수
+
+        Returns:
+            문서 ID별 처리 결과 딕셔너리
+
+        Raises:
+            ValueError: document_ids가 비어있거나 max_concurrent가 잘못된 경우
+        """
