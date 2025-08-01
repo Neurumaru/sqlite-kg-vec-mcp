@@ -485,7 +485,7 @@ class EmbeddingManager:
                     pass
 
             # Create default sentence-transformers embedder
-            from .embedder_factory import create_embedder
+            from .embedder_factory import create_embedder  # pylint: disable=import-outside-toplevel
 
             embedder = create_embedder(
                 embedder_type="sentence-transformers", model_name="all-MiniLM-L6-v2"

@@ -88,7 +88,7 @@ class OllamaLLMService(LLM):
 
         return AIMessage(content=response.text)
 
-    async def stream(
+    async def stream(  # type: ignore[override]
         self,
         messages: list[BaseMessage],
         **kwargs: Any,

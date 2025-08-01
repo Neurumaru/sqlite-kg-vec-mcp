@@ -5,8 +5,9 @@ SQLiteDocumentRepository 단위 테스트.
 # pylint: disable=protected-access
 
 import unittest
+from contextlib import asynccontextmanager
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 from src.adapters.sqlite3.document_repository import SQLiteDocumentRepository
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
@@ -33,10 +34,11 @@ class TestSQLiteDocumentRepository(unittest.IsolatedAsyncioTestCase):
         self.mock_database = AsyncMock()
 
         # Mock transaction context manager
-        transaction_mock = MagicMock()
-        transaction_mock.__aenter__ = AsyncMock()
-        transaction_mock.__aexit__ = AsyncMock(return_value=None)
-        self.mock_database.transaction.return_value = transaction_mock
+        @asynccontextmanager
+        async def mock_transaction():
+            yield None
+
+        self.mock_database.transaction = mock_transaction
 
         self.repository = SQLiteDocumentRepository(self.mock_database)
 

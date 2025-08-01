@@ -360,7 +360,7 @@ class TestEmbeddingManager(unittest.TestCase):
         # Then
         self.assertEqual(result, [1, 2, 3])
 
-    @patch("src.adapters.hnsw.search.create_embedder")
+    @patch("src.adapters.hnsw.embedder_factory.create_embedder")
     def test_generate_embedding_for_entity_node(self, mock_create_embedder):
         """Given: 노드 엔티티
         When: _generate_embedding_for_entity()를 호출하면
@@ -486,11 +486,6 @@ class TestEmbeddingManager(unittest.TestCase):
         ]
 
         self.mock_cursor.fetchall.return_value = mock_operations
-
-        # 딕셔너리 스타일 접근을 위한 Mock 설정
-        def mock_operation_getitem(key):
-            # operations 리스트의 각 요소가 딕셔너리처럼 동작하도록 설정
-            return mock_operations[0] if key == 0 else mock_operations[1] if key == 1 else None
 
         # _generate_embedding_for_entity 메서드 모킹
         with (

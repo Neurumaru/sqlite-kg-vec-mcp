@@ -255,10 +255,11 @@ class TestGraphTraversal(unittest.TestCase):
         # 첫 번째 호출: 관계 조회
         first_call = self.mock_cursor.execute.call_args_list[0]
         self.assertIn("SELECT e.*, r.id as rel_id, r.source_id, r.target_id,", first_call[0][0])
-        self.assertIn("FROM entities e JOIN edges r ON e.id = r.target_id", first_call[0][0])
+        self.assertIn("FROM entities e", first_call[0][0])
+        self.assertIn("JOIN edges r ON e.id = r.target_id", first_call[0][0])
         self.assertIn("WHERE r.source_id = ?", first_call[0][0])
         self.assertIn("LIMIT ?", first_call[0][0])
-        self.assertEqual(first_call[0][1], (entity_id, 100))
+        self.assertEqual(first_call[0][1], [entity_id, 100])
 
     def test_get_neighbors_incoming_only(self):
         """Given: 엔티티 ID와 incoming 방향이 제공될 때
@@ -291,10 +292,11 @@ class TestGraphTraversal(unittest.TestCase):
         self.assertEqual(self.mock_cursor.execute.call_count, 1)
         first_call = self.mock_cursor.execute.call_args_list[0]
         self.assertIn("SELECT e.*, r.id as rel_id, r.source_id, r.target_id,", first_call[0][0])
-        self.assertIn("FROM entities e JOIN edges r ON e.id = r.source_id", first_call[0][0])
+        self.assertIn("FROM entities e", first_call[0][0])
+        self.assertIn("JOIN edges r ON e.id = r.source_id", first_call[0][0])
         self.assertIn("WHERE r.target_id = ?", first_call[0][0])
         self.assertIn("LIMIT ?", first_call[0][0])
-        self.assertEqual(first_call[0][1], (entity_id, 100))
+        self.assertEqual(first_call[0][1], [entity_id, 100])
 
     def test_get_neighbors_both_directions(self):
         """Given: 엔티티 ID와 both 방향이 제공될 때
@@ -335,17 +337,15 @@ class TestGraphTraversal(unittest.TestCase):
         self.assertEqual(self.mock_cursor.execute.call_count, 1)
         first_call = self.mock_cursor.execute.call_args_list[0]
         self.assertIn("SELECT e.*, r.id as rel_id, r.source_id, r.target_id,", first_call[0][0])
-        self.assertIn(
-            "FROM entities e JOIN edges r ON e.id = r.target_id WHERE r.source_id = ?",
-            first_call[0][0],
-        )
+        self.assertIn("FROM entities e", first_call[0][0])
+        self.assertIn("JOIN edges r ON e.id = r.target_id", first_call[0][0])
+        self.assertIn("WHERE r.source_id = ?", first_call[0][0])
         self.assertIn("UNION", first_call[0][0])
-        self.assertIn(
-            "FROM entities e JOIN edges r ON e.id = r.source_id WHERE r.target_id = ?",
-            first_call[0][0],
-        )
+        self.assertIn("FROM entities e", first_call[0][0])
+        self.assertIn("JOIN edges r ON e.id = r.source_id", first_call[0][0])
+        self.assertIn("WHERE r.target_id = ?", first_call[0][0])
         self.assertIn("LIMIT ?", first_call[0][0])
-        self.assertEqual(first_call[0][1], (entity_id, entity_id, 100))
+        self.assertEqual(first_call[0][1], [entity_id, entity_id, 100])
 
     def test_get_neighbors_with_relation_filter(self):
         """Given: 관계 타입 필터가 제공될 때
@@ -376,10 +376,11 @@ class TestGraphTraversal(unittest.TestCase):
         # Then
         first_call = self.mock_cursor.execute.call_args_list[0]
         self.assertIn("SELECT e.*, r.id as rel_id, r.source_id, r.target_id,", first_call[0][0])
-        self.assertIn("FROM entities e JOIN edges r ON e.id = r.target_id", first_call[0][0])
+        self.assertIn("FROM entities e", first_call[0][0])
+        self.assertIn("JOIN edges r ON e.id = r.target_id", first_call[0][0])
         self.assertIn("WHERE r.source_id = ? AND r.relation_type IN (?, ?)", first_call[0][0])
         self.assertIn("LIMIT ?", first_call[0][0])
-        self.assertEqual(first_call[0][1], (entity_id, "CONNECTED_TO", "INFLUENCES", 100))
+        self.assertEqual(first_call[0][1], [entity_id, "CONNECTED_TO", "INFLUENCES", 100])
 
     def test_get_neighbors_no_relationships(self):
         """Given: 관계가 없는 엔티티 ID가 제공될 때

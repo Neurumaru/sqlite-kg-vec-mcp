@@ -4,7 +4,6 @@ SQLite implementation of the Database port.
 
 import sqlite3
 import uuid
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -103,7 +102,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     # Transaction management
     @asynccontextmanager
-    async def transaction(self) -> AsyncGenerator[None, None]:
+    async def transaction(self):  # pylint: disable=invalid-overridden-method
         """
         Create a database transaction context.
         Yields:

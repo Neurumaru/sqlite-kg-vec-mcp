@@ -62,7 +62,7 @@ class TestEntity(unittest.TestCase):
             "updated_at": "2024-01-02T00:00:00",
         }
         mock_row = MagicMock()
-        mock_row.__getitem__.side_effect = lambda k: row.get(k)
+        mock_row.__getitem__.side_effect = row.get
 
         # When
         entity = Entity.from_row(mock_row)
@@ -87,7 +87,7 @@ class TestEntity(unittest.TestCase):
             "updated_at": "2024-01-02T00:00:00",
         }
         mock_row = MagicMock()
-        mock_row.__getitem__.side_effect = lambda k: row.get(k)
+        mock_row.__getitem__.side_effect = row.get
 
         # When
         entity = Entity.from_row(mock_row)
@@ -111,7 +111,7 @@ class TestEntity(unittest.TestCase):
             "updated_at": "2024-01-02T00:00:00",
         }
         mock_row = MagicMock()
-        mock_row.__getitem__.side_effect = lambda k: row.get(k)
+        mock_row.__getitem__.side_effect = row.get
 
         # When
         entity = Entity.from_row(mock_row)

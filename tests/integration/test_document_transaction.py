@@ -3,8 +3,11 @@ Document 트랜잭션 통합 테스트.
 """
 
 import asyncio
+import json
 import unittest
-from unittest.mock import AsyncMock, MagicMock
+from contextlib import asynccontextmanager
+from datetime import datetime
+from unittest.mock import AsyncMock
 
 from src.adapters.sqlite3.document_repository import SQLiteDocumentRepository
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
@@ -29,6 +32,26 @@ from src.dto import (
 from src.dto import RelationshipType as DTORelationshipType
 
 
+def create_mock_document_row(
+    doc_id: str, title: str = "Test Document", status: str = "PENDING", metadata: dict = None
+) -> dict:
+    """테스트용 mock 문서 데이터베이스 행 생성"""
+    return {
+        "id": doc_id,
+        "title": title,
+        "content": "Test content",
+        "doc_type": "TEXT",
+        "status": status,
+        "metadata": json.dumps(metadata or {}),
+        "version": 1,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+        "processed_at": None,
+        "connected_nodes": "[]",
+        "connected_relationships": "[]",
+    }
+
+
 class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
     """Document 트랜잭션 통합 테스트."""
 
@@ -38,10 +61,11 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
         self.mock_database = AsyncMock()
 
         # Mock transaction context manager
-        transaction_mock = MagicMock()
-        transaction_mock.__aenter__ = AsyncMock()
-        transaction_mock.__aexit__ = AsyncMock(return_value=None)
-        self.mock_database.transaction.return_value = transaction_mock
+        @asynccontextmanager
+        async def mock_transaction():
+            yield None
+
+        self.mock_database.transaction = mock_transaction
 
         # Mock 지식 추출기
         self.mock_knowledge_extractor = AsyncMock()
@@ -155,10 +179,9 @@ class TestDocumentTransactionIntegration(unittest.IsolatedAsyncioTestCase):
                 first_save_started.set()
                 await asyncio.sleep(0.1)  # 다른 프로세서에게 기회를 줌
                 return document_data
-            else:
-                # 두 번째 호출: 문서가 이미 존재한다고 예외 발생
-                await first_save_started.wait()  # 첫 번째 저장이 시작될 때까지 대기
-                raise DocumentAlreadyExistsException(document_data.id)
+            # 두 번째 호출: 문서가 이미 존재한다고 예외 발생
+            await first_save_started.wait()  # 첫 번째 저장이 시작될 때까지 대기
+            raise DocumentAlreadyExistsException(document_data.id)
 
         async def mock_exists(document_id):
             # 실제 동시성 상황에서는 두 프로세서 모두 처음에는 문서가 없다고 판단

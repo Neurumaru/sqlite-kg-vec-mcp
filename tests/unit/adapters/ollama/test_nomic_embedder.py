@@ -266,19 +266,19 @@ class TestNomicEmbedder(unittest.TestCase):
         # - First batch: ["text1", "text2"] -> embed() called twice for individual texts
         # - Second batch: ["text3"] -> embed() called once for single text
 
-        def mock_post_side_effect(url, json=None, timeout=None):
-            prompt = json["prompt"]
+        def mock_post_side_effect(url, json_data=None, timeout=None):
+            prompt = json_data["prompt"]
             if prompt == "text1":
                 response = Mock()
                 response.status_code = 200
                 response.json.return_value = {"embedding": [0.1, 0.2]}
                 return response
-            elif prompt == "text2":
+            if prompt == "text2":
                 response = Mock()
                 response.status_code = 200
                 response.json.return_value = {"embedding": [0.3, 0.4]}
                 return response
-            elif prompt == "text3":
+            if prompt == "text3":
                 response = Mock()
                 response.status_code = 200
                 response.json.return_value = {"embedding": [0.5, 0.6]}

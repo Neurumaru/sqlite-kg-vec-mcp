@@ -3,7 +3,6 @@ Factory module for creating text embedders.
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 import numpy as np
 
@@ -12,11 +11,11 @@ class VectorTextEmbedder(ABC):
     """Synchronous text embedder interface for HNSW search."""
 
     @abstractmethod
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """Embed a single text."""
 
     @abstractmethod
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Embed multiple texts."""
 
     @property
@@ -31,13 +30,13 @@ class SyncRandomTextEmbedder(VectorTextEmbedder):
     def __init__(self, dimension: int = 128):
         self._dimension = dimension
 
-    def embed(self, text: str) -> List[float]:
+    def embed(self, text: str) -> list[float]:
         """Generate random embedding."""
         np.random.seed(hash(text) % (2**32))
         embedding = np.random.randn(self._dimension)
-        return embedding.tolist()
+        return embedding.tolist()  # type: ignore[no-any-return]
 
-    def embed_batch(self, texts: List[str]) -> List[List[float]]:
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate random embeddings for multiple texts."""
         return [self.embed(text) for text in texts]
 

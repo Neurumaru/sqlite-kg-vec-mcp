@@ -54,7 +54,7 @@ class RelationshipCreated(DomainEvent):
         self.source_document_id = source_document_id
 
     @classmethod
-    def create(  # pylint: disable=arguments-differ
+    def create(  # type: ignore[override]  # pylint: disable=arguments-differ
         cls,
         aggregate_id: str,
         source_node_id: str,

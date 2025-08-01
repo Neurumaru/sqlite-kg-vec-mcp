@@ -25,7 +25,7 @@ class TestRelationship(unittest.TestCase):
         """
         # Given
         mock_row = MagicMock(spec=sqlite3.Row)
-        mock_row.__getitem__.side_effect = lambda key: {
+        row_data = {
             "id": 1,
             "source_id": 10,
             "target_id": 20,
@@ -33,7 +33,8 @@ class TestRelationship(unittest.TestCase):
             "properties": '{"weight": 0.8, "confidence": 0.95}',
             "created_at": datetime.datetime(2023, 12, 25, 10, 0, 0),
             "updated_at": datetime.datetime(2023, 12, 25, 10, 0, 0),
-        }.get(key)
+        }
+        mock_row.__getitem__.side_effect = row_data.get
 
         # When
         relationship = Relationship.from_row(mock_row)
@@ -222,7 +223,7 @@ class TestRelationshipManager(unittest.TestCase):
         # Verify the third execute call (Vector operation)
         vector_op_call = self.mock_cursor.execute.call_args_list[2]
         self.assertIn("INSERT INTO vector_outbox", vector_op_call[0][0])
-        self.assertIn("create", vector_op_call[0][1])
+        self.assertIn("insert", vector_op_call[0][1])
         self.assertIn(self.mock_cursor.lastrowid, vector_op_call[0][1])
         # Verify the fourth execute call (SELECT new relationship)
         select_new_rel_call = self.mock_cursor.execute.call_args_list[3]

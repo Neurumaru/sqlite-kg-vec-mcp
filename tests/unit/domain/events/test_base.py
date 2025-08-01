@@ -6,6 +6,7 @@ import unittest
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from src.domain.events.base import DomainEvent
 
@@ -37,11 +38,13 @@ class TestEvent(DomainEvent):
         self.test_data = test_data
 
     @classmethod
-    def create(cls, aggregate_id: str, test_data: str) -> "TestEvent":
+    def create(cls, aggregate_id: str, **kwargs: Any) -> "TestEvent":
         """테스트 이벤트 생성."""
+        test_data = kwargs.pop("test_data", "default_test_data")
         return super().create(
             aggregate_id=aggregate_id,
             test_data=test_data,
+            **kwargs,
         )
 
 
@@ -53,7 +56,7 @@ class TestDomainEvent(unittest.TestCase):
         # When
         aggregate_id = "test-aggregate-123"
         test_data = "test data"
-        event = TestEvent.create(aggregate_id, test_data)
+        event = TestEvent.create(aggregate_id, test_data=test_data)
 
         # Then
         self.assertIsInstance(event, TestEvent)
@@ -69,7 +72,7 @@ class TestDomainEvent(unittest.TestCase):
     def test_create_domain_event_with_uuid(self):
         """UUID 형식의 event_id가 생성되는지 테스트."""
         # When
-        event = TestEvent.create("test-aggregate", "test data")
+        event = TestEvent.create("test-aggregate", test_data="test data")
 
         # Then
         # UUID 형식 검증
@@ -83,7 +86,7 @@ class TestDomainEvent(unittest.TestCase):
         # When
         aggregate_id = "test-aggregate-123"
         test_data = "test data"
-        event = TestEvent.create(aggregate_id, test_data)
+        event = TestEvent.create(aggregate_id, test_data=test_data)
 
         # 메타데이터 수동 추가 (create 메서드에서는 기본적으로 빈 dict)
         event.metadata["source"] = "unit_test"
@@ -96,7 +99,7 @@ class TestDomainEvent(unittest.TestCase):
     def test_domain_event_immutability_of_core_fields(self):
         """도메인 이벤트 핵심 필드의 불변성 검증."""
         # Given
-        event = TestEvent.create("test-aggregate", "test data")
+        event = TestEvent.create("test-aggregate", test_data="test data")
         original_event_id = event.event_id
         original_occurred_at = event.occurred_at
         original_aggregate_id = event.aggregate_id
@@ -129,7 +132,7 @@ class TestDomainEvent(unittest.TestCase):
     def test_domain_event_metadata_default_empty_dict(self):
         """메타데이터 기본값이 빈 딕셔너리인지 테스트."""
         # When
-        event = TestEvent.create("test-aggregate", "test data")
+        event = TestEvent.create("test-aggregate", test_data="test data")
 
         # Then
         self.assertIsInstance(event.metadata, dict)
@@ -138,8 +141,8 @@ class TestDomainEvent(unittest.TestCase):
     def test_multiple_events_have_unique_ids(self):
         """여러 이벤트가 고유한 ID를 가지는지 테스트."""
         # When
-        event1 = TestEvent.create("test-aggregate-1", "test data 1")
-        event2 = TestEvent.create("test-aggregate-2", "test data 2")
+        event1 = TestEvent.create("test-aggregate-1", test_data="test data 1")
+        event2 = TestEvent.create("test-aggregate-2", test_data="test data 2")
 
         # Then
         self.assertNotEqual(event1.event_id, event2.event_id)

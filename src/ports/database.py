@@ -6,8 +6,8 @@ with unnecessary abstractions removed based on actual usage analysis.
 """
 
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from contextlib import AbstractAsyncContextManager
+from typing import Any
 
 
 class Database(ABC):
@@ -63,8 +63,7 @@ class Database(ABC):
 
     # Transaction management - only context manager retained
     @abstractmethod
-    @asynccontextmanager
-    async def transaction(self) -> AsyncGenerator[None, None]:
+    def transaction(self) -> AbstractAsyncContextManager[None]:
         """
         Create a transaction context.
 
