@@ -3104,6 +3104,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pylint-per-file-ignores"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a5/3d/21bec2f2f432519616c34a64ba0766ef972fdfb6234a86bb1b8baf4b0c7c/pylint_per_file_ignores-1.4.0.tar.gz", hash = "sha256:c0de7b3d0169571aefaa1ac3a82a265641b8825b54a0b6f5ef27c3b76b988609", size = 4419, upload-time = "2025-01-17T21:35:02.383Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/0e/bf3473d86648a17e6dd6ee9e6abce526b077169031177f4f2031368f864a/pylint_per_file_ignores-1.4.0-py3-none-any.whl", hash = "sha256:0cd82d22551738b4e63a0aa1dab2a1fc4016e8f27f1429159616483711e122fd", size = 4888, upload-time = "2025-01-17T21:35:00.371Z" },
+]
+
+[[package]]
 name = "pyperclip"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3932,6 +3944,7 @@ all = [
     { name = "openai" },
     { name = "parameterized" },
     { name = "prometheus-client" },
+    { name = "psutil" },
     { name = "structlog" },
 ]
 dev = [
@@ -3944,6 +3957,7 @@ dev = [
     { name = "jupyter" },
     { name = "mypy" },
     { name = "parameterized" },
+    { name = "psutil" },
 ]
 embeddings = [
     { name = "anthropic" },
@@ -3966,7 +3980,9 @@ dev = [
     { name = "flake8-pyproject" },
     { name = "isort" },
     { name = "mypy" },
+    { name = "psutil" },
     { name = "pylint" },
+    { name = "pylint-per-file-ignores" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "types-requests" },
@@ -4006,6 +4022,7 @@ requires-dist = [
     { name = "parameterized", marker = "extra == 'dev'", specifier = ">=0.9.0" },
     { name = "plotly", marker = "extra == 'web'", specifier = ">=5.15.0" },
     { name = "prometheus-client", marker = "extra == 'monitoring'", specifier = ">=0.19.0" },
+    { name = "psutil", marker = "extra == 'dev'", specifier = ">=5.9.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
@@ -4027,7 +4044,9 @@ dev = [
     { name = "flake8-pyproject", specifier = ">=1.2.3" },
     { name = "isort", specifier = ">=6.0.1" },
     { name = "mypy", specifier = ">=1.17.0" },
+    { name = "psutil", specifier = ">=7.0.0" },
     { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pylint-per-file-ignores", specifier = ">=1.4.0" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "ruff", specifier = ">=0.12.5" },
     { name = "types-requests", specifier = ">=2.32.4.20250611" },
