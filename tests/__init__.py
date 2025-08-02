@@ -1,5 +1,5 @@
 """
-Tests package for sqlite-kg-vec-mcp.
+sqlite-kg-vec-mcp 프로젝트의 테스트 패키지입니다.
 
 unittest 기반 테스트 패키지입니다.
 """

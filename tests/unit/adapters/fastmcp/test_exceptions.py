@@ -1,10 +1,10 @@
 """
-Unit tests for FastMCP adapter exceptions.
+FastMCP 어댑터 예외에 대한 단위 테스트.
 """
 
 import unittest
 
-# Import FastMCP-specific exceptions
+# FastMCP 관련 예외 가져오기
 from src.adapters.fastmcp.exceptions import (
     MCPException,
     MCPServerException,
@@ -13,7 +13,7 @@ from src.adapters.fastmcp.exceptions import (
 
 
 class TestMCPException(unittest.TestCase):
-    """Test cases for MCPException class."""
+    """MCPException 클래스에 대한 테스트 케이스."""
 
     def test_init_with_required_parameters(self):
         """
@@ -86,7 +86,7 @@ class TestMCPException(unittest.TestCase):
 
 
 class TestMCPServerException(unittest.TestCase):
-    """Test cases for MCPServerException class."""
+    """MCPServerException 클래스에 대한 테스트 케이스."""
 
     def test_init_with_required_parameters(self):
         """
@@ -153,7 +153,7 @@ class TestMCPServerException(unittest.TestCase):
 
 
 class TestMCPToolException(unittest.TestCase):
-    """Test cases for MCPToolException class."""
+    """MCPToolException 클래스에 대한 테스트 케이스."""
 
     def test_init_with_required_parameters(self):
         """

@@ -15,10 +15,10 @@ import numpy as np
 from src.adapters.hnsw.embeddings import Embedding, EmbeddingManager
 
 
-class TestEmbedding(unittest.TestCase):
-    """Embedding 값 객체의 단위 테스트."""
+class TestEmbeddingFromRow(unittest.TestCase):
+    """Embedding.from_row 메서드의 단위 테스트."""
 
-    def test_from_row_with_node_type(self):
+    def test_from_row_success(self):
         """Given: 노드 타입의 SQLite Row 객체
         When: Embedding.from_row()를 호출하면
         Then: 적절한 Embedding 객체를 생성해야 한다
@@ -50,7 +50,7 @@ class TestEmbedding(unittest.TestCase):
             embedding.embedding, np.array([0.1, 0.2, 0.3], dtype=np.float32)
         )
 
-    def test_from_row_with_edge_type(self):
+    def test_from_row_success_when_edge_type(self):
         """Given: 엣지 타입의 SQLite Row 객체
         When: Embedding.from_row()를 호출하면
         Then: 적절한 Embedding 객체를 생성해야 한다
@@ -79,7 +79,7 @@ class TestEmbedding(unittest.TestCase):
         self.assertEqual(embedding.model_info, "edge_model")
         self.assertEqual(embedding.embedding_version, 2)
 
-    def test_from_row_with_invalid_entity_type(self):
+    def test_value_error_when_invalid_entity_type(self):
         """Given: 지원하지 않는 엔티티 타입
         When: Embedding.from_row()를 호출하면
         Then: ValueError가 발생해야 한다
@@ -99,8 +99,26 @@ class TestEmbedding(unittest.TestCase):
         self.assertIn("Unsupported entity type", str(context.exception))
 
 
-class TestEmbeddingManager(unittest.TestCase):
-    """EmbeddingManager의 단위 테스트."""
+class TestEmbeddingManagerInit(unittest.TestCase):
+    """EmbeddingManager.__init__ 메서드의 단위 테스트."""
+
+    def test_init_success(self):
+        """Given: SQLite 연결 객체
+        When: EmbeddingManager를 초기화하면
+        Then: 연결 객체가 저장되어야 한다
+        """
+        # Given
+        mock_connection = Mock(spec=sqlite3.Connection)
+
+        # When
+        manager = EmbeddingManager(mock_connection)
+
+        # Then
+        self.assertEqual(manager.connection, mock_connection)
+
+
+class TestEmbeddingManagerStoreEmbedding(unittest.TestCase):
+    """EmbeddingManager.store_embedding 메서드의 단위 테스트."""
 
     def setUp(self):
         """테스트 환경 설정."""
@@ -109,18 +127,7 @@ class TestEmbeddingManager(unittest.TestCase):
         self.mock_connection.cursor.return_value = self.mock_cursor
         self.embedding_manager = EmbeddingManager(self.mock_connection)
 
-    def test_init(self):
-        """Given: SQLite 연결 객체
-        When: EmbeddingManager를 초기화하면
-        Then: 연결 객체가 저장되어야 한다
-        """
-        # Given & When
-        manager = EmbeddingManager(self.mock_connection)
-
-        # Then
-        self.assertEqual(manager.connection, self.mock_connection)
-
-    def test_store_embedding_new_node(self):
+    def test_store_embedding_success(self):
         """Given: 새로운 노드 임베딩
         When: store_embedding()을 호출하면
         Then: 데이터베이스에 INSERT가 실행되어야 한다
@@ -153,7 +160,7 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertEqual(len(insert_calls), 1)
         self.mock_connection.commit.assert_called_once()
 
-    def test_store_embedding_update_existing(self):
+    def test_store_embedding_success_when_updating_existing(self):
         """Given: 기존 노드 임베딩
         When: store_embedding()을 호출하면
         Then: 데이터베이스에 UPDATE가 실행되어야 한다
@@ -181,7 +188,7 @@ class TestEmbeddingManager(unittest.TestCase):
         ]
         self.assertEqual(len(update_calls), 1)
 
-    def test_store_embedding_invalid_entity_type(self):
+    def test_value_error_when_invalid_entity_type(self):
         """Given: 잘못된 엔티티 타입
         When: store_embedding()을 호출하면
         Then: ValueError가 발생해야 한다
@@ -197,6 +204,17 @@ class TestEmbeddingManager(unittest.TestCase):
             self.embedding_manager.store_embedding(entity_type, entity_id, embedding, model_info)
 
         self.assertIn("Entity type must be", str(context.exception))
+
+
+class TestEmbeddingManagerGetEmbedding(unittest.TestCase):
+    """EmbeddingManager.get_embedding 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
 
     def test_get_embedding_success(self):
         """Given: 존재하는 임베딩
@@ -231,7 +249,7 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertEqual(result.entity_id, 123)
         self.assertEqual(result.entity_type, "node")
 
-    def test_get_embedding_not_found(self):
+    def test_get_embedding_returns_none_when_not_found(self):
         """Given: 존재하지 않는 임베딩
         When: get_embedding()을 호출하면
         Then: None을 반환해야 한다
@@ -246,6 +264,17 @@ class TestEmbeddingManager(unittest.TestCase):
 
         # Then
         self.assertIsNone(result)
+
+
+class TestEmbeddingManagerDeleteEmbedding(unittest.TestCase):
+    """EmbeddingManager.delete_embedding 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
 
     def test_delete_embedding_success(self):
         """Given: 존재하는 임베딩
@@ -267,7 +296,7 @@ class TestEmbeddingManager(unittest.TestCase):
         ]
         self.assertEqual(len(delete_calls), 1)
 
-    def test_delete_embedding_not_found(self):
+    def test_delete_embedding_returns_false_when_not_found(self):
         """Given: 존재하지 않는 임베딩
         When: delete_embedding()을 호출하면
         Then: False를 반환해야 한다
@@ -283,7 +312,18 @@ class TestEmbeddingManager(unittest.TestCase):
         # Then
         self.assertFalse(result)
 
-    def test_get_all_embeddings_with_filter(self):
+
+class TestEmbeddingManagerGetAllEmbeddings(unittest.TestCase):
+    """EmbeddingManager.get_all_embeddings 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
+
+    def test_get_all_embeddings_success(self):
         """Given: 특정 모델의 임베딩 요청
         When: get_all_embeddings()을 호출하면
         Then: 필터된 임베딩 목록을 반환해야 한다
@@ -336,7 +376,18 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertEqual(result[0].entity_id, 1)
         self.assertEqual(result[1].entity_id, 2)
 
-    def test_get_outdated_embeddings(self):
+
+class TestEmbeddingManagerGetOutdatedEmbeddings(unittest.TestCase):
+    """EmbeddingManager.get_outdated_embeddings 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
+
+    def test_get_outdated_embeddings_success(self):
         """Given: 버전이 오래된 임베딩들
         When: get_outdated_embeddings()을 호출하면
         Then: 오래된 임베딩의 ID 목록을 반환해야 한다
@@ -360,8 +411,19 @@ class TestEmbeddingManager(unittest.TestCase):
         # Then
         self.assertEqual(result, [1, 2, 3])
 
+
+class TestEmbeddingManagerGenerateEmbedding(unittest.TestCase):
+    """EmbeddingManager._generate_embedding_for_entity 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
+
     @patch("src.adapters.hnsw.embedder_factory.create_embedder")
-    def test_generate_embedding_for_entity_node(self, mock_create_embedder):
+    def test_generate_embedding_for_entity_success(self, mock_create_embedder):
         """Given: 노드 엔티티
         When: _generate_embedding_for_entity()를 호출하면
         Then: 텍스트 기반 임베딩을 생성해야 한다
@@ -393,7 +455,18 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertEqual(result.dtype, np.float32)
         mock_embedder.embed.assert_called_once()
 
-    def test_extract_entity_text_node(self):
+
+class TestEmbeddingManagerExtractEntityText(unittest.TestCase):
+    """EmbeddingManager._extract_entity_text 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
+
+    def test_extract_entity_text_success(self):
         """Given: 노드 엔티티
         When: _extract_entity_text()를 호출하면
         Then: 노드의 텍스트 표현을 반환해야 한다
@@ -417,7 +490,7 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertIn("age: 30", result)
         self.assertIn("occupation: Engineer", result)
 
-    def test_extract_entity_text_edge(self):
+    def test_extract_entity_text_success_when_edge(self):
         """Given: 엣지 엔티티
         When: _extract_entity_text()를 호출하면
         Then: 관계의 텍스트 표현을 반환해야 한다
@@ -444,7 +517,7 @@ class TestEmbeddingManager(unittest.TestCase):
         self.assertIn("To: Google", result)
         self.assertIn("since: 2020", result)
 
-    def test_extract_entity_text_not_found(self):
+    def test_extract_entity_text_returns_not_found_when_missing(self):
         """Given: 존재하지 않는 엔티티
         When: _extract_entity_text()를 호출하면
         Then: 'not found' 메시지를 반환해야 한다
@@ -459,6 +532,17 @@ class TestEmbeddingManager(unittest.TestCase):
 
         # Then
         self.assertIn("not found", result)
+
+
+class TestEmbeddingManagerProcessOutbox(unittest.TestCase):
+    """EmbeddingManager.process_outbox 메서드의 단위 테스트."""
+
+    def setUp(self):
+        """테스트 환경 설정."""
+        self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_cursor = Mock()
+        self.mock_connection.cursor.return_value = self.mock_cursor
+        self.embedding_manager = EmbeddingManager(self.mock_connection)
 
     def test_process_outbox_success(self):
         """Given: 처리할 벡터 연산들이 아웃박스에 있을 때

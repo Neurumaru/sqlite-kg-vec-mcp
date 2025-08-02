@@ -3,6 +3,8 @@ Vector 값 객체 단위 테스트.
 """
 
 import math
+import threading
+import time
 import unittest
 
 from src.domain.value_objects.vector import Vector
@@ -215,8 +217,6 @@ class TestVector(unittest.TestCase):
         self.assertEqual(vector.dimension, high_dim)
 
         # 크기 계산 성능 확인
-        import time
-
         start_time = time.time()
         magnitude = vector.magnitude()
         end_time = time.time()
@@ -271,8 +271,6 @@ class TestVector(unittest.TestCase):
 
     def test_vector_performance_with_large_data(self):
         """대용량 데이터 성능 테스트."""
-        import time
-
         # Given - 10,000차원 벡터 (실용적인 임베딩 크기)
         large_dim = 1000  # 테스트 환경에서는 더 작은 크기로
         values1 = [i * 0.0001 for i in range(large_dim)]
@@ -305,9 +303,6 @@ class TestVector(unittest.TestCase):
 
     def test_vector_concurrent_operations_safety(self):
         """동시 연산 안전성 테스트."""
-        import threading
-        import time
-
         # Given
         vector1 = Vector([1.0, 2.0, 3.0])
         vector2 = Vector([4.0, 5.0, 6.0])

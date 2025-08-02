@@ -220,11 +220,8 @@ class TestInteractiveSearchEngine(unittest.IsolatedAsyncioTestCase):
         # Given
         query = "테스트 검색"
         # search_by_text 메서드가 없는 경우
-        (
+        if hasattr(self.mock_knowledge_graph, "search_by_text"):
             delattr(self.mock_knowledge_graph, "search_by_text")
-            if hasattr(self.mock_knowledge_graph, "search_by_text")
-            else None
-        )
 
         # When
         with self.assertLogs(level="WARNING") as log:

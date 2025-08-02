@@ -147,8 +147,7 @@ class TestEntityManager(unittest.TestCase):
         Then: 새 엔티티가 생성되고 반환된다
         """
         # Given
-        mock_uuid.return_value = Mock()
-        mock_uuid.return_value.__str__ = Mock(return_value="generated-uuid")
+        mock_uuid.return_value = "generated-uuid"
 
         mock_cursor = Mock()
         mock_cursor.lastrowid = 123

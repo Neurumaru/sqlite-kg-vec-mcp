@@ -4,6 +4,7 @@ SQLiteDatabase 어댑터 단위 테스트.
 
 # pylint: disable=protected-access
 
+import shutil
 import sqlite3
 import tempfile
 import unittest
@@ -31,8 +32,6 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
 
     def tearDown(self):
         """테스트 정리."""
-        import shutil
-
         if Path(self.temp_dir).exists():
             shutil.rmtree(self.temp_dir)
 

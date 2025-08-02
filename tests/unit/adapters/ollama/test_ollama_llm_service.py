@@ -3,6 +3,7 @@ Ollama LLM Service 어댑터 단위 테스트.
 """
 
 # pylint: disable=protected-access
+import asyncio
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -293,6 +294,8 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         original_error = ValueError("Original validation error")
 
         class ContextPreservingError(Exception):
+            """컨텍스트 보존 예외 클래스."""
+
             def __init__(self, message, original_error=None, context=None):
                 super().__init__(message)
                 self.original_error = original_error
@@ -318,14 +321,13 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
     async def test_concurrent_async_exception_isolation(self):
         """동시 비동기 작업에서 예외 격리 테스트."""
-        import asyncio
 
         # Given: Multiple concurrent operations with mixed outcomes
         async def successful_operation(delay=0.01):
             await asyncio.sleep(delay)
             return AIMessage(content="Success")
 
-        async def failing_operation(delay=0.01, error_type=Exception):
+        async def failing_operation(delay=0.01, error_type=ValueError):
             await asyncio.sleep(delay)
             raise error_type("Operation failed")
 
@@ -380,20 +382,25 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
             },
         ]
 
+        def create_mock_recovery_function(scenario_data):
+            call_count_container = {"count": 0}
+
+            async def mock_invoke_with_recovery(*args, **kwargs):
+                call_count_container["count"] += 1
+
+                if call_count_container["count"] == 1:
+                    raise scenario_data["initial_error"]
+                if scenario_data["should_recover"]:
+                    return scenario_data["recovery_result"]
+                raise scenario_data["initial_error"]  # Continue failing
+
+            return mock_invoke_with_recovery, call_count_container
+
         for scenario in recovery_scenarios:
             with self.subTest(scenario=scenario["name"]):
-                call_count = 0
-
-                async def mock_invoke_with_recovery(*args, **kwargs):
-                    nonlocal call_count
-                    call_count += 1
-
-                    if call_count == 1:
-                        raise scenario["initial_error"]
-                    elif scenario["should_recover"]:
-                        return scenario["recovery_result"]
-                    else:
-                        raise scenario["initial_error"]  # Continue failing
+                mock_invoke_with_recovery, call_count_container = create_mock_recovery_function(
+                    scenario.copy()
+                )
 
                 with patch.object(
                     self.llm_service, "invoke", new_callable=AsyncMock
@@ -415,7 +422,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                         # Second call succeeds (simulating retry)
                         result = await self.llm_service.invoke([HumanMessage(content="test")])
                         self.assertEqual(result, scenario["recovery_result"])
-                        self.assertEqual(call_count, 2)  # Verify retry occurred
+                        self.assertEqual(call_count_container["count"], 2)  # Verify retry occurred
 
                     else:
                         # When: Should not recover
@@ -426,7 +433,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                         with self.assertRaises(type(scenario["initial_error"])):
                             await self.llm_service.invoke([HumanMessage(content="test")])
 
-                        self.assertEqual(call_count, 2)  # Both calls failed
+                        self.assertEqual(call_count_container["count"], 2)  # Both calls failed
 
     async def test_analyze_query_success(self):
         """쿼리 분석 성공 테스트."""

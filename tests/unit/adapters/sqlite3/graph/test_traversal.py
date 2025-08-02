@@ -624,7 +624,7 @@ class TestGraphTraversal(unittest.TestCase):
             "created_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
             "updated_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
         }
-        mock_row.__getitem__.side_effect = lambda key: data.get(key)
+        mock_row.__getitem__.side_effect = data.get
         return mock_row
 
     def _create_mock_entity_row(
@@ -640,7 +640,7 @@ class TestGraphTraversal(unittest.TestCase):
             "created_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
             "updated_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
         }
-        mock_row.__getitem__.side_effect = lambda key: data.get(key)
+        mock_row.__getitem__.side_effect = data.get
         return mock_row
 
 

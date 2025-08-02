@@ -6,6 +6,10 @@ import sqlite3
 import unittest
 from unittest.mock import Mock
 
+from src.adapters.exceptions.base import InfrastructureException
+from src.adapters.exceptions.connection import DatabaseConnectionException
+from src.adapters.exceptions.data import DataIntegrityException
+from src.adapters.exceptions.timeout import DatabaseTimeoutException
 from src.adapters.sqlite3.exceptions import (
     SQLiteConnectionException,
     SQLiteIntegrityException,
@@ -422,8 +426,6 @@ class TestExceptionHierarchy(unittest.TestCase):
         exception = SQLiteConnectionException("test.db", "test message")
 
         # Then
-        from src.adapters.exceptions.connection import DatabaseConnectionException
-
         self.assertIsInstance(exception, DatabaseConnectionException)
 
     def test_sqlite_integrity_exception_inheritance(self):
@@ -435,8 +437,6 @@ class TestExceptionHierarchy(unittest.TestCase):
         exception = SQLiteIntegrityException("UNIQUE", "users")
 
         # Then
-        from src.adapters.exceptions.data import DataIntegrityException
-
         self.assertIsInstance(exception, DataIntegrityException)
 
     def test_sqlite_operational_exception_inheritance(self):
@@ -448,8 +448,6 @@ class TestExceptionHierarchy(unittest.TestCase):
         exception = SQLiteOperationalException("SELECT", "test message")
 
         # Then
-        from src.adapters.exceptions.base import InfrastructureException
-
         self.assertIsInstance(exception, InfrastructureException)
 
     def test_sqlite_timeout_exception_inheritance(self):
@@ -461,8 +459,6 @@ class TestExceptionHierarchy(unittest.TestCase):
         exception = SQLiteTimeoutException("SELECT", 30.0)
 
         # Then
-        from src.adapters.exceptions.timeout import DatabaseTimeoutException
-
         self.assertIsInstance(exception, DatabaseTimeoutException)
 
     def test_sqlite_transaction_exception_inheritance(self):
@@ -474,8 +470,6 @@ class TestExceptionHierarchy(unittest.TestCase):
         exception = SQLiteTransactionException("tx_1", "ACTIVE", "test message")
 
         # Then
-        from src.adapters.exceptions.base import InfrastructureException
-
         self.assertIsInstance(exception, InfrastructureException)
 
 

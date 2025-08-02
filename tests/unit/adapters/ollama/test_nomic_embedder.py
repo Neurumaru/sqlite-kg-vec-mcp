@@ -283,8 +283,8 @@ class TestNomicEmbedder(unittest.TestCase):
                 response.status_code = 200
                 response.json.return_value = {"embedding": [0.5, 0.6]}
                 return response
-            else:
-                raise ValueError(f"Unexpected prompt: {prompt}")
+
+            raise ValueError(f"Unexpected prompt: {prompt}")
 
         self.mock_session.post.side_effect = mock_post_side_effect
 

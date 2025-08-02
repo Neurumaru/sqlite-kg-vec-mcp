@@ -337,9 +337,9 @@ class TestRandomTextEmbedder(unittest.IsolatedAsyncioTestCase):
 
         # 모든 결과가 서로 다른지 확인
         embeddings = [result.embedding for result in results]
-        for i in range(len(embeddings)):
-            for j in range(i + 1, len(embeddings)):
-                self.assertNotEqual(embeddings[i], embeddings[j])
+        for i, embedding_i in enumerate(embeddings):
+            for embedding_j in embeddings[i + 1 :]:
+                self.assertNotEqual(embedding_i, embedding_j)
 
 
 if __name__ == "__main__":

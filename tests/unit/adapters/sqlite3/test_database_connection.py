@@ -1,5 +1,5 @@
 """
-Unit tests for DatabaseConnection adapter.
+DatabaseConnection 어댑터에 대한 단위 테스트.
 """
 
 import shutil
@@ -11,28 +11,28 @@ from src.adapters.sqlite3.connection import DatabaseConnection
 
 
 class TestDatabaseConnection(unittest.TestCase):
-    """Test cases for DatabaseConnection adapter."""
+    """DatabaseConnection 어댑터에 대한 테스트 케이스."""
 
     def setUp(self):
-        """Set up test fixtures."""
-        # Create a temporary database file
+        """테스트 픽스처를 설정합니다."""
+        # 임시 데이터베이스 파일 생성
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = Path(self.temp_dir) / "test.db"
 
     def tearDown(self):
-        """Clean up test fixtures."""
-        # Remove temp directory and files
+        """테스트 픽스처를 정리합니다."""
+        # 임시 디렉토리 및 파일 제거
         if Path(self.temp_dir).exists():
             shutil.rmtree(self.temp_dir)
 
     def test_create_database_connection(self):
-        """Test creating a database connection."""
+        """데이터베이스 연결 생성을 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path)
         self.assertEqual(db_conn.db_path, self.db_path)
         self.assertIsNone(db_conn.connection)
 
     def test_connect_creates_database_file(self):
-        """Test that connect() creates the database file."""
+        """connect()가 데이터베이스 파일을 생성하는지 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path)
         connection = db_conn.connect()
 
@@ -43,7 +43,7 @@ class TestDatabaseConnection(unittest.TestCase):
         db_conn.close()
 
     def test_connect_creates_parent_directory(self):
-        """Test that connect() creates parent directories."""
+        """connect()가 부모 디렉토리를 생성하는지 테스트합니다."""
         nested_path = Path(self.temp_dir) / "nested" / "test.db"
         db_conn = DatabaseConnection(nested_path)
 
@@ -55,42 +55,42 @@ class TestDatabaseConnection(unittest.TestCase):
         db_conn.close()
 
     def test_context_manager(self):
-        """Test using DatabaseConnection as context manager."""
+        """DatabaseConnection을 컨텍스트 관리자로 사용하는 것을 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path)
 
         with db_conn as connection:
             self.assertIsNotNone(connection)
-            # Test basic SQL operation
+            # 기본 SQL 작업 테스트
             result = connection.execute("SELECT 1").fetchone()
             self.assertEqual(result[0], 1)
 
-        # Connection should be closed after context
+        # 컨텍스트 종료 후 연결이 닫혀야 함
         self.assertIsNone(db_conn.connection)
 
     def test_connection_optimizations_applied(self):
-        """Test that connection optimizations are applied."""
+        """연결 최적화가 적용되는지 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path, optimize=True)
 
         with db_conn as connection:
-            # Check WAL mode
+            # WAL 모드 확인
             result = connection.execute("PRAGMA journal_mode").fetchone()
             self.assertEqual(result[0].upper(), "WAL")
 
-            # Check foreign keys enabled
+            # 외래 키 활성화 확인
             result = connection.execute("PRAGMA foreign_keys").fetchone()
             self.assertEqual(result[0], 1)
 
     def test_no_optimizations_when_disabled(self):
-        """Test that optimizations are not applied when disabled."""
+        """비활성화된 경우 최적화가 적용되지 않는지 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path, optimize=False)
 
         with db_conn as connection:
-            # Should still be able to connect and execute queries
+            # 여전히 연결하고 쿼리를 실행할 수 있어야 함
             result = connection.execute("SELECT 1").fetchone()
             self.assertEqual(result[0], 1)
 
     def test_close_connection(self):
-        """Test closing the connection explicitly."""
+        """명시적으로 연결을 닫는 것을 테스트합니다."""
         db_conn = DatabaseConnection(self.db_path)
         db_conn.connect()
 

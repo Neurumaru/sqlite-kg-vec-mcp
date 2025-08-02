@@ -23,16 +23,16 @@ class TestOpenAITextEmbedder(unittest.IsolatedAsyncioTestCase):
 
         # Mock openai module and create custom exception classes
         class MockAuthenticationError(Exception):
-            pass
+            """Mock OpenAI 인증 오류."""
 
         class MockRateLimitError(Exception):
-            pass
+            """Mock OpenAI 요청 제한 오류."""
 
         class MockAPIConnectionError(Exception):
-            pass
+            """Mock OpenAI API 연결 오류."""
 
         class MockAPIError(Exception):
-            pass
+            """Mock OpenAI API 일반 오류."""
 
         self.openai_mock = Mock()
         self.openai_mock.AuthenticationError = MockAuthenticationError

@@ -1,3 +1,3 @@
 """
-Unit tests for FastMCP adapter.
+FastMCP 어댑터에 대한 단위 테스트.
 """

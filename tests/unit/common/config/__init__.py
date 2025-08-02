@@ -1,1 +1,1 @@
-"""Configuration tests module."""
+"""설정 테스트 모듈."""
