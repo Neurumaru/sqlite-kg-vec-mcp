@@ -83,7 +83,7 @@ document = Document(
     content="이것은 인공지능과 머신러닝에 관한 샘플 문서입니다."
 )
 
-result = await processor.process_document(document)
+result = await processor.process(document)
 print(f"추출된 노드 {result.get_node_count()}개, 관계 {result.get_relationship_count()}개")
 ```
 

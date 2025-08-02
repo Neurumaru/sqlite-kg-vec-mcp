@@ -54,7 +54,7 @@ document = Document(
     content="This is a sample document about artificial intelligence and machine learning."
 )
 
-result = await processor.process_document(document)
+result = await processor.process(document)
 print(f"Extracted {result.get_node_count()} nodes and {result.get_relationship_count()} relationships")
 ```
 
@@ -154,7 +154,7 @@ document = Document(
 )
 
 # Extract knowledge
-result = await processor.process_document(document)
+result = await processor.process(document)
 
 print(f"Document processing completed:")
 print(f"- Nodes extracted: {result.get_node_count()}")
