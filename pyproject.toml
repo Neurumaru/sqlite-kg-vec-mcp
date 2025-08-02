@@ -68,6 +68,7 @@ dev = [
     # Testing
     "coverage>=7.0.0",
     "parameterized>=0.9.0",
+    "psutil>=5.9.0",
     
     # Code quality
     "black>=24.1.0",
@@ -117,7 +118,9 @@ dev = [
     "flake8-pyproject>=1.2.3",
     "isort>=6.0.1",
     "mypy>=1.17.0",
+    "psutil>=7.0.0",
     "pylint>=3.3.7",
+    "pylint-per-file-ignores>=1.4.0",
     "pytest>=8.4.1",
     "ruff>=0.12.5",
     "types-requests>=2.32.4.20250611",
@@ -255,6 +258,9 @@ exclude_lines = [
 jobs = 0
 unsafe-load-any-extension = "no"
 
+[tool.pylint.MASTER]
+load-plugins = ["pylint_per_file_ignores"]
+
 # MESSAGES CONTROL
 disable = [
     "C0301",  # line-too-long (Black manages this)
@@ -279,4 +285,8 @@ disable = [
 
     "C0103",
     "W0718",
+]
+
+per-file-ignores = [
+    "tests/:protected-access"
 ]
