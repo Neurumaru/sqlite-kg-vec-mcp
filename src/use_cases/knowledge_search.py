@@ -3,6 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
@@ -31,7 +32,7 @@ class KnowledgeSearchUseCase(ABC):
     ) -> SearchResultCollection:
         """통합 지식 검색을 수행합니다.
 
-        Args:
+        인자:
             query: 검색 쿼리 (비어있지 않아야 함)
             strategy: 검색 전략
             limit: 최대 결과 수 (1 이상)
@@ -40,11 +41,11 @@ class KnowledgeSearchUseCase(ABC):
             include_nodes: 노드 결과 포함 여부
             include_relationships: 관계 결과 포함 여부
 
-        Returns:
-            검색 결과 컶렉션
+        반환:
+            검색 결과 컬렉션
 
-        Raises:
-            ValueError: 매개변수가 유효하지 않는 경우
+        예외:
+            ValueError: 매개변수가 유효하지 않은 경우
         """
 
     @abstractmethod
@@ -57,7 +58,7 @@ class KnowledgeSearchUseCase(ABC):
     async def search_nodes(
         self,
         query: str,
-        node_types: list[str] | None = None,
+        node_types: Optional[list[str]] = None,
         limit: int = 10,
         similarity_threshold: float = 0.5,
     ) -> list[Node]:
@@ -67,7 +68,7 @@ class KnowledgeSearchUseCase(ABC):
     async def search_relationships(
         self,
         query: str,
-        relationship_types: list[str] | None = None,
+        relationship_types: Optional[list[str]] = None,
         limit: int = 10,
         similarity_threshold: float = 0.5,
     ) -> list[Relationship]:

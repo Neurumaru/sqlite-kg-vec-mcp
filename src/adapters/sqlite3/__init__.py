@@ -1,13 +1,13 @@
 """
-SQLite3 database adapters.
-This module contains SQLite3-specific implementations for database operations
-including connection management, schema operations, and transactions.
+SQLite3 데이터베이스 어댑터.
+이 모듈에는 연결 관리, 스키마 작업 및 트랜잭션을 포함한
+데이터베이스 작업을 위한 SQLite3 관련 구현이 포함되어 있습니다.
 """
 
 from .connection import DatabaseConnection
 from .database import SQLiteDatabase
 
-# Graph domain classes
+# 그래프 도메인 클래스
 from .graph.entities import Entity, EntityManager
 from .graph.interactive_search import InteractiveSearchEngine
 from .graph.relationships import Relationship, RelationshipManager
@@ -22,7 +22,7 @@ __all__ = [
     "SQLiteDatabase",
     "SQLiteVectorStore",
     "TransactionManager",
-    # Graph classes
+    # 그래프 클래스
     "Entity",
     "EntityManager",
     "Relationship",

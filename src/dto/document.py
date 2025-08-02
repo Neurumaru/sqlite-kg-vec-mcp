@@ -1,15 +1,15 @@
 """
-Document-related DTO definitions.
+문서 관련 DTO 정의.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 
 class DocumentStatus(Enum):
-    """Document status."""
+    """문서 상태."""
 
     PENDING = "pending"
     PROCESSING = "processing"
@@ -18,7 +18,7 @@ class DocumentStatus(Enum):
 
 
 class DocumentType(Enum):
-    """Document type."""
+    """문서 타입."""
 
     TEXT = "text"
     PDF = "pdf"
@@ -29,25 +29,25 @@ class DocumentType(Enum):
 @dataclass
 class DocumentData:
     """
-    DTO class representing document data.
+    문서 데이터를 나타내는 DTO 클래스.
 
     Attributes:
-        id: Unique identifier of the document
-        title: Document title
-        content: Document content
-        doc_type: Document type (TEXT, PDF, HTML, MARKDOWN)
-        status: Document processing status (PENDING, PROCESSING, COMPLETED, FAILED)
-        metadata: Additional metadata related to the document
-        version: Document version number
-        created_at: Document creation time
-        updated_at: Document last update time
-        processed_at: Document processing completion time
-        connected_nodes: List of identifiers of connected nodes
-        connected_relationships: List of identifiers of connected relationships
+        id: 문서의 고유 식별자
+        title: 문서 제목
+        content: 문서 내용
+        doc_type: 문서 타입 (TEXT, PDF, HTML, MARKDOWN)
+        status: 문서 처리 상태 (PENDING, PROCESSING, COMPLETED, FAILED)
+        metadata: 문서와 관련된 추가 메타데이터
+        version: 문서 버전 번호
+        created_at: 문서 생성 시각
+        updated_at: 문서 최종 업데이트 시각
+        processed_at: 문서 처리 완료 시각
+        connected_nodes: 연결된 노드 식별자 목록
+        connected_relationships: 연결된 관계 식별자 목록
     """
 
-    id: str  # Document unique identifier
-    title: str  # Document title
+    id: str  # 문서 고유 식별자
+    title: str  # 문서 제목
     content: str  # 문서 내용
     doc_type: DocumentType  # 문서 타입
     status: DocumentStatus  # 처리 상태
@@ -55,7 +55,7 @@ class DocumentData:
     version: int  # 버전 번호
     created_at: datetime  # 생성 시각
     updated_at: datetime  # 업데이트 시각
-    processed_at: datetime | None = None  # 처리 완료 시각
+    processed_at: Optional[datetime] = None  # 처리 완료 시각
     connected_nodes: list[str] = field(default_factory=list)  # 연결된 노드 목록
     connected_relationships: list[str] = field(default_factory=list)  # 연결된 관계 목록
 

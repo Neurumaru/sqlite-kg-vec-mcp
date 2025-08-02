@@ -1,5 +1,5 @@
 """
-Logging utilities and configuration.
+로깅 유틸리티 및 설정.
 """
 
 from ..observability.logger import (

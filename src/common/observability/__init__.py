@@ -1,5 +1,5 @@
 """
-Observability utilities for logging, tracing, and metrics.
+로깅, 트레이싱, 메트릭스를 위한 관찰 가능성 유틸리티.
 """
 
 from .context import (
@@ -32,25 +32,25 @@ from .setup import (
 )
 
 __all__ = [
-    # Context management
+    # 컨텍스트 관리
     "get_current_trace_id",
     "get_current_span_id",
     "create_trace_context",
     "set_trace_context",
     "TraceContext",
     "TraceContextManager",
-    # Logging
+    # 로깅
     "ObservableLogger",
     "get_observable_logger",
-    # Decorators
+    # 데코레이터
     "with_observability",
     "with_trace",
     "with_metrics",
-    # Integration
+    # 통합
     "ObservabilityIntegration",
     "initialize_observability",
     "get_observability_integration",
-    # Setup
+    # 설정
     "setup_observability",
     "quick_setup",
     "production_setup",

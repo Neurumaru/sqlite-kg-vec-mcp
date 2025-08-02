@@ -1,9 +1,8 @@
 """
-SQLite Knowledge Graph and Vector Database with MCP Server Interface.
+MCP 서버 인터페이스를 갖춘 SQLite 지식 그래프 및 벡터 데이터베이스.
 
-This package combines a SQLite-based knowledge graph with vector storage
-(optionally using HNSW index) and provides an interface through an MCP
-(Model Context Protocol) server.
+이 패키지는 SQLite 기반 지식 그래프와 벡터 저장소(선택적으로 HNSW 인덱스 사용)를
+결합하고 MCP(모델 컨텍스트 프로토콜) 서버를 통해 인터페이스를 제공합니다.
 """
 
 import sqlite3
@@ -19,11 +18,11 @@ from .adapters.sqlite3.graph.traversal import GraphTraversal
 from .adapters.sqlite3.schema import SchemaManager
 from .adapters.testing.text_embedder import RandomTextEmbedder
 
-# Load environment variables from .env file
+# .env 파일에서 환경 변수 로드
 try:
     from dotenv import load_dotenv
 
-    # Look for .env file in project root
+    # 프로젝트 루트에서 .env 파일 찾기
     project_root = Path(__file__).parent.parent
     env_path = project_root / ".env"
 
@@ -31,28 +30,28 @@ try:
         load_dotenv(env_path)
 
 except ImportError:
-    # python-dotenv not installed, skip loading
+    # python-dotenv가 설치되지 않은 경우 로딩 건너뛰기
     pass
 
 __version__ = "0.1.0"
 
-# from .adapters.hnsw.search import SearchResult, VectorSearch  # TODO: Fix dependencies
+# from .adapters.hnsw.search import SearchResult, VectorSearch  # TODO: 종속성 수정
 # from .adapters.hnsw.text_embedder import (
 #     VectorTextEmbedder, create_embedder
-# ) # TODO: Implement text_embedder
+# ) # TODO: text_embedder 구현
 
 
-# Create embedder function for examples
+# 예제를 위한 임베더 생성 함수
 def create_embedder(embedder_type="random", **kwargs):
-    """Create a text embedder based on type.
+    """유형에 따라 텍스트 임베더를 생성합니다.
 
     Args:
-        embedder_type: Type of embedder ('random', 'openai',
+        embedder_type: 임베더 유형 ('random', 'openai',
             'sentence-transformers')
-        **kwargs: Additional arguments for embedder
+        **kwargs: 임베더에 대한 추가 인수
 
     Returns:
-        Text embedder instance
+        텍스트 임베더 인스턴스
     """
     if embedder_type == "random":
         return RandomTextEmbedder(dimension=kwargs.get("dimension", 128))
@@ -60,43 +59,43 @@ def create_embedder(embedder_type="random", **kwargs):
         return OpenAITextEmbedder(**kwargs)
     if embedder_type == "sentence-transformers":
         return HuggingFaceTextEmbedder(**kwargs)
-    raise ValueError(f"Unknown embedder type: {embedder_type}")
+    raise ValueError(f"알 수 없는 임베더 유형: {embedder_type}")
 
 
-# MCP Server export
+# MCP 서버 내보내기
 try:
     from .adapters.fastmcp.server import KnowledgeGraphServer
 
     __all__ = ["KnowledgeGraph", "EmbeddingManager", "create_embedder", "KnowledgeGraphServer"]
 except ImportError:
-    # If MCP dependencies aren't available, just export the main classes
+    # MCP 종속성을 사용할 수 없는 경우 기본 클래스만 내보냅니다.
     __all__ = ["KnowledgeGraph", "EmbeddingManager", "create_embedder"]
 
-# Export main classes - avoid direct imports to prevent circular dependencies
+# 기본 클래스 내보내기 - 순환 종속성을 방지하기 위해 직접 가져오기를 피합니다.
 # from .adapters.sqlite3.connection import DatabaseConnection
 # from .adapters.sqlite3.graph.entities import Entity, EntityManager
 # from .adapters.sqlite3.graph.relationships import Relationship, RelationshipManager
 # from .adapters.sqlite3.graph.traversal import GraphTraversal, PathNode
 # from .adapters.sqlite3.schema import SchemaManager
 
-# Import server API conditionally
+# 서버 API 조건부 가져오기
 # try:
 #     from .adapters.fastmcp.server import KnowledgeGraphServer
 # except ImportError:
-#     # If MCP server dependencies aren't available, provide a message
+#     # MCP 서버 종속성을 사용할 수 없는 경우 메시지를 제공합니다.
 #     class KnowledgeGraphServer:
 #         def __init__(self, *args, **kwargs):
 #             raise ImportError(
-#                 "KnowledgeGraphServer requires additional dependencies. "
-#                 "Please install 'fastmcp' package to use MCP server functionality."
+#                 "KnowledgeGraphServer에는 추가 종속성이 필요합니다. "
+#                 "MCP 서버 기능을 사용하려면 'fastmcp' 패키지를 설치하십시오."
 #             )
 
 
-# Convenience class for direct usage
+# 직접 사용을 위한 편의 클래스
 class KnowledgeGraph:
     """
-    Main knowledge graph interface combining entity, relationship,
-    and vector search functionality.
+    엔티티, 관계 및 벡터 검색 기능을 결합한
+    기본 지식 그래프 인터페이스.
     """
 
     def __init__(
@@ -109,42 +108,42 @@ class KnowledgeGraph:
         embedder_kwargs=None,
     ):
         """
-        Initialize a knowledge graph.
+        지식 그래프를 초기화합니다.
 
         Args:
-            db_path: Path to SQLite database file
-            vector_index_dir: Directory for storing vector index files
-            embedding_dim: Dimension of embedding vectors
-            text_embedder: VectorTextEmbedder instance for text-to-vector conversion
-            embedder_type: Type of embedder to create if text_embedder is None
-            embedder_kwargs: Arguments for embedder creation
+            db_path: SQLite 데이터베이스 파일 경로
+            vector_index_dir: 벡터 인덱스 파일을 저장할 디렉토리
+            embedding_dim: 임베딩 벡터의 차원
+            text_embedder: 텍스트-벡터 변환을 위한 VectorTextEmbedder 인스턴스
+            embedder_type: text_embedder가 None인 경우 생성할 임베더 유형
+            embedder_kwargs: 임베더 생성을 위한 인수
         """
-        # Use delayed imports to avoid circular dependencies
+        # 순환 종속성을 피하기 위해 지연된 가져오기 사용
         # from .adapters.sqlite3.connection import DatabaseConnection
         # from .adapters.sqlite3.graph.entities import EntityManager
         # from .adapters.sqlite3.graph.relationships import RelationshipManager
         # from .adapters.sqlite3.graph.traversal import GraphTraversal
         # from .adapters.sqlite3.schema import SchemaManager
 
-        # Initialize database
+        # 데이터베이스 초기화
         self.db_connection = DatabaseConnection(db_path)
         self.conn = self.db_connection.connect()
 
-        # Initialize schema
+        # 스키마 초기화
         schema_manager = SchemaManager(db_path)
         try:
             if schema_manager.get_schema_version() == 0:
                 schema_manager.initialize_schema()
-        except sqlite3.OperationalError:
-            # Schema doesn't exist yet
+        except sqlite3.OperationalError: # exception 변수명으로 변경
+            # 스키마가 아직 존재하지 않음
             schema_manager.initialize_schema()
 
-        # Create managers
+        # 관리자 생성
         self.entity_manager = EntityManager(self.conn)
         self.relationship_manager = RelationshipManager(self.conn)
         self.embedding_manager = EmbeddingManager(self.conn)
         self.graph_traversal = GraphTraversal(self.conn)
-        # TODO: Re-enable when VectorSearch dependencies are fixed
+        # TODO: VectorSearch 종속성이 수정되면 다시 활성화
         # self.vector_search = VectorSearch(
         #     connection=self.conn,
         #     index_dir=vector_index_dir,
@@ -154,29 +153,29 @@ class KnowledgeGraph:
         #     embedder_kwargs=embedder_kwargs,
         # )
 
-    # Entity methods
+    # 엔티티 메서드
     def create_node(self, node_type, name=None, properties=None):
-        """Create a new node in the graph."""
+        """그래프에 새 노드를 생성합니다."""
         return self.entity_manager.create_entity(node_type, name, properties)
 
     def get_node(self, node_id):
-        """Get a node by ID."""
+        """ID로 노드를 가져옵니다."""
         return self.entity_manager.get_entity(node_id)
 
     def get_node_by_uuid(self, uuid):
-        """Get a node by UUID."""
+        """UUID로 노드를 가져옵니다."""
         return self.entity_manager.get_entity_by_uuid(uuid)
 
     def update_node(self, node_id, name=None, properties=None):
-        """Update a node's properties."""
+        """노드의 속성을 업데이트합니다."""
         return self.entity_manager.update_entity(node_id, name, properties)
 
     def delete_node(self, node_id):
-        """Delete a node."""
+        """노드를 삭제합니다."""
         return self.entity_manager.delete_entity(node_id)
 
     def find_nodes(self, node_type=None, name_pattern=None, properties=None, limit=100, offset=0):
-        """Find nodes matching criteria."""
+        """기준과 일치하는 노드를 찾습니다."""
         return self.entity_manager.find_entities(
             entity_type=node_type,
             name_pattern=name_pattern,
@@ -185,23 +184,23 @@ class KnowledgeGraph:
             offset=offset,
         )
 
-    # Relationship methods
+    # 관계 메서드
     def create_edge(self, source_id, target_id, relation_type, properties=None):
-        """Create a new edge between nodes."""
+        """노드 사이에 새 엣지를 생성합니다."""
         return self.relationship_manager.create_relationship(
             source_id, target_id, relation_type, properties
         )
 
     def get_edge(self, edge_id, include_entities=False):
-        """Get an edge by ID."""
+        """ID로 엣지를 가져옵니다."""
         return self.relationship_manager.get_relationship(edge_id, include_entities)
 
     def update_edge(self, edge_id, properties):
-        """Update an edge's properties."""
+        """엣지의 속성을 업데이트합니다."""
         return self.relationship_manager.update_relationship(edge_id, properties)
 
     def delete_edge(self, edge_id):
-        """Delete an edge."""
+        """엣지를 삭제합니다."""
         return self.relationship_manager.delete_relationship(edge_id)
 
     def find_edges(
@@ -214,7 +213,7 @@ class KnowledgeGraph:
         limit=100,
         offset=0,
     ):
-        """Find edges matching criteria."""
+        """기준과 일치하는 엣지를 찾습니다."""
         return self.relationship_manager.find_relationships(
             source_id=source_id,
             target_id=target_id,
@@ -225,7 +224,7 @@ class KnowledgeGraph:
             offset=offset,
         )
 
-    # Graph traversal methods
+    # 그래프 순회 메서드
     def get_neighbors(
         self,
         node_id,
@@ -234,18 +233,18 @@ class KnowledgeGraph:
         entity_types=None,
         limit=100,
     ):
-        """Get neighboring nodes."""
+        """이웃 노드를 가져옵니다."""
         return self.graph_traversal.get_neighbors(
             node_id, direction, relation_types, entity_types, limit
         )
 
     def find_paths(self, start_id, end_id, max_depth=5, relation_types=None, entity_types=None):
-        """Find paths between nodes."""
+        """노드 간의 경로를 찾습니다."""
         return self.graph_traversal.find_shortest_path(
             start_id, end_id, max_depth, relation_types, entity_types
         )
 
-    # TODO: Vector search methods - re-enable when VectorSearch is fixed
+    # TODO: 벡터 검색 메서드 - VectorSearch가 수정되면 다시 활성화
     # def search_similar_nodes(
     #     self,
     #     query_vector=None,
@@ -254,7 +253,7 @@ class KnowledgeGraph:
     #     entity_types=None,
     #     include_entities=True,
     # ):
-    #     """Search for similar nodes."""
+    #     """유사한 노드를 검색합니다."""
     #     if node_id is not None:
     #         return self.vector_search.search_similar_to_entity(
     #             "node", node_id, limit, entity_types, include_entities
@@ -264,16 +263,16 @@ class KnowledgeGraph:
     #             query_vector, limit, entity_types, include_entities
     #         )
     #     else:
-    #         raise ValueError("Either query_vector or node_id must be provided")
+    #         raise ValueError("query_vector 또는 node_id를 제공해야 합니다")
 
     # def search_by_text(
     #     self, query_text, limit=10, entity_types=None, include_entities=True
     # ):
-    #     """Search using text query."""
+    #     """텍스트 쿼리를 사용하여 검색합니다."""
     #     return self.vector_search.search_by_text(
     #         query_text, limit, entity_types, include_entities
     #     )
 
     def close(self):
-        """Close the database connection."""
+        """데이터베이스 연결을 닫습니다."""
         self.db_connection.close()

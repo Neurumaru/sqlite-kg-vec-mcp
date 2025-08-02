@@ -1,44 +1,44 @@
 """
-Trace and span context management for observability.
+관찰 가능성을 위한 트레이스 및 스팬 컨텍스트 관리.
 """
 
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
 class TraceContext:
     """
-    Contains trace and span information for observability.
+    관찰 가능성을 위한 트레이스 및 스팬 정보를 포함합니다.
     """
 
     trace_id: str
     span_id: str
-    parent_span_id: str | None = None
-    operation: str | None = None
-    layer: str | None = None
-    component: str | None = None
-    start_time: datetime | None = None
+    parent_span_id: Optional[str] = None
+    operation: Optional[str] = None
+    layer: Optional[str] = None
+    component: Optional[str] = None
+    start_time: Optional[datetime] = None
     metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
-        """Initialize default values."""
+        """기본값을 초기화합니다."""
         if self.start_time is None:
             self.start_time = datetime.now(timezone.utc)
         if self.metadata is None:
             self.metadata = {}
 
     def add_metadata(self, key: str, value: Any) -> None:
-        """Add metadata to the trace context."""
+        """트레이스 컨텍스트에 메타데이터를 추가합니다."""
         if self.metadata is None:
             self.metadata = {}
         self.metadata[key] = value
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for logging."""
+        """로깅을 위한 딕셔너리로 변환합니다."""
         return {
             "trace_id": self.trace_id,
             "span_id": self.span_id,
@@ -51,38 +51,38 @@ class TraceContext:
         }
 
 
-# Context variables for trace propagation
-_trace_context: ContextVar[TraceContext | None] = ContextVar("trace_context", default=None)
+# 트레이스 전파를 위한 컨텍스트 변수
+_trace_context: ContextVar[Optional[TraceContext]] = ContextVar("trace_context", default=None)
 
 
-def get_current_trace_id() -> str | None:
+def get_current_trace_id() -> Optional[str]:
     """
-    Get the current trace ID from context.
+    현재 트레이스 ID를 컨텍스트에서 가져옵니다.
 
-    Returns:
-        Current trace ID or None if no trace is active
+    반환:
+        현재 트레이스 ID 또는 활성 트레이스가 없는 경우 None
     """
     context = _trace_context.get()
     return context.trace_id if context else None
 
 
-def get_current_span_id() -> str | None:
+def get_current_span_id() -> Optional[str]:
     """
-    Get the current span ID from context.
+    현재 스팬 ID를 컨텍스트에서 가져옵니다.
 
-    Returns:
-        Current span ID or None if no trace is active
+    반환:
+        현재 스팬 ID 또는 활성 트레이스가 없는 경우 None
     """
     context = _trace_context.get()
     return context.span_id if context else None
 
 
-def get_current_trace_context() -> TraceContext | None:
+def get_current_trace_context() -> Optional[TraceContext]:
     """
-    Get the current trace context.
+    현재 트레이스 컨텍스트를 가져옵니다.
 
-    Returns:
-        Current trace context or None if no trace is active
+    반환:
+        현재 트레이스 컨텍스트 또는 활성 트레이스가 없는 경우 None
     """
     return _trace_context.get()
 
@@ -91,21 +91,21 @@ def create_trace_context(
     operation: str,
     layer: str,
     component: str,
-    parent_context: TraceContext | None = None,
+    parent_context: Optional[TraceContext] = None,
     metadata: dict[str, Any] | None = None,
 ) -> TraceContext:
     """
-    Create a new trace context.
+    새로운 트레이스 컨텍스트를 생성합니다.
 
-    Args:
-        operation: Operation name
-        layer: Layer name (domain, port, adapter)
-        component: Component name
-        parent_context: Parent trace context
-        metadata: Additional metadata
+    인자:
+        operation: 작업 이름
+        layer: 계층 이름 (도메인, 포트, 어댑터)
+        component: 컴포넌트 이름
+        parent_context: 부모 트레이스 컨텍스트
+        metadata: 추가 메타데이터
 
-    Returns:
-        New trace context
+    반환:
+        새로운 트레이스 컨텍스트
     """
     if parent_context:
         trace_id = parent_context.trace_id
@@ -127,51 +127,51 @@ def create_trace_context(
     )
 
 
-def set_trace_context(context: TraceContext | None) -> None:
+def set_trace_context(context: Optional[TraceContext]) -> None:
     """
-    Set the current trace context.
+    현재 트레이스 컨텍스트를 설정합니다.
 
-    Args:
-        context: Trace context to set
+    인자:
+        context: 설정할 트레이스 컨텍스트
     """
     _trace_context.set(context)
 
 
 class TraceContextManager:
     """
-    Context manager for trace contexts.
+    트레이스 컨텍스트를 위한 컨텍스트 관리자.
     """
 
     def __init__(self, trace_context: TraceContext):
         """
-        Initialize context manager.
+        컨텍스트 관리자를 초기화합니다.
 
-        Args:
-            trace_context: Trace context to use
+        인자:
+            trace_context: 사용할 트레이스 컨텍스트
         """
         self.trace_context = trace_context
-        self.previous_context: TraceContext | None = None
+        self.previous_context: Optional[TraceContext] = None
 
     def __enter__(self) -> TraceContext:
-        """Enter the context."""
+        """컨텍스트에 진입합니다."""
         self.previous_context = _trace_context.get()
         _trace_context.set(self.trace_context)
         return self.trace_context
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit the context."""
+        """컨텍스트를 종료합니다."""
         _trace_context.set(self.previous_context)
 
 
 def with_trace_context(trace_context: TraceContext):
     """
-    Decorator to run function with a specific trace context.
+    특정 트레이스 컨텍스트와 함께 함수를 실행하는 데코레이터.
 
-    Args:
-        trace_context: Trace context to use
+    인자:
+        trace_context: 사용할 트레이스 컨텍스트
 
-    Returns:
-        Decorator function
+    반환:
+        데코레이터 함수
     """
 
     def decorator(func):

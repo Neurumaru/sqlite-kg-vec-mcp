@@ -1,8 +1,8 @@
 """
-Search and traversal handler for MCP operations.
+MCP 작업을 위한 검색 및 순회 핸들러.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from fastmcp import Context
 
@@ -17,7 +17,7 @@ from .base import BaseHandler
 
 
 class SearchHandler(BaseHandler):
-    """Handler for search and graph traversal MCP operations."""
+    """검색 및 그래프 순회 MCP 작업을 위한 핸들러."""
 
     def __init__(
         self,
@@ -27,13 +27,13 @@ class SearchHandler(BaseHandler):
         config,
     ):
         """
-        Initialize search handler.
+        검색 핸들러를 초기화합니다.
 
         Args:
-            node_use_case: Node management use case
-            relationship_use_case: Relationship management use case
-            knowledge_search_use_case: Knowledge search use case
-            config: FastMCP configuration
+            node_use_case: 노드 관리 유스케이스
+            relationship_use_case: 관계 관리 유스케이스
+            knowledge_search_use_case: 지식 검색 유스케이스
+            config: FastMCP 설정
         """
         super().__init__(config)
         self.node_use_case = node_use_case
@@ -47,26 +47,26 @@ class SearchHandler(BaseHandler):
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Search knowledge graph by text query.
+        텍스트 쿼리로 지식 그래프를 검색합니다.
 
         Args:
-            query: Search query string
-            limit: Maximum number of results to return (default 10)
-            include_documents: Include document results (default True)
-            include_nodes: Include node results (default True)
-            include_relationships: Include relationship results (default True)
-            ctx: MCP context object
+            query: 검색 쿼리 문자열
+            limit: 반환할 최대 결과 수 (기본값 10)
+            include_documents: 문서 결과를 포함할지 여부 (기본값 True)
+            include_nodes: 노드 결과를 포함할지 여부 (기본값 True)
+            include_relationships: 관계 결과를 포함할지 여부 (기본값 True)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Search results
+            검색 결과
         """
-        self.logger.info("Searching by text: '%s'", query)
+        self.logger.info("텍스트로 검색: '%s'", query)
 
         try:
-            # Call use case
+            # 유스케이스 호출
             results = await self.knowledge_search_use_case.search_knowledge(
                 query=query,
                 strategy=SearchStrategy.SEMANTIC,
@@ -76,7 +76,7 @@ class SearchHandler(BaseHandler):
                 include_relationships=include_relationships,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             result_items = []
             for result in results.results:
                 if result.document:
@@ -115,12 +115,12 @@ class SearchHandler(BaseHandler):
                         }
                     )
 
-            self.logger.info("Found %s results", len(result_items))
+            self.logger.info("%s개의 결과를 찾았습니다.", len(result_items))
 
             return {"results": result_items, "count": len(result_items)}
 
         except Exception as e:
-            self.logger.error("Error searching by text: %s", e)
+            self.logger.error("텍스트 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="search_by_text",
@@ -132,41 +132,41 @@ class SearchHandler(BaseHandler):
         self,
         node_id: int,
         limit: int = 10,
-        threshold: float | None = None,
-        ctx: Context | None = None,
+        threshold: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Search for nodes similar to the given node.
+        주어진 노드와 유사한 노드를 검색합니다.
 
         Args:
-            node_id: ID of the reference node
-            limit: Maximum number of similar nodes to return (default 10)
-            threshold: Similarity threshold (uses config default if not provided)
-            ctx: MCP context object
+            node_id: 참조 노드의 ID
+            limit: 반환할 최대 유사 노드 수 (기본값 10)
+            threshold: 유사도 임계값 (제공되지 않으면 설정 기본값 사용)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of similar nodes with similarity scores
+            유사도 점수와 함께 유사한 노드 목록
         """
-        self.logger.info("Searching for nodes similar to %s", node_id)
+        self.logger.info("%s와 유사한 노드를 검색합니다.", node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Use config default threshold if not provided
+            # 제공되지 않은 경우 설정 기본 임계값 사용
             actual_threshold = (
                 threshold if threshold is not None else self.config.similarity_threshold
             )
 
-            # Check if NodeEmbeddingUseCase is available
+            # NodeEmbeddingUseCase 사용 가능 여부 확인
             if not hasattr(self.node_use_case, "find_similar_nodes"):
-                # Fallback: use knowledge search with node name
+                # 대체: 노드 이름으로 지식 검색 사용
                 node = await self.node_use_case.get_node(domain_node_id)
                 if not node:
                     return self._create_error_response(
-                        f"Node {node_id} not found", "NODE_NOT_FOUND"
+                        f"노드 {node_id}를 찾을 수 없습니다.", "NODE_NOT_FOUND"
                     )
 
-                # Use text search as fallback
+                # 텍스트 검색을 대체로 사용
                 results = await self.knowledge_search_use_case.search_knowledge(
                     query=node.name,
                     strategy=SearchStrategy.SEMANTIC,
@@ -176,7 +176,7 @@ class SearchHandler(BaseHandler):
                     include_relationships=False,
                 )
 
-                # Convert to similar nodes format
+                # 유사 노드 형식으로 변환
                 similar_nodes = []
                 for result in results.results:
                     if result.node and str(result.node.id) != str(node_id):
@@ -187,7 +187,9 @@ class SearchHandler(BaseHandler):
                             }
                         )
 
-                self.logger.info("Found %s similar nodes (using text search)", len(similar_nodes))
+                self.logger.info(
+                    "%s개의 유사한 노드를 찾았습니다 (텍스트 검색 사용).", len(similar_nodes)
+                )
 
                 return {
                     "similar_nodes": similar_nodes,
@@ -196,14 +198,14 @@ class SearchHandler(BaseHandler):
                     "method": "text_search_fallback",
                 }
 
-            # Use dedicated similarity search if available
+            # 전용 유사도 검색 사용 가능 시 사용
             similar_nodes_with_scores = await self.node_use_case.find_similar_nodes(
                 node_id=domain_node_id,
                 limit=limit,
                 threshold=actual_threshold,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             similar_nodes = []
             for node, similarity in similar_nodes_with_scores:
                 similar_nodes.append(
@@ -213,7 +215,7 @@ class SearchHandler(BaseHandler):
                     }
                 )
 
-            self.logger.info("Found %s similar nodes", len(similar_nodes))
+            self.logger.info("%s개의 유사한 노드를 찾았습니다.", len(similar_nodes))
 
             return {
                 "similar_nodes": similar_nodes,
@@ -223,7 +225,7 @@ class SearchHandler(BaseHandler):
             }
 
         except Exception as e:
-            self.logger.error("Error searching similar nodes: %s", e)
+            self.logger.error("유사 노드 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="search_similar_nodes",
@@ -235,30 +237,30 @@ class SearchHandler(BaseHandler):
         self,
         node_id: int,
         depth: int = 1,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Get neighboring nodes in the knowledge graph.
+        지식 그래프에서 이웃 노드를 가져옵니다.
 
         Args:
-            node_id: ID of the central node
-            depth: Depth of neighbors to retrieve (default 1)
-            ctx: MCP context object
+            node_id: 중앙 노드의 ID
+            depth: 검색할 이웃의 깊이 (기본값 1)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of neighboring nodes
+            이웃 노드 목록
         """
-        self.logger.info("Getting neighbors for node %s at depth %s", node_id, depth)
+        self.logger.info("깊이 %s에서 노드 %s의 이웃을 가져옵니다.", depth, node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Get relationships for the node
+            # 노드의 관계 가져오기
             relationships = await self.relationship_use_case.get_node_relationships(
                 node_id=domain_node_id, direction="both"
             )
 
-            # Extract neighbor node IDs
+            # 이웃 노드 ID 추출
             neighbor_ids = set()
             for rel in relationships:
                 if str(rel.source_node_id) != str(node_id):
@@ -266,14 +268,14 @@ class SearchHandler(BaseHandler):
                 if str(rel.target_node_id) != str(node_id):
                     neighbor_ids.add(rel.target_node_id)
 
-            # Get neighbor nodes
+            # 이웃 노드 가져오기
             neighbors = []
             for neighbor_id in neighbor_ids:
                 neighbor = await self.node_use_case.get_node(neighbor_id)
                 if neighbor:
                     neighbors.append(self._node_to_mcp_response(neighbor))
 
-            self.logger.info("Found %s neighbors", len(neighbors))
+            self.logger.info("%s개의 이웃을 찾았습니다.", len(neighbors))
 
             return {
                 "neighbors": neighbors,
@@ -282,7 +284,7 @@ class SearchHandler(BaseHandler):
             }
 
         except Exception as e:
-            self.logger.error("Error getting neighbors: %s", e)
+            self.logger.error("이웃 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="get_neighbors",
@@ -295,36 +297,36 @@ class SearchHandler(BaseHandler):
         source_node_id: int,
         target_node_id: int,
         max_depth: int = 5,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Find paths between two nodes in the knowledge graph.
+        지식 그래프에서 두 노드 간의 경로를 찾습니다.
 
         Args:
-            source_node_id: ID of the source node
-            target_node_id: ID of the target node
-            max_depth: Maximum path depth to search (default 5)
-            ctx: MCP context object
+            source_node_id: 소스 노드의 ID
+            target_node_id: 대상 노드의 ID
+            max_depth: 검색할 최대 경로 깊이 (기본값 5)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Shortest path between nodes or None if no path exists
+            노드 간 최단 경로 또는 경로가 없는 경우 None
         """
-        self.logger.info("Finding path from %s to %s", source_node_id, target_node_id)
+        self.logger.info("%s에서 %s로의 경로를 찾습니다.", source_node_id, target_node_id)
 
         try:
-            # Check if RelationshipAnalysisUseCase is available
+            # RelationshipAnalysisUseCase 사용 가능 여부 확인
             if not hasattr(self.relationship_use_case, "find_shortest_path"):
-                # Fallback to basic implementation using available methods
+                # 사용 가능한 메서드를 사용한 기본 구현으로 대체
                 return {
                     "path": None,
                     "length": 0,
-                    "message": "Path finding requires RelationshipAnalysisUseCase implementation",
+                    "message": "경로 찾기는 RelationshipAnalysisUseCase 구현이 필요합니다.",
                 }
 
             source_id = NodeId(str(source_node_id))
             target_id = NodeId(str(target_node_id))
 
-            # Call use case (if available)
+            # 유스케이스 호출 (사용 가능한 경우)
             path_relationships = await self.relationship_use_case.find_shortest_path(
                 source_node_id=source_id,
                 target_node_id=target_id,
@@ -332,17 +334,17 @@ class SearchHandler(BaseHandler):
             )
 
             if not path_relationships:
-                self.logger.info("No path found")
+                self.logger.info("경로를 찾을 수 없습니다.")
                 return {
                     "path": None,
                     "length": 0,
-                    "message": "No path found between the specified nodes",
+                    "message": "지정된 노드 간에 경로를 찾을 수 없습니다.",
                 }
 
-            # Convert path to MCP response format
+            # 경로를 MCP 응답 형식으로 변환
             path_edges = [self._relationship_to_mcp_response(rel) for rel in path_relationships]
 
-            self.logger.info("Found path with %s edges", len(path_edges))
+            self.logger.info("%s개의 엣지가 있는 경로를 찾았습니다.", len(path_edges))
 
             return {
                 "path": path_edges,
@@ -352,7 +354,7 @@ class SearchHandler(BaseHandler):
             }
 
         except Exception as e:
-            self.logger.error("Error finding path: %s", e)
+            self.logger.error("경로 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="find_paths",
@@ -361,10 +363,10 @@ class SearchHandler(BaseHandler):
             ) from e
 
     def _node_to_mcp_response(self, node) -> dict[str, Any]:
-        """Convert domain node to MCP response format."""
+        """도메인 노드를 MCP 응답 형식으로 변환합니다."""
         return {
             "node_id": str(node.id),
-            "uuid": str(node.id),  # Using node.id as UUID for now
+            "uuid": str(node.id),  # 지금은 node.id를 UUID로 사용
             "name": node.name,
             "type": node.node_type.value,
             "properties": node.properties or {},
@@ -372,7 +374,7 @@ class SearchHandler(BaseHandler):
         }
 
     def _relationship_to_mcp_response(self, relationship) -> dict[str, Any]:
-        """Convert domain relationship to MCP response format."""
+        """도메인 관계를 MCP 응답 형식으로 변환합니다."""
         return {
             "edge_id": str(relationship.id),
             "source_id": str(relationship.source_node_id),

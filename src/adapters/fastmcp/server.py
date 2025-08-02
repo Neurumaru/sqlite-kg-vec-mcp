@@ -1,9 +1,9 @@
 """
-API endpoints and handlers for the MCP server interface.
+MCP 서버 인터페이스를 위한 API 엔드포인트 및 핸들러.
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from fastmcp import Context, FastMCP
 
@@ -22,10 +22,10 @@ from .exceptions import MCPServerException
 
 class KnowledgeGraphServer:
     """
-    MCP server providing a knowledge graph API.
+    지식 그래프 API를 제공하는 MCP 서버.
 
-    This adapter converts MCP protocol messages to domain use case calls
-    and formats the responses back to MCP format.
+    이 어댑터는 MCP 프로토콜 메시지를 도메인 유스케이스 호출로 변환하고
+    응답을 다시 MCP 형식으로 포맷합니다.
     """
 
     def __init__(
@@ -36,103 +36,103 @@ class KnowledgeGraphServer:
         config: FastMCPConfig,
     ):
         """
-        Initialize the knowledge graph MCP server.
+        지식 그래프 MCP 서버를 초기화합니다.
 
         Args:
-            node_use_case: Node management use case
-            relationship_use_case: Relationship management use case
-            knowledge_search_use_case: Knowledge search use case
-            config: MCP server configuration
+            node_use_case: 노드 관리 유스케이스
+            relationship_use_case: 관계 관리 유스케이스
+            knowledge_search_use_case: 지식 검색 유스케이스
+            config: MCP 서버 설정
         """
         self.node_use_case = node_use_case
         self.relationship_use_case = relationship_use_case
         self.knowledge_search_use_case = knowledge_search_use_case
         self.config = config
 
-        # Setup logging
+        # 로깅 설정
         self.logger = logging.getLogger("kg_server")
         self.logger.setLevel(getattr(logging, config.log_level))
 
-        # Create MCP server with FastMCP
+        # FastMCP로 MCP 서버 생성
         self.mcp_server: FastMCP = FastMCP(
             name="Knowledge Graph Server",
             instructions="SQLite-based knowledge graph with vector search capabilities",
         )
 
-        # Register all tools
+        # 모든 도구 등록
         self._register_tools()
 
-        self.logger.info("Knowledge Graph Server initialized")
+        self.logger.info("지식 그래프 서버가 초기화되었습니다.")
 
     def _register_tools(self):
-        """Register all API endpoint tools."""
-        # Entity tools
+        """모든 API 엔드포인트 도구를 등록합니다."""
+        # 엔티티 도구
         self.mcp_server.tool()(self.create_node)
         self.mcp_server.tool()(self.get_node)
         self.mcp_server.tool()(self.update_node)
         self.mcp_server.tool()(self.delete_node)
         self.mcp_server.tool()(self.find_nodes)
 
-        # Relationship tools
+        # 관계 도구
         self.mcp_server.tool()(self.create_edge)
         self.mcp_server.tool()(self.get_edge)
         self.mcp_server.tool()(self.update_edge)
         self.mcp_server.tool()(self.delete_edge)
         self.mcp_server.tool()(self.find_edges)
 
-        # Graph traversal tools
+        # 그래프 순회 도구
         self.mcp_server.tool()(self.get_neighbors)
         self.mcp_server.tool()(self.find_paths)
 
-        # Vector search tools
+        # 벡터 검색 도구
         self.mcp_server.tool()(self.search_similar_nodes)
         self.mcp_server.tool()(self.search_by_text)
 
-    # === Node Management Methods ===
+    # === 노드 관리 메서드 ===
 
     async def create_node(
         self,
         node_type: str,
-        name: str | None = None,
+        name: Optional[str] = None,
         properties: dict[str, Any] | None = None,
-        node_uuid: str | None = None,
-        ctx: Context | None = None,
+        node_uuid: Optional[str] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Create a new node in the knowledge graph.
+        지식 그래프에 새 노드를 생성합니다.
 
         Args:
-            node_type: Type of the node to create
-            name: Name of the node (optional)
-            properties: Custom properties for the node (optional)
-            node_uuid: Custom UUID for the node (optional)
-            ctx: MCP context object
+            node_type: 생성할 노드의 유형
+            name: 노드의 이름 (선택 사항)
+            properties: 노드의 사용자 지정 속성 (선택 사항)
+            node_uuid: 노드의 사용자 지정 UUID (선택 사항)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Created node data
+            생성된 노드 데이터
         """
-        self.logger.info("Creating node of type '%s'", node_type)
+        self.logger.info("'%s' 유형의 노드를 생성합니다.", node_type)
 
         try:
-            # Convert to domain objects
+            # 도메인 객체로 변환
             domain_node_type = NodeType(node_type)
 
-            # Call use case
+            # 유스케이스 호출
             node = await self.node_use_case.create_node(
                 name=name or f"Node_{node_type}",
                 node_type=domain_node_type,
                 properties=properties,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._node_to_mcp_response(node)
 
         except ValueError as e:
-            error_msg = f"Invalid node type or parameters: {e}"
+            error_msg = f"잘못된 노드 유형 또는 매개변수: {e}"
             self.logger.error(error_msg)
             return {"error": error_msg}
         except Exception as e:
-            self.logger.error("Error creating node: %s", e)
+            self.logger.error("노드 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="create_node",
@@ -142,50 +142,50 @@ class KnowledgeGraphServer:
 
     async def get_node(
         self,
-        node_id: int | None = None,
-        node_uuid: str | None = None,
-        ctx: Context | None = None,
+        node_id: Optional[int] = None,
+        node_uuid: Optional[str] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Get a node from the knowledge graph.
+        지식 그래프에서 노드를 가져옵니다.
 
         Args:
-            node_id: ID of the node to retrieve (optional if uuid is provided)
-            node_uuid: UUID of the node to retrieve (optional if id is provided)
-            ctx: MCP context object
+            node_id: 검색할 노드의 ID (uuid가 제공되면 선택 사항)
+            node_uuid: 검색할 노드의 UUID (id가 제공되면 선택 사항)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Node data or error
+            노드 데이터 또는 오류
         """
         if node_id is None and node_uuid is None:
-            error_msg = "Missing required parameter: either id or node_uuid must be provided"
+            error_msg = "필수 매개변수 누락: id 또는 node_uuid 중 하나를 제공해야 합니다."
             self.logger.error(error_msg)
             return {"error": error_msg}
 
         try:
             if node_id is not None:
                 domain_node_id = NodeId(str(node_id))
-                self.logger.info("Retrieving node with ID %s", node_id)
+                self.logger.info("ID %s로 노드를 검색합니다.", node_id)
             else:
-                # node_uuid is guaranteed to be str here since we checked both are not None above
-                assert node_uuid is not None, "node_uuid must not be None at this point"
+                # 위에서 둘 다 None이 아닌지 확인했으므로 node_uuid는 여기서 str임이 보장됨
+                assert node_uuid is not None, "이 시점에서 node_uuid는 None이 아니어야 합니다."
                 domain_node_id = NodeId(node_uuid)
-                self.logger.info("Retrieving node with UUID %s", node_uuid)
+                self.logger.info("UUID %s로 노드를 검색합니다.", node_uuid)
 
-            # Call use case
+            # 유스케이스 호출
             node = await self.node_use_case.get_node(domain_node_id)
 
             if not node:
-                error_msg = "Node not found"
+                error_msg = "노드를 찾을 수 없습니다."
                 if ctx:
                     self.logger.error(error_msg)
                 return {"error": error_msg}
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._node_to_mcp_response(node)
 
         except Exception as e:
-            self.logger.error("Error getting node: %s", e)
+            self.logger.error("노드 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="get_node",
@@ -196,39 +196,39 @@ class KnowledgeGraphServer:
     async def update_node(
         self,
         node_id: int,
-        name: str | None = None,
+        name: Optional[str] = None,
         properties: dict[str, Any] | None = None,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Update a node in the knowledge graph.
+        지식 그래프의 노드를 업데이트합니다.
 
         Args:
-            node_id: ID of the node to update
-            name: New name for the node (optional)
-            properties: New properties for the node (optional)
-            ctx: MCP context object
+            node_id: 업데이트할 노드의 ID
+            name: 노드의 새 이름 (선택 사항)
+            properties: 노드의 새 속성 (선택 사항)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Updated node data
+            업데이트된 노드 데이터
         """
-        self.logger.info("Updating node with ID %s", node_id)
+        self.logger.info("ID %s의 노드를 업데이트합니다.", node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Call use case
+            # 유스케이스 호출
             node = await self.node_use_case.update_node(
                 node_id=domain_node_id,
                 name=name,
                 properties=properties,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._node_to_mcp_response(node)
 
         except Exception as e:
-            self.logger.error("Error updating node: %s", e)
+            self.logger.error("노드 업데이트 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="update_node",
@@ -239,30 +239,30 @@ class KnowledgeGraphServer:
     async def delete_node(
         self,
         node_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Delete a node from the knowledge graph.
+        지식 그래프에서 노드를 삭제합니다.
 
         Args:
-            node_id: ID of the node to delete
-            ctx: MCP context object
+            node_id: 삭제할 노드의 ID
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Success or error message
+            성공 또는 오류 메시지
         """
-        self.logger.info("Deleting node with ID %s", node_id)
+        self.logger.info("ID %s의 노드를 삭제합니다.", node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Call use case
+            # 유스케이스 호출
             await self.node_use_case.delete_node(domain_node_id)
 
-            return {"success": True, "message": f"Node {node_id} deleted successfully"}
+            return {"success": True, "message": f"노드 {node_id}가 성공적으로 삭제되었습니다."}
 
         except Exception as e:
-            self.logger.error("Error deleting node: %s", e)
+            self.logger.error("노드 삭제 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="delete_node",
@@ -272,42 +272,42 @@ class KnowledgeGraphServer:
 
     async def find_nodes(
         self,
-        node_type: str | None = None,
+        node_type: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Find nodes in the knowledge graph.
+        지식 그래프에서 노드를 찾습니다.
 
         Args:
-            node_type: Filter by node type (optional)
-            limit: Maximum number of results to return (default 100)
-            offset: Number of results to skip (default 0)
-            ctx: MCP context object
+            node_type: 노드 유형으로 필터링 (선택 사항)
+            limit: 반환할 최대 결과 수 (기본값 100)
+            offset: 건너뛸 결과 수 (기본값 0)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of nodes matching criteria
+            조건과 일치하는 노드 목록
         """
         self.logger.info(
-            "Finding nodes with type=%s, limit=%s, offset=%s", node_type, limit, offset
+            "유형=%s, 제한=%s, 오프셋=%s으로 노드를 찾습니다.", node_type, limit, offset
         )
 
         try:
             domain_node_type = NodeType(node_type) if node_type else None
 
-            # Call use case
+            # 유스케이스 호출
             nodes = await self.node_use_case.list_nodes(
                 node_type=domain_node_type,
                 limit=limit,
                 offset=offset,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             result_nodes = [self._node_to_mcp_response(node) for node in nodes]
 
             if ctx:
-                self.logger.info("Found %s nodes", len(result_nodes))
+                self.logger.info("%s개의 노드를 찾았습니다.", len(result_nodes))
 
             return {
                 "nodes": result_nodes,
@@ -317,7 +317,7 @@ class KnowledgeGraphServer:
             }
 
         except Exception as e:
-            self.logger.error("Error finding nodes: %s", e)
+            self.logger.error("노드 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="find_nodes",
@@ -325,7 +325,7 @@ class KnowledgeGraphServer:
                 original_error=e,
             ) from e
 
-    # === Search Methods ===
+    # === 검색 메서드 ===
 
     async def search_by_text(
         self,
@@ -334,26 +334,26 @@ class KnowledgeGraphServer:
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Search knowledge graph by text query.
+        텍스트 쿼리로 지식 그래프를 검색합니다.
 
         Args:
-            query: Search query string
-            limit: Maximum number of results to return (default 10)
-            include_documents: Include document results (default True)
-            include_nodes: Include node results (default True)
-            include_relationships: Include relationship results (default True)
-            ctx: MCP context object
+            query: 검색 쿼리 문자열
+            limit: 반환할 최대 결과 수 (기본값 10)
+            include_documents: 문서 결과를 포함할지 여부 (기본값 True)
+            include_nodes: 노드 결과를 포함할지 여부 (기본값 True)
+            include_relationships: 관계 결과를 포함할지 여부 (기본값 True)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Search results
+            검색 결과
         """
-        self.logger.info("Searching by text: '%s'", query)
+        self.logger.info("텍스트로 검색: '%s'", query)
 
         try:
-            # Call use case
+            # 유스케이스 호출
             results = await self.knowledge_search_use_case.search_knowledge(
                 query=query,
                 strategy=SearchStrategy.SEMANTIC,
@@ -363,7 +363,7 @@ class KnowledgeGraphServer:
                 include_relationships=include_relationships,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             result_items = []
             for result in results.results:
                 if result.document:
@@ -403,12 +403,12 @@ class KnowledgeGraphServer:
                     )
 
             if ctx:
-                self.logger.info("Found %s results", len(result_items))
+                self.logger.info("%s개의 결과를 찾았습니다.", len(result_items))
 
             return {"results": result_items, "count": len(result_items)}
 
         except Exception as e:
-            self.logger.error("Error searching by text: %s", e)
+            self.logger.error("텍스트 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="search_by_text",
@@ -416,13 +416,13 @@ class KnowledgeGraphServer:
                 original_error=e,
             ) from e
 
-    # === Helper Methods ===
+    # === 도우미 메서드 ===
 
     def _node_to_mcp_response(self, node) -> dict[str, Any]:
-        """Convert domain node to MCP response format."""
+        """도메인 노드를 MCP 응답 형식으로 변환합니다."""
         return {
             "node_id": str(node.id),
-            "uuid": str(node.id),  # Using node.id as UUID for now
+            "uuid": str(node.id),  # 지금은 node.id를 UUID로 사용
             "name": node.name,
             "type": node.node_type.value,
             "properties": node.properties or {},
@@ -430,7 +430,7 @@ class KnowledgeGraphServer:
         }
 
     def _relationship_to_mcp_response(self, relationship) -> dict[str, Any]:
-        """Convert domain relationship to MCP response format."""
+        """도메인 관계를 MCP 응답 형식으로 변환합니다."""
         return {
             "edge_id": str(relationship.id),
             "source_id": str(relationship.source_node_id),
@@ -444,8 +444,8 @@ class KnowledgeGraphServer:
             ),
         }
 
-    # === Placeholder methods for remaining functionality ===
-    # These would be implemented following the same pattern
+    # === 나머지 기능에 대한 플레이스홀더 메서드 ===
+    # 이들은 동일한 패턴을 따라 구현될 것입니다.
 
     async def create_edge(
         self,
@@ -454,38 +454,38 @@ class KnowledgeGraphServer:
         relation_type: str,
         label: str,
         properties: dict[str, Any] | None = None,
-        weight: float | None = None,
-        ctx: Context | None = None,
+        weight: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Create a new relationship between nodes.
+        노드 간에 새 관계를 생성합니다.
 
         Args:
-            source_node_id: ID of the source node
-            target_node_id: ID of the target node
-            relation_type: Type of the relationship
-            label: Label for the relationship
-            properties: Custom properties for the relationship (optional)
-            weight: Weight of the relationship (uses config default if not provided)
-            ctx: MCP context object
+            source_node_id: 소스 노드의 ID
+            target_node_id: 대상 노드의 ID
+            relation_type: 관계의 유형
+            label: 관계의 레이블
+            properties: 관계의 사용자 지정 속성 (선택 사항)
+            weight: 관계의 가중치 (제공되지 않으면 설정 기본값 사용)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Created relationship data
+            생성된 관계 데이터
         """
-        self.logger.info("Creating edge from %s to %s", source_node_id, target_node_id)
+        self.logger.info("%s에서 %s로 엣지를 생성합니다.", source_node_id, target_node_id)
 
         try:
-            # Convert to domain objects
+            # 도메인 객체로 변환
             source_id = NodeId(str(source_node_id))
             target_id = NodeId(str(target_node_id))
             domain_relation_type = RelationshipType(relation_type)
 
-            # Use config default weight if not provided
+            # 제공되지 않은 경우 설정 기본 가중치 사용
             actual_weight = (
                 weight if weight is not None else self.config.default_relationship_weight
             )
 
-            # Call use case
+            # 유스케이스 호출
             relationship = await self.relationship_use_case.create_relationship(
                 source_node_id=source_id,
                 target_node_id=target_id,
@@ -495,15 +495,15 @@ class KnowledgeGraphServer:
                 weight=actual_weight,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._relationship_to_mcp_response(relationship)
 
         except ValueError as e:
-            error_msg = f"Invalid relationship parameters: {e}"
+            error_msg = f"잘못된 관계 매개변수: {e}"
             self.logger.error(error_msg)
             return {"error": error_msg}
         except Exception as e:
-            self.logger.error("Error creating relationship: %s", e)
+            self.logger.error("관계 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="create_edge",
@@ -514,37 +514,37 @@ class KnowledgeGraphServer:
     async def get_edge(
         self,
         edge_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Get a relationship from the knowledge graph.
+        지식 그래프에서 관계를 가져옵니다.
 
         Args:
-            edge_id: ID of the relationship to retrieve
-            ctx: MCP context object
+            edge_id: 검색할 관계의 ID
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Relationship data or error
+            관계 데이터 또는 오류
         """
-        self.logger.info("Retrieving edge with ID %s", edge_id)
+        self.logger.info("ID %s로 엣지를 검색합니다.", edge_id)
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
 
-            # Call use case
+            # 유스케이스 호출
             relationship = await self.relationship_use_case.get_relationship(domain_relationship_id)
 
             if not relationship:
-                error_msg = "Relationship not found"
+                error_msg = "관계를 찾을 수 없습니다."
                 if ctx:
                     self.logger.error(error_msg)
                 return {"error": error_msg}
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._relationship_to_mcp_response(relationship)
 
         except Exception as e:
-            self.logger.error("Error getting relationship: %s", e)
+            self.logger.error("관계 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="get_edge",
@@ -555,30 +555,30 @@ class KnowledgeGraphServer:
     async def update_edge(
         self,
         edge_id: int,
-        label: str | None = None,
+        label: Optional[str] = None,
         properties: dict[str, Any] | None = None,
-        weight: float | None = None,
-        ctx: Context | None = None,
+        weight: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Update a relationship in the knowledge graph.
+        지식 그래프의 관계를 업데이트합니다.
 
         Args:
-            edge_id: ID of the relationship to update
-            label: New label for the relationship (optional)
-            properties: New properties for the relationship (optional)
-            weight: New weight for the relationship (optional)
-            ctx: MCP context object
+            edge_id: 업데이트할 관계의 ID
+            label: 관계의 새 레이블 (선택 사항)
+            properties: 관계의 새 속성 (선택 사항)
+            weight: 관계의 새 가중치 (선택 사항)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Updated relationship data
+            업데이트된 관계 데이터
         """
-        self.logger.info("Updating edge with ID %s", edge_id)
+        self.logger.info("ID %s의 엣지를 업데이트합니다.", edge_id)
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
 
-            # Call use case
+            # 유스케이스 호출
             relationship = await self.relationship_use_case.update_relationship(
                 relationship_id=domain_relationship_id,
                 label=label,
@@ -586,11 +586,11 @@ class KnowledgeGraphServer:
                 weight=weight,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             return self._relationship_to_mcp_response(relationship)
 
         except Exception as e:
-            self.logger.error("Error updating relationship: %s", e)
+            self.logger.error("관계 업데이트 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="update_edge",
@@ -601,30 +601,30 @@ class KnowledgeGraphServer:
     async def delete_edge(
         self,
         edge_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Delete a relationship from the knowledge graph.
+        지식 그래프에서 관계를 삭제합니다.
 
         Args:
-            edge_id: ID of the relationship to delete
-            ctx: MCP context object
+            edge_id: 삭제할 관계의 ID
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Success or error message
+            성공 또는 오류 메시지
         """
-        self.logger.info("Deleting edge with ID %s", edge_id)
+        self.logger.info("ID %s의 엣지를 삭제합니다.", edge_id)
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
 
-            # Call use case
+            # 유스케이스 호출
             await self.relationship_use_case.delete_relationship(domain_relationship_id)
 
-            return {"success": True, "message": f"Relationship {edge_id} deleted successfully"}
+            return {"success": True, "message": f"관계 {edge_id}가 성공적으로 삭제되었습니다."}
 
         except Exception as e:
-            self.logger.error("Error deleting relationship: %s", e)
+            self.logger.error("관계 삭제 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="delete_edge",
@@ -634,41 +634,41 @@ class KnowledgeGraphServer:
 
     async def find_edges(
         self,
-        relation_type: str | None = None,
-        source_node_id: int | None = None,
-        target_node_id: int | None = None,
+        relation_type: Optional[str] = None,
+        source_node_id: Optional[int] = None,
+        target_node_id: Optional[int] = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Find relationships in the knowledge graph.
+        지식 그래프에서 관계를 찾습니다.
 
         Args:
-            relation_type: Filter by relationship type (optional)
-            source_node_id: Filter by source node ID (optional)
-            target_node_id: Filter by target node ID (optional)
-            limit: Maximum number of results to return (default 100)
-            offset: Number of results to skip (default 0)
-            ctx: MCP context object
+            relation_type: 관계 유형으로 필터링 (선택 사항)
+            source_node_id: 소스 노드 ID로 필터링 (선택 사항)
+            target_node_id: 대상 노드 ID로 필터링 (선택 사항)
+            limit: 반환할 최대 결과 수 (기본값 100)
+            offset: 건너뛸 결과 수 (기본값 0)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of relationships matching criteria
+            조건과 일치하는 관계 목록
         """
         self.logger.info(
-            "Finding edges with type=%s, source=%s, target=%s",
+            "유형=%s, 소스=%s, 대상=%s으로 엣지를 찾습니다.",
             relation_type,
             source_node_id,
             target_node_id,
         )
 
         try:
-            # Convert to domain objects
+            # 도메인 객체로 변환
             domain_relation_type = RelationshipType(relation_type) if relation_type else None
             domain_source_id = NodeId(str(source_node_id)) if source_node_id else None
             domain_target_id = NodeId(str(target_node_id)) if target_node_id else None
 
-            # Call use case
+            # 유스케이스 호출
             relationships = await self.relationship_use_case.list_relationships(
                 relationship_type=domain_relation_type,
                 source_node_id=domain_source_id,
@@ -677,13 +677,13 @@ class KnowledgeGraphServer:
                 offset=offset,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             result_relationships = [
                 self._relationship_to_mcp_response(rel) for rel in relationships
             ]
 
             if ctx:
-                self.logger.info("Found %s relationships", len(result_relationships))
+                self.logger.info("%s개의 관계를 찾았습니다.", len(result_relationships))
 
             return {
                 "edges": result_relationships,
@@ -693,7 +693,7 @@ class KnowledgeGraphServer:
             }
 
         except Exception as e:
-            self.logger.error("Error finding relationships: %s", e)
+            self.logger.error("관계 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="find_edges",
@@ -705,30 +705,30 @@ class KnowledgeGraphServer:
         self,
         node_id: int,
         depth: int = 1,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Get neighboring nodes in the knowledge graph.
+        지식 그래프에서 이웃 노드를 가져옵니다.
 
         Args:
-            node_id: ID of the central node
-            depth: Depth of neighbors to retrieve (default 1)
-            ctx: MCP context object
+            node_id: 중앙 노드의 ID
+            depth: 검색할 이웃의 깊이 (기본값 1)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of neighboring nodes
+            이웃 노드 목록
         """
-        self.logger.info("Getting neighbors for node %s at depth %s", node_id, depth)
+        self.logger.info("깊이 %s에서 노드 %s의 이웃을 가져옵니다.", depth, node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Get relationships for the node
+            # 노드의 관계 가져오기
             relationships = await self.relationship_use_case.get_node_relationships(
                 node_id=domain_node_id, direction="both"
             )
 
-            # Extract neighbor node IDs
+            # 이웃 노드 ID 추출
             neighbor_ids = set()
             for rel in relationships:
                 if str(rel.source_node_id) != str(node_id):
@@ -736,7 +736,7 @@ class KnowledgeGraphServer:
                 if str(rel.target_node_id) != str(node_id):
                     neighbor_ids.add(rel.target_node_id)
 
-            # Get neighbor nodes
+            # 이웃 노드 가져오기
             neighbors = []
             for neighbor_id in neighbor_ids:
                 neighbor = await self.node_use_case.get_node(neighbor_id)
@@ -744,7 +744,7 @@ class KnowledgeGraphServer:
                     neighbors.append(self._node_to_mcp_response(neighbor))
 
             if ctx:
-                self.logger.info("Found %s neighbors", len(neighbors))
+                self.logger.info("%s개의 이웃을 찾았습니다.", len(neighbors))
 
             return {
                 "neighbors": neighbors,
@@ -753,7 +753,7 @@ class KnowledgeGraphServer:
             }
 
         except Exception as e:
-            self.logger.error("Error getting neighbors: %s", e)
+            self.logger.error("이웃 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="get_neighbors",
@@ -766,36 +766,36 @@ class KnowledgeGraphServer:
         source_node_id: int,
         target_node_id: int,
         max_depth: int = 5,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Find paths between two nodes in the knowledge graph.
+        지식 그래프에서 두 노드 간의 경로를 찾습니다.
 
         Args:
-            source_node_id: ID of the source node
-            target_node_id: ID of the target node
-            max_depth: Maximum path depth to search (default 5)
-            ctx: MCP context object
+            source_node_id: 소스 노드의 ID
+            target_node_id: 대상 노드의 ID
+            max_depth: 검색할 최대 경로 깊이 (기본값 5)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            Shortest path between nodes or None if no path exists
+            노드 간 최단 경로 또는 경로가 없는 경우 None
         """
-        self.logger.info("Finding path from %s to %s", source_node_id, target_node_id)
+        self.logger.info("%s에서 %s로의 경로를 찾습니다.", source_node_id, target_node_id)
 
         try:
-            # Check if RelationshipAnalysisUseCase is available
+            # RelationshipAnalysisUseCase 사용 가능 여부 확인
             if not hasattr(self.relationship_use_case, "find_shortest_path"):
-                # Fallback to basic implementation using available methods
+                # 사용 가능한 메서드를 사용한 기본 구현으로 대체
                 return {
                     "path": None,
                     "length": 0,
-                    "message": "Path finding requires RelationshipAnalysisUseCase implementation",
+                    "message": "경로 찾기는 RelationshipAnalysisUseCase 구현이 필요합니다.",
                 }
 
             source_id = NodeId(str(source_node_id))
             target_id = NodeId(str(target_node_id))
 
-            # Call use case (if available)
+            # 유스케이스 호출 (사용 가능한 경우)
             path_relationships = await self.relationship_use_case.find_shortest_path(
                 source_node_id=source_id,
                 target_node_id=target_id,
@@ -804,18 +804,18 @@ class KnowledgeGraphServer:
 
             if not path_relationships:
                 if ctx:
-                    self.logger.info("No path found")
+                    self.logger.info("경로를 찾을 수 없습니다.")
                 return {
                     "path": None,
                     "length": 0,
-                    "message": "No path found between the specified nodes",
+                    "message": "지정된 노드 간에 경로를 찾을 수 없습니다.",
                 }
 
-            # Convert path to MCP response format
+            # 경로를 MCP 응답 형식으로 변환
             path_edges = [self._relationship_to_mcp_response(rel) for rel in path_relationships]
 
             if ctx:
-                self.logger.info("Found path with %s edges", len(path_edges))
+                self.logger.info("%s개의 엣지가 있는 경로를 찾았습니다.", len(path_edges))
 
             return {
                 "path": path_edges,
@@ -825,7 +825,7 @@ class KnowledgeGraphServer:
             }
 
         except Exception as e:
-            self.logger.error("Error finding path: %s", e)
+            self.logger.error("경로 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="find_paths",
@@ -837,39 +837,39 @@ class KnowledgeGraphServer:
         self,
         node_id: int,
         limit: int = 10,
-        threshold: float | None = None,
-        ctx: Context | None = None,
+        threshold: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
-        Search for nodes similar to the given node.
+        주어진 노드와 유사한 노드를 검색합니다.
 
         Args:
-            node_id: ID of the reference node
-            limit: Maximum number of similar nodes to return (default 10)
-            threshold: Similarity threshold (uses config default if not provided)
-            ctx: MCP context object
+            node_id: 참조 노드의 ID
+            limit: 반환할 최대 유사 노드 수 (기본값 10)
+            threshold: 유사도 임계값 (제공되지 않으면 설정 기본값 사용)
+            ctx: MCP 컨텍스트 객체
 
         Returns:
-            List of similar nodes with similarity scores
+            유사도 점수와 함께 유사한 노드 목록
         """
-        self.logger.info("Searching for nodes similar to %s", node_id)
+        self.logger.info("%s와 유사한 노드를 검색합니다.", node_id)
 
         try:
             domain_node_id = NodeId(str(node_id))
 
-            # Use config default threshold if not provided
+            # 제공되지 않은 경우 설정 기본 임계값 사용
             actual_threshold = (
                 threshold if threshold is not None else self.config.similarity_threshold
             )
 
-            # Check if NodeEmbeddingUseCase is available
+            # NodeEmbeddingUseCase 사용 가능 여부 확인
             if not hasattr(self.node_use_case, "find_similar_nodes"):
-                # Fallback: use knowledge search with node name
+                # 대체: 노드 이름으로 지식 검색 사용
                 node = await self.node_use_case.get_node(domain_node_id)
                 if not node:
-                    return {"error": f"Node {node_id} not found"}
+                    return {"error": f"노드 {node_id}를 찾을 수 없습니다."}
 
-                # Use text search as fallback
+                # 텍스트 검색을 대체로 사용
                 results = await self.knowledge_search_use_case.search_knowledge(
                     query=node.name,
                     strategy=SearchStrategy.SEMANTIC,
@@ -879,7 +879,7 @@ class KnowledgeGraphServer:
                     include_relationships=False,
                 )
 
-                # Convert to similar nodes format
+                # 유사 노드 형식으로 변환
                 similar_nodes = []
                 for result in results.results:
                     if result.node and str(result.node.id) != str(node_id):
@@ -892,7 +892,7 @@ class KnowledgeGraphServer:
 
                 if ctx:
                     self.logger.info(
-                        "Found %s similar nodes (using text search)", len(similar_nodes)
+                        "%s개의 유사한 노드를 찾았습니다 (텍스트 검색 사용).", len(similar_nodes)
                     )
 
                 return {
@@ -902,14 +902,14 @@ class KnowledgeGraphServer:
                     "method": "text_search_fallback",
                 }
 
-            # Use dedicated similarity search if available
+            # 전용 유사도 검색 사용 가능 시 사용
             similar_nodes_with_scores = await self.node_use_case.find_similar_nodes(
                 node_id=domain_node_id,
                 limit=limit,
                 threshold=actual_threshold,
             )
 
-            # Convert to MCP response format
+            # MCP 응답 형식으로 변환
             similar_nodes = []
             for node, similarity in similar_nodes_with_scores:
                 similar_nodes.append(
@@ -920,7 +920,7 @@ class KnowledgeGraphServer:
                 )
 
             if ctx:
-                self.logger.info("Found %s similar nodes", len(similar_nodes))
+                self.logger.info("%s개의 유사한 노드를 찾았습니다.", len(similar_nodes))
 
             return {
                 "similar_nodes": similar_nodes,
@@ -930,7 +930,7 @@ class KnowledgeGraphServer:
             }
 
         except Exception as e:
-            self.logger.error("Error searching similar nodes: %s", e)
+            self.logger.error("유사 노드 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
                 operation="search_similar_nodes",
@@ -938,29 +938,29 @@ class KnowledgeGraphServer:
                 original_error=e,
             ) from e
 
-    # === Server Lifecycle ===
+    # === 서버 생명주기 ===
 
     def start(
         self,
-        host: str | None = None,
-        port: int | None = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
     ) -> None:
         """
-        Start the MCP server.
+        MCP 서버를 시작합니다.
 
         Args:
-            host: Server host (uses config default if not provided)
-            port: Server port (uses config default if not provided)
+            host: 서버 호스트 (제공되지 않으면 설정 기본값 사용)
+            port: 서버 포트 (제공되지 않으면 설정 기본값 사용)
         """
         actual_host = host or self.config.host
         actual_port = port or self.config.port
 
-        self.logger.info("Starting Knowledge Graph MCP server on %s:%s", actual_host, actual_port)
+        self.logger.info("%s:%s에서 지식 그래프 MCP 서버를 시작합니다.", actual_host, actual_port)
 
-        # Start the server using FastMCP's built-in method
+        # FastMCP의 내장 메서드를 사용하여 서버 시작
         self.mcp_server.run()
 
     def close(self) -> None:
-        """Close the server."""
-        self.logger.info("Closing MCP server")
-        # FastMCP handles server lifecycle automatically
+        """서버를 닫습니다."""
+        self.logger.info("MCP 서버를 닫습니다.")
+        # FastMCP가 서버 생명주기를 자동으로 처리합니다.

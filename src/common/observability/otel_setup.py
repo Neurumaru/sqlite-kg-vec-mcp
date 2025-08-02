@@ -5,7 +5,7 @@ OpenTelemetry 공식 패턴을 따른 초기화 모듈.
 """
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 try:
     from opentelemetry import metrics, trace
@@ -30,31 +30,31 @@ except ImportError:
 def setup_tracing(
     service_name: str = "sqlite-kg-vec-mcp",
     service_version: str = "0.2.0",
-    endpoint: str | None = None,
+    endpoint: Optional[str] = None,
     insecure: bool = True,
     enable_console: bool = True,
 ) -> bool:
     """
     OpenTelemetry 트레이싱 설정 (공식 패턴).
 
-    Args:
+    인자:
         service_name: 서비스 이름
         service_version: 서비스 버전
         endpoint: OTLP 엔드포인트
         insecure: 비보안 연결 사용
         enable_console: 콘솔 출력 활성화
 
-    Returns:
+    반환:
         설정 성공 여부
     """
     if not OTEL_AVAILABLE:
         print(
-            "OpenTelemetry not available. Install with: uv add opentelemetry-api opentelemetry-sdk"
+            "OpenTelemetry를 사용할 수 없습니다. 다음으로 설치하세요: uv add opentelemetry-api opentelemetry-sdk"
         )
         return False
 
     try:
-        # Resource 생성 (공식 패턴)
+        # 리소스 생성 (공식 패턴)
         resource = Resource.create(
             attributes={
                 SERVICE_NAME: service_name,
@@ -68,7 +68,7 @@ def setup_tracing(
 
         # Span Processor 추가
         if endpoint:
-            # OTLP Exporter
+            # OTLP 익스포터
             otlp_exporter = OTLPSpanExporter(
                 endpoint=endpoint,
                 insecure=insecure,
@@ -77,44 +77,44 @@ def setup_tracing(
             tracer_provider.add_span_processor(span_processor)
 
         if enable_console or not endpoint:
-            # Console Exporter (개발용)
+            # 콘솔 익스포터 (개발용)
             console_exporter = ConsoleSpanExporter()
             console_processor = BatchSpanProcessor(console_exporter)
             tracer_provider.add_span_processor(console_processor)
 
-        print(f"✓ OpenTelemetry tracing initialized for {service_name}")
+        print(f"✓ {service_name}에 대한 OpenTelemetry 트레이싱이 초기화되었습니다.")
         return True
 
-    except Exception as e:
-        print(f"Failed to setup tracing: {e}")
+    except Exception as exception:
+        print(f"트레이싱 설정에 실패했습니다: {exception}")
         return False
 
 
 def setup_metrics(
     service_name: str = "sqlite-kg-vec-mcp",
     service_version: str = "0.2.0",
-    endpoint: str | None = None,
+    endpoint: Optional[str] = None,
     insecure: bool = True,
     enable_console: bool = True,
 ) -> bool:
     """
     OpenTelemetry 메트릭 설정 (공식 패턴).
 
-    Args:
+    인자:
         service_name: 서비스 이름
         service_version: 서비스 버전
         endpoint: OTLP 엔드포인트
         insecure: 비보안 연결 사용
         enable_console: 콘솔 출력 활성화
 
-    Returns:
+    반환:
         설정 성공 여부
     """
     if not OTEL_AVAILABLE:
         return False
 
     try:
-        # Resource 생성 (공식 패턴)
+        # 리소스 생성 (공식 패턴)
         resource = Resource.create(
             attributes={
                 SERVICE_NAME: service_name,
@@ -124,7 +124,7 @@ def setup_metrics(
 
         readers = []
 
-        # OTLP Metrics Exporter
+        # OTLP 메트릭스 익스포터
         if endpoint:
             metrics_endpoint = endpoint.replace("/v1/traces", "/v1/metrics")
             otlp_exporter = OTLPMetricExporter(
@@ -135,7 +135,7 @@ def setup_metrics(
                 PeriodicExportingMetricReader(otlp_exporter, export_interval_millis=30000)  # 30초
             )
 
-        # Console Metrics Exporter (개발용)
+        # 콘솔 메트릭스 익스포터 (개발용)
         if enable_console or not endpoint:
             console_exporter = ConsoleMetricExporter()
             readers.append(
@@ -146,11 +146,11 @@ def setup_metrics(
         meter_provider = MeterProvider(resource=resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
 
-        print(f"✓ OpenTelemetry metrics initialized for {service_name}")
+        print(f"✓ {service_name}에 대한 OpenTelemetry 메트릭이 초기화되었습니다.")
         return True
 
-    except Exception as e:
-        print(f"Failed to setup metrics: {e}")
+    except Exception as exception:
+        print(f"메트릭 설정에 실패했습니다: {exception}")
         return False
 
 
@@ -158,7 +158,7 @@ def setup_auto_instrumentation() -> bool:
     """
     자동 계측 설정.
 
-    Returns:
+    반환:
         설정 성공 여부
     """
     if not OTEL_AVAILABLE:
@@ -168,16 +168,16 @@ def setup_auto_instrumentation() -> bool:
 
     try:
         RequestsInstrumentor().instrument()
-        print("✓ HTTP requests auto-instrumentation enabled")
-    except Exception as e:
-        print(f"Failed to instrument requests: {e}")
+        print("✓ HTTP 요청 자동 계측 활성화됨")
+    except Exception as exception:
+        print(f"요청 계측에 실패했습니다: {exception}")
         success = False
 
     try:
         SQLite3Instrumentor().instrument()
-        print("✓ SQLite3 auto-instrumentation enabled")
-    except Exception as e:
-        print(f"Failed to instrument SQLite3: {e}")
+        print("✓ SQLite3 자동 계측 활성화됨")
+    except Exception as exception:
+        print(f"SQLite3 계측에 실패했습니다: {exception}")
         success = False
 
     return success
@@ -193,7 +193,7 @@ def configure_from_env() -> dict[str, Any]:
     - OTEL_EXPORTER_OTLP_ENDPOINT: OTLP 엔드포인트
     - OTEL_EXPORTER_OTLP_INSECURE: 비보안 연결 (true/false)
 
-    Returns:
+    반환:
         설정 딕셔너리
     """
     return {
@@ -205,9 +205,9 @@ def configure_from_env() -> dict[str, Any]:
 
 
 def initialize_opentelemetry(
-    service_name: str | None = None,
-    service_version: str | None = None,
-    endpoint: str | None = None,
+    service_name: Optional[str] = None,
+    service_version: Optional[str] = None,
+    endpoint: Optional[str] = None,
     enable_tracing: bool = True,
     enable_metrics: bool = True,
     enable_auto_instrumentation: bool = True,
@@ -216,7 +216,7 @@ def initialize_opentelemetry(
     """
     OpenTelemetry 전체 초기화 (공식 패턴 기반).
 
-    Args:
+    인자:
         service_name: 서비스 이름 (None이면 환경변수 사용)
         service_version: 서비스 버전 (None이면 환경변수 사용)
         endpoint: OTLP 엔드포인트 (None이면 환경변수 사용)
@@ -225,13 +225,13 @@ def initialize_opentelemetry(
         enable_auto_instrumentation: 자동 계측 활성화
         enable_console: 콘솔 출력 활성화
 
-    Returns:
+    반환:
         초기화 성공 여부
     """
     if not OTEL_AVAILABLE:
-        print("❌ OpenTelemetry packages not installed")
+        print("❌ OpenTelemetry 패키지가 설치되지 않았습니다")
         print(
-            "Install with: uv add opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp"
+            "다음으로 설치하세요: uv add opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp"
         )
         return False
 
@@ -247,7 +247,7 @@ def initialize_opentelemetry(
         "enable_console": enable_console,
     }
 
-    print(f"🚀 Initializing OpenTelemetry for {final_config['service_name']}")
+    print(f"🚀 {final_config['service_name']}에 대한 OpenTelemetry 초기화 중...")
 
     success = True
 
@@ -274,13 +274,13 @@ def initialize_opentelemetry(
         success &= setup_auto_instrumentation()
 
     if success:
-        print("✅ OpenTelemetry initialization completed successfully")
+        print("✅ OpenTelemetry 초기화가 성공적으로 완료되었습니다")
         if final_config["endpoint"]:
-            print(f"📡 Exporting to: {final_config['endpoint']}")
+            print(f"📡 다음으로 익스포트 중: {final_config['endpoint']}")
         else:
-            print("🖥️  Console export only (development mode)")
+            print("🖥️  콘솔 익스포트만 (개발 모드)")
     else:
-        print("⚠️  OpenTelemetry initialization completed with some errors")
+        print("⚠️  OpenTelemetry 초기화 중 일부 오류가 발생했습니다")
 
     return success
 

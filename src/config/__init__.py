@@ -1,1 +1,1 @@
-"""Configuration management."""
+"""구성 관리."""

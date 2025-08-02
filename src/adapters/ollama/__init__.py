@@ -1,8 +1,8 @@
 """
-Ollama LLM adapter implementations.
+Ollama LLM 어댑터 구현.
 
-This module contains all Ollama-specific implementations for LLM services
-including the client, knowledge extractor, LLM service, and Nomic embedder.
+이 모듈은 클라이언트, 지식 추출기, LLM 서비스, Nomic 임베더를 포함한
+Ollama 관련 LLM 서비스 구현을 모두 포함합니다.
 """
 
 # TODO: Fix NomicEmbedder import - missing hnsw.text_embedder dependency

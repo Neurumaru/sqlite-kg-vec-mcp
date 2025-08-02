@@ -1,5 +1,5 @@
 """
-Configuration for FastMCP adapter.
+FastMCP 어댑터 설정.
 """
 
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 @dataclass
 class FastMCPConfig:
-    """Configuration for FastMCP adapter."""
+    """FastMCP 어댑터 설정."""
 
     # 서버 설정
     host: str = "127.0.0.1"
@@ -28,7 +28,7 @@ class FastMCPConfig:
     log_level: str = "INFO"
 
     def __post_init__(self):
-        """Validate configuration after initialization."""
+        """초기화 후 설정 값 검증."""
         if self.port < 1 or self.port > 65535:
             raise ValueError(f"Port must be between 1 and 65535: {self.port}")
 

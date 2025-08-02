@@ -3,47 +3,21 @@
 """
 
 import logging
-from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.entities.document import Document, DocumentStatus
-from src.domain.entities.node import Node, NodeType
-from src.domain.entities.relationship import Relationship, RelationshipType
-from src.domain.value_objects.document_id import DocumentId
+from src.domain.entities.node import Node
+from src.domain.entities.relationship import Relationship
+from src.domain.services.document_persistence import DocumentPersistenceService
+from src.domain.services.document_statistics import DocumentStatisticsService
+from src.domain.services.document_validation import DocumentValidationService
+from src.domain.value_objects.knowledge_extraction_result import KnowledgeExtractionResult
 from src.domain.value_objects.node_id import NodeId
 from src.domain.value_objects.relationship_id import RelationshipId
-from src.dto import (
-    DocumentData,
-)
-from src.dto import DocumentStatus as DTODocumentStatus
-from src.dto import (
-    DocumentType,
-    NodeData,
-    RelationshipData,
-)
 from src.ports.knowledge_extractor import KnowledgeExtractor
+from src.ports.mappers import DocumentMapper, NodeMapper, RelationshipMapper
 from src.ports.repositories.document import DocumentRepository
 
-
-class KnowledgeExtractionResult:
-    """지식 추출 결과."""
-
-    def __init__(self, nodes: list[Node], relationships: list[Relationship]):
-        self.nodes = nodes
-        self.relationships = relationships
-        self.extracted_at = datetime.now()
-
-    def is_empty(self) -> bool:
-        """추출된 지식이 없는지 확인."""
-        return len(self.nodes) == 0 and len(self.relationships) == 0
-
-    def get_node_count(self) -> int:
-        """추출된 노드 수."""
-        return len(self.nodes)
-
-    def get_relationship_count(self) -> int:
-        """추출된 관계 수."""
-        return len(self.relationships)
 
 
 class DocumentProcessor:
@@ -57,14 +31,32 @@ class DocumentProcessor:
     def __init__(
         self,
         knowledge_extractor: KnowledgeExtractor,
-        document_repository: DocumentRepository | None = None,
-        logger: logging.Logger | None = None,
+        document_mapper: DocumentMapper,
+        node_mapper: NodeMapper,
+        relationship_mapper: RelationshipMapper,
+        document_validation_service: Optional[DocumentValidationService] = None,
+        document_persistence_service: Optional[DocumentPersistenceService] = None,
+        document_statistics_service: Optional[DocumentStatisticsService] = None,
+        document_repository: Optional[DocumentRepository] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.knowledge_extractor = knowledge_extractor
+        self.document_mapper = document_mapper
+        self.node_mapper = node_mapper
+        self.relationship_mapper = relationship_mapper
+        self.document_validation_service = document_validation_service or DocumentValidationService()
+        # 영속성 서비스 초기화 (repository가 있는 경우만)
+        if document_repository and not document_persistence_service:
+            self.document_persistence_service = DocumentPersistenceService(
+                document_repository, document_mapper, logger
+            )
+        else:
+            self.document_persistence_service = document_persistence_service
+        self.document_statistics_service = document_statistics_service or DocumentStatisticsService()
         self.document_repository = document_repository
         self.logger = logger or logging.getLogger(__name__)
 
-    async def process_document(self, document: Document) -> KnowledgeExtractionResult:
+    async def process(self, document: Document) -> KnowledgeExtractionResult:
         """
         문서를 처리하여 노드와 관계를 추출합니다.
 
@@ -75,9 +67,9 @@ class DocumentProcessor:
             추출된 노드와 관계
 
         Note:
-            Repository가 제공된 경우 트랜잭션 기반 처리를 수행합니다.
+            영속성 서비스가 제공된 경우 트랜잭션 기반 처리를 수행합니다.
         """
-        if self.document_repository:
+        if self.document_persistence_service:
             return await self._process_document_with_persistence(document)
         return await self._process_document_in_memory(document)
 
@@ -98,17 +90,8 @@ class DocumentProcessor:
         try:
             # 1. 상태를 PROCESSING으로 변경하고 저장
             document.mark_as_processing()
-
-            # Repository가 있는 경우에만 저장 처리
-            if self.document_repository is not None:
-                # Document 엔티티를 DocumentData DTO로 변환
-                document_data = self._document_to_data(document)
-
-                # 문서가 이미 존재하는지 확인 후 적절한 메서드 사용
-                if await self.document_repository.exists(str(document.id)):
-                    await self.document_repository.update(document_data)
-                else:
-                    await self.document_repository.save(document_data)
+            if self.document_persistence_service:
+                await self.document_persistence_service.save_or_update_document(document)
 
             # 2. 지식 추출
             extraction_result = await self._extract_knowledge(document)
@@ -117,16 +100,12 @@ class DocumentProcessor:
             document.mark_as_processed()
             self._link_document_to_knowledge(document, extraction_result)
 
-            node_ids = [node.id for node in extraction_result.nodes]
-            relationship_ids = [rel.id for rel in extraction_result.relationships]
+            node_id_strings = [str(node.id) for node in extraction_result.nodes]
+            relationship_id_strings = [str(rel.id) for rel in extraction_result.relationships]
 
-            if self.document_repository is not None:
-                document_data = self._document_to_data(document)
-                node_id_strings = [str(node_id) for node_id in node_ids]
-                relationship_id_strings = [str(rel_id) for rel_id in relationship_ids]
-
-                await self.document_repository.update_with_knowledge(
-                    document_data, node_id_strings, relationship_id_strings
+            if self.document_persistence_service:
+                await self.document_persistence_service.update_document_with_knowledge(
+                    document, node_id_strings, relationship_id_strings
                 )
 
             self.logger.info(
@@ -143,9 +122,8 @@ class DocumentProcessor:
             # 실패 시 상태 업데이트
             document.mark_as_failed(str(exception))
             try:
-                if self.document_repository is not None:
-                    document_data = self._document_to_data(document)
-                    await self.document_repository.update(document_data)
+                if self.document_persistence_service:
+                    await self.document_persistence_service.update_document_status(document)
             except Exception as update_error:
                 self.logger.error("Failed to update document status: %s", update_error)
             raise
@@ -195,7 +173,7 @@ class DocumentProcessor:
 
         지식 추출 포트를 사용하여 문서에서 개체와 관계를 추출합니다.
         """
-        # Document 엔티티를 DocumentData DTO로 변환
+        # Document 엔티티를 DTO로 변환
         document_data = self._document_to_data(document)
         node_data_list, relationship_data_list = await self.knowledge_extractor.extract(
             document_data
@@ -253,19 +231,9 @@ class DocumentProcessor:
 
     def validate_document_for_processing(self, document: Document) -> bool:
         """문서가 처리 가능한 상태인지 검증합니다."""
-        if document.status == DocumentStatus.PROCESSING:
-            self.logger.warning("Document %s is already being processed", document.id)
-            return False
-
-        if document.status == DocumentStatus.PROCESSED:
-            self.logger.info("Document %s has already been processed", document.id)
-            return False
-
-        if not document.content.strip():
-            self.logger.error("Document %s has no content", document.id)
-            return False
-
-        return True
+        validation_result = self.document_validation_service.validate_for_processing(document)
+        self.document_validation_service.log_validation_result(document, validation_result)
+        return validation_result.is_valid
 
     async def reprocess_document(self, document: Document) -> KnowledgeExtractionResult:
         """문서를 재처리합니다."""
@@ -279,108 +247,25 @@ class DocumentProcessor:
         document.status = DocumentStatus.PENDING
         document.processed_at = None
 
-        # Repository가 있는 경우 상태 업데이트 저장
-        if self.document_repository:
-            document_data = self._document_to_data(document)
-            await self.document_repository.update(document_data)
+        # 상태 업데이트 저장
+        if self.document_persistence_service:
+            await self.document_persistence_service.update_document_status(document)
 
         # 재처리 실행
-        return await self.process_document(document)
+        return await self.process(document)
 
-    def _document_to_data(self, document: Document) -> DocumentData:
-        """Document 엔티티를 DocumentData DTO로 변환합니다."""
-        # DocumentStatus를 DTO 버전으로 변환
-        dto_status_map = {
-            DocumentStatus.PENDING: DTODocumentStatus.PENDING,
-            DocumentStatus.PROCESSING: DTODocumentStatus.PROCESSING,
-            DocumentStatus.PROCESSED: DTODocumentStatus.COMPLETED,
-            DocumentStatus.FAILED: DTODocumentStatus.FAILED,
-        }
+    def _document_to_data(self, document: Document) -> Any:
+        """Document 엔티티를 DTO로 변환합니다."""
+        return self.document_mapper.to_data(document)
 
-        # DocumentType 변환 (엔티티와 DTO에서 동일한 이름 사용)
-        dto_type = DocumentType(document.doc_type.value)
+    def _node_data_to_entity(self, node_data: Any) -> Node:
+        """DTO를 Node 엔티티로 변환합니다."""
+        return self.node_mapper.from_data(node_data)
 
-        return DocumentData(
-            id=str(document.id),
-            title=document.title,
-            content=document.content,
-            doc_type=dto_type,
-            status=dto_status_map[document.status],
-            metadata=document.metadata,
-            version=document.version,
-            created_at=document.created_at,
-            updated_at=document.updated_at,
-            processed_at=document.processed_at,
-            connected_nodes=[str(node_id) for node_id in document.connected_nodes],
-            connected_relationships=[str(rel_id) for rel_id in document.connected_relationships],
-        )
-
-    def _node_data_to_entity(self, node_data: NodeData) -> Node:
-        """NodeData DTO를 Node 엔티티로 변환합니다."""
-
-        # NodeType 변환
-        entity_type = NodeType(node_data.node_type.value)
-
-        return Node(
-            id=NodeId.from_string(node_data.id),
-            name=node_data.name,
-            node_type=entity_type,
-            properties=node_data.properties,
-            source_documents=[
-                DocumentId.from_string(doc_id) for doc_id in node_data.source_documents
-            ],
-            created_at=node_data.created_at or datetime.now(),
-            updated_at=node_data.updated_at or datetime.now(),
-        )
-
-    def _relationship_data_to_entity(self, rel_data: RelationshipData) -> Relationship:
-        """RelationshipData DTO를 Relationship 엔티티로 변환합니다."""
-
-        try:
-            entity_type = RelationshipType(rel_data.relationship_type.value)
-        except ValueError as exception:
-            entity_type = RelationshipType.OTHER
-            self.logger.warning(
-                "Unknown relationship type %s: %s", rel_data.relationship_type.value, exception
-            )
-
-        return Relationship(
-            id=RelationshipId.from_string(rel_data.id),
-            source_node_id=NodeId.from_string(rel_data.source_node_id),
-            target_node_id=NodeId.from_string(rel_data.target_node_id),
-            relationship_type=entity_type,
-            label=rel_data.relationship_type.value,
-            confidence=rel_data.confidence_score or 1.0,
-            properties=rel_data.properties,
-            source_documents=[
-                DocumentId.from_string(doc_id) for doc_id in rel_data.source_documents
-            ],
-            created_at=rel_data.created_at or datetime.now(),
-            updated_at=rel_data.updated_at or datetime.now(),
-        )
+    def _relationship_data_to_entity(self, rel_data: Any) -> Relationship:
+        """DTO를 Relationship 엔티티로 변환합니다."""
+        return self.relationship_mapper.from_data(rel_data)
 
     def get_processing_statistics(self, documents: list[Document]) -> dict[str, Any]:
         """문서 처리 통계 정보를 반환합니다."""
-        total = len(documents)
-        processed = sum(1 for doc in documents if doc.status == DocumentStatus.PROCESSED)
-        processing = sum(1 for doc in documents if doc.status == DocumentStatus.PROCESSING)
-        failed = sum(1 for doc in documents if doc.status == DocumentStatus.FAILED)
-        pending = sum(1 for doc in documents if doc.status == DocumentStatus.PENDING)
-
-        total_nodes = sum(len(doc.connected_nodes) for doc in documents)
-        total_relationships = sum(len(doc.connected_relationships) for doc in documents)
-
-        return {
-            "total_documents": total,
-            "processed": processed,
-            "processing": processing,
-            "failed": failed,
-            "pending": pending,
-            "processing_rate": processed / total if total > 0 else 0,
-            "total_extracted_nodes": total_nodes,
-            "total_extracted_relationships": total_relationships,
-            "avg_nodes_per_document": total_nodes / processed if processed > 0 else 0,
-            "avg_relationships_per_document": (
-                total_relationships / processed if processed > 0 else 0
-            ),
-        }
+        return self.document_statistics_service.get_processing_statistics(documents)

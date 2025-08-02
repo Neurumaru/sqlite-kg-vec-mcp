@@ -1,5 +1,5 @@
 """
-Graph traversal algorithms for exploring the knowledge graph.
+지식 그래프 탐색을 위한 그래프 순회 알고리즘.
 """
 
 import json
@@ -15,16 +15,16 @@ from .relationships import Relationship
 
 @dataclass
 class PathNode:
-    """Represents a node in a path during graph traversal."""
+    """그래프 순회 중 경로의 노드를 나타냅니다."""
 
     entity: Entity
-    relationship: Relationship | None = None
+    relationship: Optional[Relationship] = None
     parent: Optional["PathNode"] = None
     depth: int = 0
 
     @property
     def path_to_root(self) -> list["PathNode"]:
-        """Get the path from this node back to the root."""
+        """이 노드에서 루트까지의 경로를 가져옵니다."""
         result = [self]
         current = self
         while current.parent:
@@ -35,14 +35,14 @@ class PathNode:
 
 class GraphTraversal:
     """
-    Implements graph traversal algorithms for knowledge graph exploration.
+    지식 그래프 탐색을 위한 그래프 순회 알고리즘을 구현합니다.
     """
 
     def __init__(self, connection: sqlite3.Connection):
         """
-        Initialize the graph traversal utility.
+        그래프 순회 유틸리티를 초기화합니다.
         Args:
-            connection: SQLite database connection
+            connection: SQLite 데이터베이스 연결
         """
         self.connection = connection
 
@@ -55,21 +55,21 @@ class GraphTraversal:
         limit: int = 100,
     ) -> list[tuple[Entity, Relationship]]:
         """
-        Get neighboring entities connected to the given entity.
+        주어진 엔티티에 연결된 이웃 엔티티를 가져옵니다.
         Args:
-            entity_id: Root entity ID
-            direction: 'outgoing', 'incoming', or 'both'
-            relation_types: Optional list of relationship types to filter
-            entity_types: Optional list of entity types to filter
-            limit: Maximum number of results
+            entity_id: 루트 엔티티 ID
+            direction: 'outgoing'(나가는), 'incoming'(들어오는), 또는 'both'(양방향)
+            relation_types: 필터링할 관계 유형의 선택적 목록
+            entity_types: 필터링할 엔티티 유형의 선택적 목록
+            limit: 최대 결과 수
         Returns:
-            List of (entity, relationship) tuples
+            (엔티티, 관계) 튜플 목록
         """
         if direction not in ("outgoing", "incoming", "both"):
-            raise ValueError("Direction must be 'outgoing', 'incoming', or 'both'")
+            raise ValueError("방향은 'outgoing', 'incoming', 또는 'both'여야 합니다")
         queries = []
         params: list[Any] = []
-        # Outgoing relationships (entity_id -> neighbor)
+        # 나가는 관계 (entity_id -> neighbor)
         if direction in ("outgoing", "both"):
             conditions = ["r.source_id = ?"]
             query_params: list[Any] = [entity_id]
@@ -91,7 +91,7 @@ class GraphTraversal:
             """
             queries.append(query)
             params.extend(query_params)
-        # Incoming relationships (neighbor -> entity_id)
+        # 들어오는 관계 (neighbor -> entity_id)
         if direction in ("incoming", "both"):
             conditions = ["r.target_id = ?"]
             query_params_inc: list[Any] = [entity_id]
@@ -113,21 +113,21 @@ class GraphTraversal:
             """
             queries.append(query)
             params.extend(query_params_inc)
-        # Combine queries with UNION if needed
+        # 필요한 경우 UNION으로 쿼리 결합
         if len(queries) > 1:
-            # SQLite doesn't like parentheses around the entire SELECT statement in UNION
+            # SQLite는 UNION에서 전체 SELECT 문을 괄호로 묶는 것을 좋아하지 않습니다
             final_query = f"{queries[0]} UNION {queries[1]} LIMIT ?"
             params.append(limit)
         else:
             final_query = f"{queries[0]} LIMIT ?"
             params.append(limit)
-        # Execute query
+        # 쿼리 실행
         cursor = self.connection.cursor()
         cursor.execute(final_query, params)
-        # Process results
+        # 결과 처리
         results = []
         for row in cursor.fetchall():
-            # Extract entity fields
+            # 엔티티 필드 추출
             entity = Entity(
                 id=row["id"],
                 uuid=row["uuid"],
@@ -137,7 +137,7 @@ class GraphTraversal:
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
             )
-            # Extract relationship fields
+            # 관계 필드 추출
             rel_props = row["rel_properties"]
             relationship = Relationship(
                 id=row["rel_id"],
@@ -158,7 +158,7 @@ class GraphTraversal:
         relation_types: list[str] | None = None,
         entity_types: list[str] | None = None,
     ) -> list[PathNode]:
-        """BFS to find all nodes reachable from start_id within max_depth."""
+        """너비 우선 탐색(BFS)을 사용하여 start_id에서 max_depth 내에서 도달 가능한 모든 노드를 찾습니다."""
         if max_depth < 0:
             return []
 
@@ -226,7 +226,7 @@ class GraphTraversal:
         relation_types: list[str] | None = None,
         entity_types: list[str] | None = None,
     ) -> list[PathNode] | None:
-        """Finds the shortest path between two entities using BFS."""
+        """너비 우선 탐색(BFS)을 사용하여 두 엔티티 간의 최단 경로를 찾습니다."""
         if start_id == end_id:
             cursor = self.connection.cursor()
             cursor.execute("SELECT * FROM entities WHERE id = ?", (start_id,))
@@ -246,7 +246,7 @@ class GraphTraversal:
                 return [PathNode(entity=start_entity)]
             return None
 
-        # Use BFS to find all reachable nodes, and check if end_id is among them
+        # BFS를 사용하여 도달 가능한 모든 노드를 찾고, 그중에 end_id가 있는지 확인합니다.
         reachable_nodes = self.breadth_first_search(
             start_id=start_id,
             max_depth=max_depth,
@@ -254,7 +254,7 @@ class GraphTraversal:
             entity_types=entity_types,
         )
 
-        # Find the PathNode corresponding to the end_id
+        # end_id에 해당하는 PathNode를 찾습니다.
         end_node = next((node for node in reachable_nodes if node.entity.id == end_id), None)
 
         if end_node:
@@ -271,57 +271,57 @@ class GraphTraversal:
         limit: int = 100,
     ) -> list[dict]:
         """
-        Perform a recursive query to find a subgraph using SQLite's recursive CTE.
+        SQLite의 재귀적 CTE를 사용하여 하위 그래프를 찾기 위한 재귀적 쿼리를 수행합니다.
         Args:
-            start_id: Start entity ID
-            direction: 'outgoing', 'incoming', or 'both'
-            relation_types: Optional list of relationship types to filter
-            entity_types: Optional list of entity types to filter
-            max_depth: Maximum traversal depth
-            limit: Maximum number of results
+            start_id: 시작 엔티티 ID
+            direction: 'outgoing', 'incoming', 또는 'both'
+            relation_types: 필터링할 관계 유형의 선택적 목록
+            entity_types: 필터링할 엔티티 유형의 선택적 목록
+            max_depth: 최대 순회 깊이
+            limit: 최대 결과 수
         Returns:
-            List of result rows with entity and relationship information
+            엔티티 및 관계 정보가 포함된 결과 행 목록
         """
         if direction not in ("outgoing", "incoming", "both"):
-            raise ValueError("Direction must be 'outgoing', 'incoming', or 'both'")
+            raise ValueError("방향은 'outgoing', 'incoming', 또는 'both'여야 합니다.")
         relation_filter = ""
         entity_filter = ""
-        # Build filter clauses and params separately for each query part
+        # 각 쿼리 부분에 대해 필터 절과 매개변수를 별도로 빌드합니다.
         relation_filter_params = []
         entity_filter_params = []
-        # Add relation type filter
+        # 관계 유형 필터 추가
         if relation_types:
             placeholders = ", ".join(["?"] * len(relation_types))
             relation_filter = f"AND r.relation_type IN ({placeholders})"
             relation_filter_params = list(relation_types)
-        # Add entity type filter
+        # 엔티티 유형 필터 추가
         if entity_types:
             placeholders = ", ".join(["?"] * len(entity_types))
             entity_filter = f"AND e.type IN ({placeholders})"
             entity_filter_params = list(entity_types)
-        # Build parameters based on direction
+        # 방향에 따라 매개변수 빌드
         if direction == "both":
-            # Both direction needs start_id twice (outgoing and incoming base cases)
+            # 양방향은 start_id가 두 번 필요합니다 (나가는 및 들어오는 기본 사례).
             base_params = [start_id] + relation_filter_params + [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
         else:
-            # Single direction needs start_id once
+            # 단방향은 start_id가 한 번 필요합니다.
             base_params = [start_id] + relation_filter_params
             recursive_params = [max_depth] + relation_filter_params
         final_params = entity_filter_params + [limit]
-        # Combine all parameters in order
+        # 모든 매개변수를 순서대로 결합
         params = base_params + recursive_params + final_params
-        # Build the recursive CTE query based on direction
+        # 방향에 따라 재귀적 CTE 쿼리 빌드
         if direction == "outgoing":
             recursive_query = f"""
             WITH RECURSIVE
             graph_path(source_id, target_id, relation_id, depth) AS (
-                -- Base case: direct relationships from start_id
+                -- 기본 사례: start_id에서 직접 나가는 관계
                 SELECT r.source_id, r.target_id, r.id, 1
                 FROM edges r
                 WHERE r.source_id = ? {relation_filter}
                 UNION ALL
-                -- Recursive case: follow outgoing edges
+                -- 재귀 사례: 나가는 엣지 따라가기
                 SELECT r.source_id, r.target_id, r.id, gp.depth + 1
                 FROM graph_path gp
                 JOIN edges r ON gp.target_id = r.source_id
@@ -343,12 +343,12 @@ class GraphTraversal:
             recursive_query = f"""
             WITH RECURSIVE
             graph_path(source_id, target_id, relation_id, depth) AS (
-                -- Base case: direct relationships to start_id
+                -- 기본 사례: start_id로 직접 들어오는 관계
                 SELECT r.source_id, r.target_id, r.id, 1
                 FROM edges r
                 WHERE r.target_id = ? {relation_filter}
                 UNION ALL
-                -- Recursive case: follow incoming edges
+                -- 재귀 사례: 들어오는 엣지 따라가기
                 SELECT r.source_id, r.target_id, r.id, gp.depth + 1
                 FROM graph_path gp
                 JOIN edges r ON gp.source_id = r.target_id
@@ -370,17 +370,17 @@ class GraphTraversal:
             recursive_query = f"""
             WITH RECURSIVE
             graph_path(entity_id, related_id, relation_id, direction, depth) AS (
-                -- Base case: direct outgoing relationships from start_id
+                -- 기본 사례: start_id에서 직접 나가는 관계
                 SELECT r.source_id, r.target_id, r.id, 'outgoing', 1
                 FROM edges r
                 WHERE r.source_id = ? {relation_filter}
                 UNION ALL
-                -- Base case: direct incoming relationships to start_id
+                -- 기본 사례: start_id로 직접 들어오는 관계
                 SELECT r.target_id, r.source_id, r.id, 'incoming', 1
                 FROM edges r
                 WHERE r.target_id = ? {relation_filter}
                 UNION ALL
-                -- Recursive case: follow relationships in both directions
+                -- 재귀 사례: 양방향으로 관계 따라가기
                 SELECT
                     CASE
                         WHEN gp.direction = 'outgoing' THEN r.source_id
@@ -409,19 +409,19 @@ class GraphTraversal:
             ORDER BY gp.depth
             LIMIT ?
             """
-            # For 'both' direction, start_id is used twice
+            # 'both' 방향의 경우, start_id가 두 번 사용됩니다.
             both_params: list[Any] = [start_id, start_id, max_depth] + params[2:]
             params = both_params
         params.append(limit)
-        # Execute the recursive query
+        # 재귀 쿼리 실행
         cursor = self.connection.cursor()
         cursor.execute(recursive_query, params)
-        # Process results
+        # 결과 처리
         results = []
         for row in cursor.fetchall():
-            # Convert to dict for easier manipulation
+            # 쉬운 조작을 위해 dict로 변환
             result_dict = dict(row)
-            # Parse JSON properties
+            # JSON 속성 파싱
             if result_dict.get("properties"):
                 result_dict["properties"] = json.loads(result_dict["properties"])
             else:
@@ -440,7 +440,7 @@ class GraphTraversal:
         relation_types: list[str] | None = None,
         entity_types: list[str] | None = None,
     ) -> list[PathNode]:
-        """DFS to find all nodes reachable from start_id within max_depth."""
+        """깊이 우선 탐색(DFS)을 사용하여 start_id에서 max_depth 내에서 도달 가능한 모든 노드를 찾습니다."""
         if max_depth < 0:
             return []
 
@@ -472,14 +472,14 @@ class GraphTraversal:
                 continue
 
             try:
-                # Get neighbors in reverse order to simulate DFS (stack behavior)
+                # DFS를 시뮬레이션하기 위해 이웃을 역순으로 가져옵니다 (스택 동작).
                 neighbors = self.get_neighbors(
                     current.entity.id,
                     direction="both",
                     relation_types=relation_types,
                     entity_types=entity_types,
                 )
-                # Add neighbors to stack in reverse to process in natural order
+                # 자연스러운 순서로 처리하기 위해 이웃을 역순으로 스택에 추가합니다.
                 for neighbor_entity, relationship in reversed(neighbors):
                     if neighbor_entity.id not in visited:
                         new_node = PathNode(
@@ -502,7 +502,7 @@ class GraphTraversal:
         return results
 
     def get_connected_components(self) -> list[list[int]]:
-        """Finds all connected components in the graph (undirected)."""
+        """그래프의 모든 연결된 구성 요소를 찾습니다 (무방향)."""
         cursor = self.connection.cursor()
         cursor.execute("SELECT id FROM entities")
         all_entity_ids = [row[0] for row in cursor.fetchall()]
@@ -521,7 +521,7 @@ class GraphTraversal:
                     component_nodes.append(current_id)
                     visited_all.add(current_id)
 
-                    # Get neighbors (undirected for connected components)
+                    # 이웃 가져오기 (연결된 구성 요소의 경우 무방향)
                     neighbors = self.get_neighbors(current_id, direction="both")
                     for neighbor_entity, _ in neighbors:
                         if neighbor_entity.id not in visited_component:

@@ -3,7 +3,7 @@ OpenAI 텍스트 임베딩 어댑터.
 """
 
 import time
-from typing import Any
+from typing import Any, Optional
 
 try:
     import openai
@@ -25,28 +25,28 @@ class OpenAITextEmbedder(TextEmbedder):
 
     def __init__(
         self,
-        config: OpenAIConfig | None = None,
-        api_key: str | None = None,
-        model: str | None = None,
-        dimension: int | None = None,
+        config: Optional[OpenAIConfig] = None,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        dimension: Optional[int] = None,
     ):
         """
         OpenAI 임베딩 어댑터를 초기화합니다.
 
         Args:
             config: OpenAI 설정 객체
-            api_key: OpenAI API 키 (deprecated, config 사용 권장)
-            model: 임베딩 모델명 (deprecated, config 사용 권장)
-            dimension: 임베딩 차원 (deprecated, config 사용 권장)
+            api_key: OpenAI API 키 (사용 중단됨, config 사용 권장)
+            model: 임베딩 모델명 (사용 중단됨, config 사용 권장)
+            dimension: 임베딩 차원 (사용 중단됨, config 사용 권장)
         """
         if not OPENAI_AVAILABLE:
             raise ImportError("openai가 설치되지 않았습니다. 'pip install openai'로 설치해주세요.")
 
-        # Use config if provided, otherwise fall back to individual parameters
+        # config가 제공되면 사용하고, 그렇지 않으면 개별 매개변수로 대체합니다.
         if config is None:
             config = OpenAIConfig()
 
-        # Override config with individual parameters if provided (for backward compatibility)
+        # 이전 버전과의 호환성을 위해 개별 매개변수가 제공되면 config를 재정의합니다.
         self.api_key = api_key or config.api_key
         if not self.api_key:
             raise ValueError("OpenAI API 키가 제공되지 않았고 OPENAI_API_KEY 환경변수도 없습니다.")
@@ -85,7 +85,7 @@ class OpenAITextEmbedder(TextEmbedder):
                 raise ValueError("OpenAI API에서 임베딩 데이터를 받지 못했습니다.")
 
             embedding_data = np.array(response.data[0].embedding, dtype=np.float32)
-            processing_time = (time.time() - start_time) * 1000  # milliseconds
+            processing_time = (time.time() - start_time) * 1000  # 밀리초
 
             return EmbeddingResult(
                 text=text,
@@ -132,7 +132,7 @@ class OpenAITextEmbedder(TextEmbedder):
             if not response.data or len(response.data) != len(texts):
                 raise ValueError("OpenAI API에서 예상한 수만큼의 임베딩 데이터를 받지 못했습니다.")
 
-            processing_time = (time.time() - start_time) * 1000  # milliseconds
+            processing_time = (time.time() - start_time) * 1000  # 밀리초
 
             results = []
             for i, (text, data) in enumerate(zip(texts, response.data, strict=False)):

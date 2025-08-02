@@ -1,5 +1,5 @@
 """
-Configuration management module using Pydantic Settings.
+Pydantic Settings를 사용한 구성 관리 모듈.
 """
 
 from .app import AppConfig

@@ -1,5 +1,5 @@
 """
-Setup and initialization utilities for the observability system.
+관찰 가능성 시스템을 위한 설정 및 초기화 유틸리티.
 """
 
 import os
@@ -20,39 +20,39 @@ def setup_observability(
     auto_configure: bool = True,
 ) -> None:
     """
-    Complete setup for the unified logging and observability system.
+    통합 로깅 및 관찰 가능성 시스템을 위한 완전한 설정.
 
-    This function should be called at application startup to configure:
-    - Structured logging (with structlog if available)
-    - Trace context management
-    - External observability service integration
+    이 함수는 애플리케이션 시작 시 호출되어 다음을 구성해야 합니다:
+    - 구조화된 로깅 (structlog 사용 가능 시)
+    - 트레이스 컨텍스트 관리
+    - 외부 관찰 가능성 서비스 통합
 
-    Args:
-        logging_config: Logging configuration override
-        observability_config: Observability service configuration
-        auto_configure: Whether to auto-configure from environment variables
+    인자:
+        logging_config: 로깅 구성 재정의
+        observability_config: 관찰 가능성 서비스 구성
+        auto_configure: 환경 변수로부터 자동 구성할지 여부
     """
 
-    # 1. Configure structured logging
+    # 1. 구조화된 로깅 구성
     if auto_configure and logging_config is None:
-        # Get configuration from environment variables
+        # 환경 변수에서 구성 가져오기
         config = get_logging_config_from_env()
         configure_structured_logging(config)
     elif logging_config:
         config = LoggingConfig(**logging_config)
         configure_structured_logging(config)
     else:
-        # Use defaults
+        # 기본값 사용
         configure_structured_logging()
 
-    # 2. Initialize observability integration
+    # 2. 관찰 가능성 통합 초기화
     if auto_configure and observability_config is None:
         observability_config = get_observability_config_from_env()
 
     if observability_config:
         initialize_observability(observability_config)
 
-    # Log successful setup
+    # 성공적인 설정 로깅
     logger = get_observable_logger("observability_setup", "common")
     logger.info(
         "observability_system_initialized",
@@ -64,18 +64,18 @@ def setup_observability(
 
 def get_observability_config_from_env() -> dict[str, Any]:
     """
-    Get observability configuration from environment variables.
+    환경 변수로부터 관찰 가능성 구성을 가져옵니다.
 
-    Environment variables:
-    - OBSERVABILITY_SERVICE: Service type (langfuse, opentelemetry, none)
-    - LANGFUSE_SECRET_KEY: Langfuse secret key
-    - LANGFUSE_PUBLIC_KEY: Langfuse public key
-    - LANGFUSE_HOST: Langfuse host (default: https://cloud.langfuse.com)
-    - JAEGER_HOST: Jaeger host for OpenTelemetry (default: localhost)
-    - JAEGER_PORT: Jaeger port for OpenTelemetry (default: 6831)
+    환경 변수:
+    - OBSERVABILITY_SERVICE: 서비스 타입 (langfuse, opentelemetry, none)
+    - LANGFUSE_SECRET_KEY: Langfuse 비밀 키
+    - LANGFUSE_PUBLIC_KEY: Langfuse 공개 키
+    - LANGFUSE_HOST: Langfuse 호스트 (기본값: https://cloud.langfuse.com)
+    - JAEGER_HOST: OpenTelemetry를 위한 Jaeger 호스트 (기본값: localhost)
+    - JAEGER_PORT: OpenTelemetry를 위한 Jaeger 포트 (기본값: 6831)
 
-    Returns:
-        Configuration dictionary
+    반환:
+        구성 딕셔너리
     """
     service_type = os.getenv("OBSERVABILITY_SERVICE", "none").lower()
 
@@ -92,7 +92,7 @@ def get_observability_config_from_env() -> dict[str, Any]:
         }
         config["langfuse"] = langfuse_config
 
-        # Only include if keys are provided
+        # 키가 제공된 경우에만 포함
         if not langfuse_config["secret_key"] or not langfuse_config["public_key"]:
             return {}
 
@@ -108,13 +108,13 @@ def get_observability_config_from_env() -> dict[str, Any]:
 
 def quick_setup() -> None:
     """
-    Quick setup with sensible defaults for development.
+    개발을 위한 합리적인 기본값으로 빠른 설정.
 
-    This is a convenience function for getting started quickly.
-    It configures:
-    - JSON logging to console
-    - INFO level logging
-    - Automatic environment variable detection
+    이것은 빠르게 시작하기 위한 편의 함수입니다.
+    다음과 같이 구성합니다:
+    - 콘솔로 JSON 로깅
+    - INFO 레벨 로깅
+    - 자동 환경 변수 감지
     """
     setup_observability(
         logging_config={
@@ -130,13 +130,13 @@ def quick_setup() -> None:
 
 def production_setup() -> None:
     """
-    Production setup with appropriate settings.
+    적절한 설정으로 프로덕션 환경 구성.
 
-    This configures:
-    - Structured JSON logging
-    - WARNING level logging (reduce noise)
-    - Full observability integration
-    - Sensitive data sanitization
+    이것은 다음을 구성합니다:
+    - 구조화된 JSON 로깅
+    - WARNING 레벨 로깅 (노이즈 감소)
+    - 전체 관찰 가능성 통합
+    - 민감한 데이터 삭제
     """
     setup_observability(
         logging_config={
@@ -153,23 +153,23 @@ def production_setup() -> None:
 
 def development_setup() -> None:
     """
-    Development setup with verbose logging.
+    자세한 로깅이 포함된 개발 환경 설정.
 
-    This configures:
-    - Human-readable text logging
-    - DEBUG level logging
-    - Full trace information
-    - No external services (for faster development)
+    이것은 다음을 구성합니다:
+    - 사람이 읽을 수 있는 텍스트 로깅
+    - DEBUG 레벨 로깅
+    - 전체 트레이스 정보
+    - 외부 서비스 없음 (더 빠른 개발을 위해)
     """
     setup_observability(
         logging_config={
             "level": "DEBUG",
-            "format": "text",  # Human-readable for development
+            "format": "text",  # 개발을 위해 사람이 읽을 수 있는 형식
             "output": "console",
             "include_trace": True,
             "include_caller": True,
             "sanitize_sensitive_data": False,
         },
-        observability_config={},  # No external services
+        observability_config={},  # 외부 서비스 없음
         auto_configure=False,
     )

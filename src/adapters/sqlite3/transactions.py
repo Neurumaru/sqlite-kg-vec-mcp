@@ -1,22 +1,23 @@
 """
-Transaction management for SQLite database operations.
+SQLite 데이터베이스 작업에 대한 트랜잭션 관리.
 """
 
 import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Optional
 
 
 class TransactionManager:
     """
-    Manages database transactions to ensure atomicity and consistency.
+    원자성과 일관성을 보장하기 위해 데이터베이스 트랜잭션을 관리합니다.
     """
 
     def __init__(self, connection: sqlite3.Connection):
         """
-        Initialize the transaction manager.
+        트랜잭션 관리자를 초기화합니다.
         Args:
-            connection: SQLite database connection
+            connection: SQLite 데이터베이스 연결
         """
         self.connection = connection
 
@@ -25,17 +26,17 @@ class TransactionManager:
         self, isolation_level: str = "IMMEDIATE"
     ) -> Generator[sqlite3.Connection, None, None]:
         """
-        Context manager for database transactions.
+        데이터베이스 트랜잭션을 위한 컨텍스트 관리자.
         Args:
-            isolation_level: SQLite isolation level ('DEFERRED', 'IMMEDIATE', or 'EXCLUSIVE')
-                            IMMEDIATE is safer for concurrent operations
+            isolation_level: SQLite 격리 수준 ('DEFERRED', 'IMMEDIATE' 또는 'EXCLUSIVE')
+                            'IMMEDIATE'는 동시 작업에 더 안전합니다.
         Yields:
-            SQLite connection for executing statements within the transaction
+            트랜잭션 내에서 문을 실행하기 위한 SQLite 연결
         Raises:
-            Any exception from the transaction context
+            트랜잭션 컨텍스트의 모든 예외
         """
-        # We need to use 'execute' here because we disabled automatic
-        # transaction management when creating the connection
+        # 연결을 생성할 때 자동 트랜잭션 관리를 비활성화했기 때문에
+        # 여기서 'execute'를 사용해야 합니다.
         self.connection.execute(f"BEGIN {isolation_level} TRANSACTION")
         try:
             yield self.connection
@@ -47,27 +48,27 @@ class TransactionManager:
 
 class UnitOfWork:
     """
-    Implements the Unit of Work pattern for coordinating and tracking DB changes.
+    DB 변경 사항을 조정하고 추적하기 위해 작업 단위 패턴을 구현합니다.
     """
 
     def __init__(self, connection: sqlite3.Connection):
         """
-        Initialize the Unit of Work.
+        작업 단위를 초기화합니다.
         Args:
-            connection: SQLite database connection
+            connection: SQLite 데이터베이스 연결
         """
         self.connection = connection
         self.transaction_manager = TransactionManager(connection)
-        self._correlation_id: str | None = None
+        self._correlation_id: Optional[str] = None
 
     @property
-    def correlation_id(self) -> str | None:
-        """Get the correlation ID for tracking related operations."""
+    def correlation_id(self) -> Optional[str]:
+        """관련 작업을 추적하기 위한 상관 관계 ID를 가져옵니다."""
         return self._correlation_id
 
     @correlation_id.setter
     def correlation_id(self, value: str) -> None:
-        """Set the correlation ID for tracking related operations."""
+        """관련 작업을 추적하기 위한 상관 관계 ID를 설정합니다."""
         self._correlation_id = value
 
     @contextmanager
@@ -75,11 +76,11 @@ class UnitOfWork:
         self, isolation_level: str = "IMMEDIATE"
     ) -> Generator[sqlite3.Connection, None, None]:
         """
-        Begin a unit of work (a transaction).
+        작업 단위(트랜잭션)를 시작합니다.
         Args:
-            isolation_level: SQLite isolation level
+            isolation_level: SQLite 격리 수준
         Yields:
-            SQLite connection for executing statements
+            문을 실행하기 위한 SQLite 연결
         """
         with self.transaction_manager.transaction(isolation_level) as conn:
             yield conn
@@ -89,17 +90,17 @@ class UnitOfWork:
         entity_type: str,
         entity_id: int,
         operation_type: str,
-        model_info: str | None = None,
+        model_info: Optional[str] = None,
     ) -> int:
         """
-        Register a vector operation in the outbox for asynchronous processing.
+        비동기 처리를 위해 아웃박스에 벡터 작업을 등록합니다.
         Args:
-            entity_type: Type of entity ('node', 'edge', 'hyperedge')
-            entity_id: ID of the entity
-            operation_type: Type of operation ('insert', 'update', 'delete')
-            model_info: Optional model information for embeddings
+            entity_type: 엔티티 유형 ('node', 'edge', 'hyperedge')
+            entity_id: 엔티티 ID
+            operation_type: 작업 유형 ('insert', 'update', 'delete')
+            model_info: 임베딩을 위한 선택적 모델 정보
         Returns:
-            ID of the created outbox entry
+            생성된 아웃박스 항목의 ID
         """
         cursor = self.connection.cursor()
         cursor.execute(
@@ -112,5 +113,5 @@ class UnitOfWork:
         )
         result = cursor.lastrowid
         if result is None:
-            raise RuntimeError("Failed to insert into vector_outbox")
+            raise RuntimeError("vector_outbox에 삽입 실패")
         return result

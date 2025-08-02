@@ -1,8 +1,8 @@
 """
-HNSW (Hierarchical Navigable Small World) adapters for vector similarity search.
+벡터 유사도 검색을 위한 HNSW(Hierarchical Navigable Small World) 어댑터.
 
-This module contains HNSW-specific implementations for text embedding,
-vector search, and HNSW indexing functionality using hnswlib and FAISS.
+이 모듈은 hnswlib와 FAISS를 사용하여 텍스트 임베딩, 벡터 검색 및
+HNSW 인덱싱 기능을 위한 HNSW 관련 구현을 포함합니다.
 """
 
 from .embeddings import Embedding, EmbeddingManager

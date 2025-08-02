@@ -1,5 +1,5 @@
 """
-Logging configuration and setup.
+로깅 설정 및 구성.
 """
 
 import json
@@ -10,7 +10,7 @@ import traceback
 from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 import structlog
 
@@ -18,7 +18,7 @@ from ..config.observability import LoggingObservabilityConfig
 
 
 class LogLevel(Enum):
-    """Supported log levels."""
+    """지원되는 로그 레벨."""
 
     DEBUG = "DEBUG"
     INFO = "INFO"
@@ -30,13 +30,13 @@ class LogLevel(Enum):
 @dataclass
 class LoggingConfig:
     """
-    Logging configuration settings.
+    로깅 구성 설정.
     """
 
     level: LogLevel = LogLevel.INFO
-    format: str = "json"  # json or text
-    output: str = "console"  # console or file
-    file_path: str | None = None
+    format: str = "json"  # json 또는 text
+    output: str = "console"  # console 또는 file
+    file_path: Optional[str] = None
     max_file_size: int = 10 * 1024 * 1024  # 10MB
     backup_count: int = 5
     include_trace: bool = True
@@ -45,18 +45,18 @@ class LoggingConfig:
 
 
 def configure_structured_logging(
-    config: LoggingConfig | None = None,
-    observability_config: LoggingObservabilityConfig | None = None,
+    config: Optional[LoggingConfig] = None,
+    observability_config: Optional[LoggingObservabilityConfig] = None,
 ) -> None:
     """
-    Configure structured logging for the application.
+    애플리케이션을 위한 구조화된 로깅을 구성합니다.
 
-    Args:
-        config: Logging configuration (uses defaults if None, deprecated)
-        observability_config: New observability logging configuration
+    인자:
+        config: 로깅 구성 (None인 경우 기본값 사용, deprecated)
+        observability_config: 새로운 관찰 가능성 로깅 구성
     """
     if observability_config is not None:
-        # Convert observability config to logging config
+        # 관찰 가능성 구성을 로깅 구성으로 변환
         config = LoggingConfig(
             level=LogLevel(observability_config.level),
             format=observability_config.format,
@@ -73,53 +73,53 @@ def configure_structured_logging(
 
 
 def _configure_structlog(config: LoggingConfig) -> None:
-    """Configure structlog for structured logging."""
+    """구조화된 로깅을 위해 structlog를 구성합니다."""
 
-    # Configure stdlib logging
+    # 표준 라이브러리 로깅 구성
     stdlib_logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout if config.output == "console" else None,
         level=getattr(stdlib_logging, config.level.value),
     )
 
-    # Build processor chain
+    # 프로세서 체인 빌드
     processors: list[
         Callable[
             [Any, str, MutableMapping[str, Any]],
             Mapping[str, Any] | str | bytes | bytearray | tuple,
         ]
     ] = [
-        # Filter by level
+        # 레벨별 필터링
         structlog.stdlib.filter_by_level,
-        # Add log level and logger name
+        # 로그 레벨 및 로거 이름 추가
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
-        # Add timestamp
+        # 타임스탬프 추가
         structlog.processors.TimeStamper(fmt="iso"),
-        # Handle positional arguments
+        # 위치 인자 처리
         structlog.stdlib.PositionalArgumentsFormatter(),
-        # Add stack info for exceptions
+        # 예외를 위한 스택 정보 추가
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
-        # Handle unicode
+        # 유니코드 처리
         structlog.processors.UnicodeDecoder(),
     ]
 
-    # Add caller info if requested
+    # 요청 시 호출자 정보 추가
     if config.include_caller:
         processors.append(structlog.processors.CallsiteParameterAdder())
 
-    # Add sanitization processor
+    # 민감 데이터 삭제 프로세서 추가
     if config.sanitize_sensitive_data:
         processors.append(_sanitize_processor)
 
-    # Add final renderer
+    # 최종 렌더러 추가
     if config.format == "json":
         processors.append(structlog.processors.JSONRenderer())
     else:
         processors.append(structlog.dev.ConsoleRenderer())
 
-    # Configure structlog
+    # structlog 구성
     structlog.configure(
         processors=processors,
         context_class=dict,
@@ -130,24 +130,24 @@ def _configure_structlog(config: LoggingConfig) -> None:
 
 
 def _configure_stdlib_logging(config: LoggingConfig) -> None:
-    """Configure standard library logging as fallback."""
+    """표준 라이브러리 로깅을 대체 메커니즘으로 구성합니다."""
 
-    # Create formatter
+    # 포매터 생성
     formatter: Any
     if config.format == "json":
         formatter = _JSONFormatter()
     else:
         formatter = stdlib_logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
-    # Configure root logger
+    # 루트 로거 구성
     root_logger = stdlib_logging.getLogger()
     root_logger.setLevel(getattr(stdlib_logging, config.level.value))
 
-    # Remove existing handlers
+    # 기존 핸들러 제거
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # Add appropriate handler
+    # 적절한 핸들러 추가
     if config.output == "console":
         handler = stdlib_logging.StreamHandler(sys.stdout)
     else:
@@ -160,7 +160,7 @@ def _configure_stdlib_logging(config: LoggingConfig) -> None:
 def _sanitize_processor(
     logger: Any, method_name: str, event_dict: MutableMapping[str, Any]
 ) -> MutableMapping[str, Any]:
-    """Processor to sanitize sensitive data from logs."""
+    """로그에서 민감한 데이터를 삭제하는 프로세서."""
     sensitive_keys = {
         "password",
         "token",
@@ -196,13 +196,13 @@ def _sanitize_processor(
 
 
 class _JSONFormatter:
-    """JSON formatter for standard library logging."""
+    """표준 라이브러리 로깅을 위한 JSON 포매터."""
 
     def __init__(self):
         self.json = json
 
     def format(self, record):
-        """Format log record as JSON."""
+        """로그 레코드를 JSON으로 포맷합니다."""
         log_entry = {
             "timestamp": record.created,
             "level": record.levelname,
@@ -221,21 +221,21 @@ class _JSONFormatter:
 
 def get_logging_config_from_env() -> LoggingConfig:
     """
-    Get logging configuration from environment variables.
+    환경 변수로부터 로깅 구성을 가져옵니다.
 
-    Deprecated: Use LoggingObservabilityConfig.from_env() instead.
+    Deprecated: 대신 LoggingObservabilityConfig.from_env()를 사용하세요.
 
-    Environment variables:
-    - LOG_LEVEL: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-    - LOG_FORMAT: Output format (json, text)
-    - LOG_OUTPUT: Output destination (console, file)
-    - LOG_FILE: Log file path (when output=file)
-    - LOG_INCLUDE_TRACE: Include trace information (true/false)
-    - LOG_INCLUDE_CALLER: Include caller information (true/false)
-    - LOG_SANITIZE: Sanitize sensitive data (true/false)
+    환경 변수:
+    - LOG_LEVEL: 로깅 레벨 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - LOG_FORMAT: 출력 형식 (json, text)
+    - LOG_OUTPUT: 출력 대상 (console, file)
+    - LOG_FILE: 로그 파일 경로 (output=file인 경우)
+    - LOG_INCLUDE_TRACE: 트레이스 정보 포함 여부 (true/false)
+    - LOG_INCLUDE_CALLER: 호출자 정보 포함 여부 (true/false)
+    - LOG_SANITIZE: 민감한 데이터 삭제 여부 (true/false)
 
-    Returns:
-        LoggingConfig instance
+    반환:
+        LoggingConfig 인스턴스
     """
     return LoggingConfig(
         level=LogLevel(os.getenv("LOG_LEVEL", "INFO")),
@@ -250,9 +250,9 @@ def get_logging_config_from_env() -> LoggingConfig:
 
 def get_observability_logging_config_from_env() -> LoggingObservabilityConfig:
     """
-    Get observability logging configuration from environment variables.
+    환경 변수로부터 관찰 가능성 로깅 구성을 가져옵니다.
 
-    Returns:
-        LoggingObservabilityConfig instance
+    반환:
+        LoggingObservabilityConfig 인스턴스
     """
     return LoggingObservabilityConfig()

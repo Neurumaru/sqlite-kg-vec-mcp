@@ -1,8 +1,8 @@
 """
-Common utilities and shared components.
+공통 유틸리티 및 공유 컴포넌트.
 
-This module contains shared utilities that can be used across
-different layers of the application without creating circular dependencies.
+이 모듈은 순환 종속성을 생성하지 않고 애플리케이션의 여러 계층에서
+사용될 수 있는 공유 유틸리티를 포함합니다.
 """
 
 from .logging import (
@@ -28,7 +28,7 @@ from .observability import (
 )
 
 __all__ = [
-    # Core observability
+    # 핵심 관찰 가능성
     "get_observable_logger",
     "with_observability",
     "get_current_trace_id",
@@ -36,17 +36,17 @@ __all__ = [
     "create_trace_context",
     "TraceContext",
     "TraceContextManager",
-    # Setup and configuration
+    # 설정 및 구성
     "setup_observability",
     "quick_setup",
     "production_setup",
     "development_setup",
-    # Logging configuration
+    # 로깅 구성
     "LogLevel",
     "LoggingConfig",
     "ObservableLogger",
     "configure_structured_logging",
-    # Integration
+    # 통합
     "initialize_observability",
     "get_observability_integration",
 ]

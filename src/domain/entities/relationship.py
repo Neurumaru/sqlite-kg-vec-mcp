@@ -1,11 +1,11 @@
 """
-Relationship domain entity.
+관계 도메인 엔티티.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -14,7 +14,7 @@ from src.domain.value_objects.vector import Vector
 
 
 class RelationshipType(Enum):
-    """Relationship type."""
+    """관계 유형."""
 
     WORKS_AT = "works_at"
     LOCATED_IN = "located_in"
@@ -33,32 +33,32 @@ class RelationshipType(Enum):
 @dataclass
 class Relationship:
     """
-    Relationship domain entity.
+    관계 도메인 엔티티.
 
-    Represents a relationship in the knowledge graph.
-    Expresses relationships between two nodes and
-    maintains connection information with source documents.
+    지식 그래프의 관계를 나타냅니다.
+    두 노드 사이의 관계를 표현하고,
+    원본 문서와의 연결 정보를 유지합니다.
     """
 
     id: RelationshipId
     source_node_id: NodeId
     target_node_id: NodeId
     relationship_type: RelationshipType
-    label: str  # Natural language label describing the relationship
+    label: str  # 관계를 설명하는 자연어 레이블
     properties: dict[str, Any] = field(default_factory=dict)
-    confidence: float = 1.0  # Relationship extraction confidence (0.0 ~ 1.0)
+    confidence: float = 1.0  # 관계 추출 신뢰도 (0.0 ~ 1.0)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
-    # Document connection information
+    # 문서 연결 정보
     source_documents: list[DocumentId] = field(default_factory=list)
 
-    # Embedding information
-    embedding: Vector | None = None
-    embedding_model: str | None = None
-    embedding_created_at: datetime | None = None
+    # 임베딩 정보
+    embedding: Optional[Vector] = None
+    embedding_model: Optional[str] = None
+    embedding_created_at: Optional[datetime] = None
 
-    # Extraction information (context in document, sentences, etc.)
+    # 추출 정보 (문서 내 컨텍스트, 문장 등)
     extraction_metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -72,10 +72,10 @@ class Relationship:
     def add_source_document(
         self,
         document_id: DocumentId,
-        context: str | None = None,
-        sentence: str | None = None,
+        context: Optional[str] = None,
+        sentence: Optional[str] = None,
     ) -> None:
-        """Add source document."""
+        """원본 문서를 추가합니다."""
         if document_id not in self.source_documents:
             self.source_documents.append(document_id)
             if context or sentence:
@@ -83,10 +83,10 @@ class Relationship:
             self.updated_at = datetime.now()
 
     def remove_source_document(self, document_id: DocumentId) -> None:
-        """Remove source document."""
+        """원본 문서를 제거합니다."""
         if document_id in self.source_documents:
             self.source_documents.remove(document_id)
-            # Also remove related extraction metadata
+            # 관련 추출 메타데이터도 제거
             key_to_remove = f"context_{document_id}"
             if key_to_remove in self.extraction_metadata:
                 del self.extraction_metadata[key_to_remove]
@@ -95,10 +95,10 @@ class Relationship:
     def add_extraction_context(
         self,
         document_id: DocumentId,
-        context: str | None = None,
-        sentence: str | None = None,
+        context: Optional[str] = None,
+        sentence: Optional[str] = None,
     ) -> None:
-        """Add extraction context within document."""
+        """문서 내 추출 컨텍스트를 추가합니다."""
         self.extraction_metadata[f"context_{document_id}"] = {
             "context": context,
             "sentence": sentence,
@@ -107,49 +107,49 @@ class Relationship:
         self.updated_at = datetime.now()
 
     def get_extraction_context(self, document_id: DocumentId) -> dict[str, str] | None:
-        """Query extraction context from specific document."""
+        """특정 문서의 추출 컨텍스트를 조회합니다."""
         return self.extraction_metadata.get(f"context_{document_id}")
 
     def set_embedding(self, embedding: Vector, model_name: str) -> None:
-        """Set relationship embedding."""
+        """관계 임베딩을 설정합니다."""
         self.embedding = embedding
         self.embedding_model = model_name
         self.embedding_created_at = datetime.now()
         self.updated_at = datetime.now()
 
     def has_embedding(self) -> bool:
-        """Check if embedding is set."""
+        """임베딩이 설정되었는지 확인합니다."""
         return self.embedding is not None
 
     def calculate_similarity(self, other: "Relationship") -> float:
-        """Calculate similarity with another relationship."""
+        """다른 관계와의 유사도를 계산합니다."""
         if not self.has_embedding() or not other.has_embedding():
             raise ValueError("Both relationships must have embeddings for similarity calculation")
 
-        # mypy: assert used since we confirmed embedding is not None
+        # mypy: 임베딩이 None이 아님을 확인했으므로 assert 사용
         assert self.embedding is not None and other.embedding is not None
         return self.embedding.cosine_similarity(other.embedding)
 
     def update_property(self, key: str, value: Any) -> None:
-        """Update property."""
+        """속성을 업데이트합니다."""
         self.properties[key] = value
         self.updated_at = datetime.now()
 
     def remove_property(self, key: str) -> None:
-        """Remove property."""
+        """속성을 제거합니다."""
         if key in self.properties:
             del self.properties[key]
             self.updated_at = datetime.now()
 
     def update_confidence(self, confidence: float) -> None:
-        """Update confidence."""
+        """신뢰도를 업데이트합니다."""
         if confidence < 0.0 or confidence > 1.0:
             raise ValueError("Confidence must be between 0.0 and 1.0")
         self.confidence = confidence
         self.updated_at = datetime.now()
 
     def get_all_contexts(self) -> dict[str, dict[str, str]]:
-        """Query extraction contexts from all documents."""
+        """모든 문서의 추출 컨텍스트를 조회합니다."""
         contexts = {}
         for key, value in self.extraction_metadata.items():
             if key.startswith("context_"):
@@ -158,19 +158,19 @@ class Relationship:
         return contexts
 
     def is_from_document(self, document_id: DocumentId) -> bool:
-        """Check if relationship was extracted from specific document."""
+        """관계가 특정 문서에서 추출되었는지 확인합니다."""
         return document_id in self.source_documents
 
     def get_document_count(self) -> int:
-        """Return number of connected documents."""
+        """연결된 문서의 수를 반환합니다."""
         return len(self.source_documents)
 
     def involves_node(self, node_id: NodeId) -> bool:
-        """Check if specific node is involved in this relationship."""
+        """특정 노드가 이 관계에 포함되는지 확인합니다."""
         return node_id in (self.source_node_id, self.target_node_id)
 
-    def get_other_node_id(self, node_id: NodeId) -> NodeId | None:
-        """Return the other node ID for given node."""
+    def get_other_node_id(self, node_id: NodeId) -> Optional[NodeId]:
+        """주어진 노드에 대해 다른 노드 ID를 반환합니다."""
         if self.source_node_id == node_id:
             return self.target_node_id
         if self.target_node_id == node_id:
@@ -178,7 +178,7 @@ class Relationship:
         return None
 
     def reverse(self) -> "Relationship":
-        """Create new relationship with reversed direction."""
+        """방향이 반대인 새로운 관계를 생성합니다."""
         reversed_rel = Relationship(
             id=RelationshipId.generate(),
             source_node_id=self.target_node_id,
@@ -196,8 +196,8 @@ class Relationship:
         return reversed_rel
 
     def merge_with(self, other: "Relationship") -> None:
-        """Merge with another relationship (remove duplicates)."""
-        # Check if relationship is between same nodes
+        """다른 관계와 병합합니다 (중복 제거)."""
+        # 관계가 동일한 노드들 사이에 있는지 확인
         if not (
             (
                 self.source_node_id == other.source_node_id
@@ -210,25 +210,25 @@ class Relationship:
         ):
             raise ValueError("Cannot merge relationships between different nodes")
 
-        # Merge source documents
+        # 원본 문서 병합
         for doc_id in other.source_documents:
             if doc_id not in self.source_documents:
                 self.source_documents.append(doc_id)
 
-        # Merge properties (existing properties take priority)
+        # 속성 병합 (기존 속성 우선)
         for key, value in other.properties.items():
             if key not in self.properties:
                 self.properties[key] = value
 
-        # Merge extraction metadata
+        # 추출 메타데이터 병합
         for key, value in other.extraction_metadata.items():
             if key not in self.extraction_metadata:
                 self.extraction_metadata[key] = value
 
-        # Use higher confidence
+        # 더 높은 신뢰도 사용
         self.confidence = max(self.confidence, other.confidence)
 
-        # Update if there's a better embedding
+        # 더 나은 임베딩이 있으면 업데이트
         if not self.has_embedding() and other.has_embedding():
             self.embedding = other.embedding
             self.embedding_model = other.embedding_model
@@ -237,7 +237,7 @@ class Relationship:
         self.updated_at = datetime.now()
 
     def get_textual_representation(self) -> str:
-        """Generate textual representation of relationship (for embedding)."""
+        """관계의 텍스트 표현을 생성합니다 (임베딩용)."""
         return f"{self.label} (type: {self.relationship_type.value}, confidence: {self.confidence})"
 
     def __str__(self) -> str:

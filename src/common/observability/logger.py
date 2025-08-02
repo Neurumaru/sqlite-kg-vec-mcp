@@ -1,11 +1,11 @@
 """
-Observable logger that integrates with trace context and structured logging.
+트레이스 컨텍스트 및 구조화된 로깅과 통합되는 관찰 가능한 로거.
 """
 
 import time
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 import structlog
 
@@ -13,7 +13,7 @@ from .context import get_current_trace_context
 
 
 class LogLevel(Enum):
-    """Log levels enum."""
+    """로그 레벨 열거형."""
 
     DEBUG = "DEBUG"
     INFO = "INFO"
@@ -24,30 +24,30 @@ class LogLevel(Enum):
 
 class ObservableLogger:
     """
-    Logger that integrates with observability context and structured logging.
+    관찰 가능성 컨텍스트 및 구조화된 로깅과 통합되는 로거.
 
-    This logger automatically includes trace information and provides
-    consistent structured logging across all components.
+    이 로거는 자동으로 트레이스 정보를 포함하고 모든 컴포넌트에서
+    일관된 구조화된 로깅을 제공합니다.
     """
 
-    def __init__(self, component: str, layer: str, observability_service: Any | None = None):
+    def __init__(self, component: str, layer: str, observability_service: Optional[Any] = None):
         """
-        Initialize observable logger.
+        관찰 가능한 로거를 초기화합니다.
 
-        Args:
-            component: Component name (e.g., "sqlite_repository")
-            layer: Layer name ("domain", "port", "adapter")
-            observability_service: Optional observability service for metrics/tracing
+        인자:
+            component: 컴포넌트 이름 (예: "sqlite_repository")
+            layer: 계층 이름 ("domain", "port", "adapter")
+            observability_service: 메트릭/트레이싱을 위한 선택적 관찰 가능성 서비스
         """
         self.component = component
         self.layer = layer
         self.observability_service = observability_service
 
-        # Initialize underlying logger
+        # 기본 로거 초기화
         self.logger = structlog.get_logger(component)
 
     def _get_base_context(self) -> dict[str, Any]:
-        """Get base logging context with trace information."""
+        """트레이스 정보가 포함된 기본 로깅 컨텍스트를 가져옵니다."""
         context = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "layer": self.layer,
@@ -69,12 +69,12 @@ class ObservableLogger:
 
     def _log(self, level: LogLevel, event: str, **kwargs) -> None:
         """
-        Internal logging method.
+        내부 로깅 메서드.
 
-        Args:
-            level: Log level
-            event: Event name/description
-            **kwargs: Additional context
+        인자:
+            level: 로그 레벨
+            event: 이벤트 이름/설명
+            **kwargs: 추가 컨텍스트
         """
         log_data = self._get_base_context()
         log_data["event"] = event
@@ -92,33 +92,33 @@ class ObservableLogger:
                 )
 
     def debug(self, event: str, **kwargs) -> None:
-        """Log debug message."""
+        """디버그 메시지를 로깅합니다."""
         self._log(LogLevel.DEBUG, event, **kwargs)
 
     def info(self, event: str, **kwargs) -> None:
-        """Log info message."""
+        """정보 메시지를 로깅합니다."""
         self._log(LogLevel.INFO, event, **kwargs)
 
     def warning(self, event: str, **kwargs) -> None:
-        """Log warning message."""
+        """경고 메시지를 로깅합니다."""
         self._log(LogLevel.WARNING, event, **kwargs)
 
     def error(self, event: str, **kwargs) -> None:
-        """Log error message."""
+        """오류 메시지를 로깅합니다."""
         self._log(LogLevel.ERROR, event, **kwargs)
 
     def critical(self, event: str, **kwargs) -> None:
-        """Log critical message."""
+        """심각 메시지를 로깅합니다."""
         self._log(LogLevel.CRITICAL, event, **kwargs)
 
     def exception_occurred(self, exception: Exception, operation: str, **kwargs) -> None:
         """
-        Log exception with rich context.
+        풍부한 컨텍스트와 함께 예외를 로깅합니다.
 
-        Args:
-            exception: Exception that occurred
-            operation: Operation being performed
-            **kwargs: Additional context
+        인자:
+            exception: 발생한 예외
+            operation: 수행 중인 작업
+            **kwargs: 추가 컨텍스트
         """
         self.error(
             "exception_occurred",
@@ -142,14 +142,14 @@ class ObservableLogger:
 
     def operation_started(self, operation: str, **kwargs) -> float:
         """
-        Log operation start and return start time.
+        작업 시작을 로깅하고 시작 시간을 반환합니다.
 
-        Args:
-            operation: Operation name
-            **kwargs: Additional context
+        인자:
+            operation: 작업 이름
+            **kwargs: 추가 컨텍스트
 
-        Returns:
-            Start time for duration calculation
+        반환:
+            기간 계산을 위한 시작 시간
         """
         start_time = time.time()
 
@@ -159,12 +159,12 @@ class ObservableLogger:
 
     def operation_completed(self, operation: str, start_time: float, **kwargs) -> None:
         """
-        Log operation completion with duration.
+        기간과 함께 작업 완료를 로깅합니다.
 
-        Args:
-            operation: Operation name
-            start_time: Start time from operation_started
-            **kwargs: Additional context
+        인자:
+            operation: 작업 이름
+            start_time: operation_started에서 가져온 시작 시간
+            **kwargs: 추가 컨텍스트
         """
         duration_ms = (time.time() - start_time) * 1000
 
@@ -190,13 +190,13 @@ class ObservableLogger:
         self, operation: str, start_time: float, exception: Exception, **kwargs
     ) -> None:
         """
-        Log operation failure with duration and exception.
+        기간 및 예외와 함께 작업 실패를 로깅합니다.
 
-        Args:
-            operation: Operation name
-            start_time: Start time from operation_started
-            exception: Exception that caused failure
-            **kwargs: Additional context
+        인자:
+            operation: 작업 이름
+            start_time: operation_started에서 가져온 시작 시간
+            exception: 실패를 유발한 예외
+            **kwargs: 추가 컨텍스트
         """
         duration_ms = (time.time() - start_time) * 1000
 
@@ -227,18 +227,18 @@ _logger_registry: dict[str, ObservableLogger] = {}
 
 
 def get_observable_logger(
-    component: str, layer: str, observability_service: Any | None = None
+    component: str, layer: str, observability_service: Optional[Any] = None
 ) -> ObservableLogger:
     """
-    Get or create an observable logger for a component.
+    컴포넌트에 대한 관찰 가능한 로거를 가져오거나 생성합니다.
 
-    Args:
-        component: Component name
-        layer: Layer name
-        observability_service: Optional observability service
+    인자:
+        component: 컴포넌트 이름
+        layer: 계층 이름
+        observability_service: 선택적 관찰 가능성 서비스
 
-    Returns:
-        Observable logger instance
+    반환:
+        관찰 가능한 로거 인스턴스
     """
     key = f"{layer}.{component}"
 
@@ -254,7 +254,7 @@ def get_observable_logger(
 
 def configure_structured_logging() -> None:
     """
-    Configure structured logging for the application.
+    애플리케이션을 위한 구조화된 로깅을 구성합니다.
     """
     structlog.configure(
         processors=[

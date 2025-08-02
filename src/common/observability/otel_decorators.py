@@ -7,7 +7,7 @@ OpenTelemetry 데코레이터 (공식 패턴 기반).
 import functools
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Optional
 
 try:
     from opentelemetry import metrics, trace
@@ -19,18 +19,18 @@ except ImportError:
 
 
 def traced(
-    operation_name: str | None = None,
+    operation_name: Optional[str] = None,
     attributes: dict[str, Any] | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     OpenTelemetry 트레이싱 데코레이터 (공식 패턴).
 
-    Usage:
+    사용법:
         @traced("document_processing")
         def process_document(doc):
             return processed_doc
 
-    Args:
+    인자:
         operation_name: 스팬 이름 (기본값: 함수명)
         attributes: 스팬 속성
     """
@@ -64,10 +64,10 @@ def traced(
 
                     return result
 
-                except Exception as e:
+                except Exception as exception:
                     # 실패 상태 설정
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
-                    span.record_exception(e)
+                    span.set_status(Status(StatusCode.ERROR, str(exception)))
+                    span.record_exception(exception)
                     raise
 
         return wrapper
@@ -76,7 +76,7 @@ def traced(
 
 
 def measured(
-    metric_name: str | None = None,
+    metric_name: Optional[str] = None,
     track_duration: bool = True,
     track_calls: bool = True,
     unit: str = "1",
@@ -84,12 +84,12 @@ def measured(
     """
     OpenTelemetry 메트릭 데코레이터.
 
-    Usage:
+    사용법:
         @measured("document_processing")
         def process_document(doc):
             return processed_doc
 
-    Args:
+    인자:
         metric_name: 메트릭 이름 (기본값: 함수명)
         track_duration: 실행 시간 추적
         track_calls: 호출 횟수 추적
@@ -115,14 +115,14 @@ def measured(
         if track_calls:
             call_counter = meter.create_counter(
                 name=f"{base_name}.calls",
-                description=f"Number of calls to {func.__name__}",
+                description=f"{func.__name__} 호출 횟수",
                 unit=unit,
             )
 
         if track_duration:
             duration_histogram = meter.create_histogram(
                 name=f"{base_name}.duration",
-                description=f"Duration of {func.__name__} calls",
+                description=f"{func.__name__} 실행 시간",
                 unit="s",
             )
 
@@ -150,13 +150,13 @@ def measured(
 
                 return result
 
-            except Exception as e:
+            except Exception as exception:
                 # 실패 메트릭
                 if call_counter:
                     error_attributes = {
                         **common_attributes,
                         "status": "error",
-                        "error.type": type(e).__name__,
+                        "error.type": type(exception).__name__,
                     }
                     call_counter.add(1, attributes=error_attributes)
                 raise
@@ -173,8 +173,8 @@ def measured(
 
 
 def observed(
-    operation_name: str | None = None,
-    metric_name: str | None = None,
+    operation_name: Optional[str] = None,
+    metric_name: Optional[str] = None,
     span_attributes: dict[str, Any] | None = None,
     track_duration: bool = True,
     track_calls: bool = True,
@@ -182,12 +182,12 @@ def observed(
     """
     트레이싱과 메트릭을 모두 포함하는 통합 데코레이터.
 
-    Usage:
+    사용법:
         @observed("document_processing")
         def process_document(doc):
             return processed_doc
 
-    Args:
+    인자:
         operation_name: 스팬 이름
         metric_name: 메트릭 이름
         span_attributes: 스팬 속성
@@ -205,7 +205,7 @@ def observed(
 
 
 # 편의 데코레이터들
-def trace_database_operation(table_name: str | None = None):
+def trace_database_operation(table_name: Optional[str] = None):
     """데이터베이스 작업 전용 트레이싱 데코레이터."""
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -218,8 +218,10 @@ def trace_database_operation(table_name: str | None = None):
     return decorator
 
 
-def trace_llm_operation(model_name: str | None = None):
-    """LLM 작업 전용 트레이싱 데코레이터."""
+def trace_llm_operation(model_name: Optional[str] = None):
+    """
+    LLM 작업 전용 트레이싱 데코레이터.
+    """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         attributes = {"llm.request.type": "completion"}
@@ -232,7 +234,9 @@ def trace_llm_operation(model_name: str | None = None):
 
 
 def trace_vector_operation(operation_type: str = "search"):
-    """벡터 작업 전용 트레이싱 데코레이터."""
+    """
+    벡터 작업 전용 트레이싱 데코레이터.
+    """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         attributes = {"vector.operation.type": operation_type, "vector.engine": "hnsw"}

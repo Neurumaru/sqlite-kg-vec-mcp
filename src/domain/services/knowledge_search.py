@@ -6,6 +6,7 @@ import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
@@ -42,15 +43,15 @@ class SearchResult:
     """검색 결과 항목."""
 
     score: float
-    document: Document | None = None
-    node: Node | None = None
-    relationship: Relationship | None = None
-    explanation: str | None = None
+    document: Optional[Document] = None
+    node: Optional[Node] = None
+    relationship: Optional[Relationship] = None
+    explanation: Optional[str] = None
 
 
 @dataclass
 class SearchResultCollection:
-    """Search result collection."""
+    """검색 결과 컬렉션."""
 
     results: list[SearchResult]
     total_count: int
@@ -79,7 +80,7 @@ class KnowledgeSearchService:
     관련 정보를 연결하여 제공합니다.
     """
 
-    def __init__(self, logger: logging.Logger | None = None):
+    def __init__(self, logger: Optional[logging.Logger] = None):
         self.logger = logger or logging.getLogger(__name__)
 
     def search(

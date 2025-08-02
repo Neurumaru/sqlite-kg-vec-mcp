@@ -4,7 +4,7 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -35,7 +35,7 @@ class KnowledgeGraphAnalyticsUseCase(ABC):
 
     @abstractmethod
     async def analyze_document_processing_performance(
-        self, start_date: datetime | None = None, end_date: datetime | None = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> dict[str, Any]:
         """문서 처리 성능을 분석합니다."""
 

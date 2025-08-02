@@ -1,8 +1,8 @@
 """
-MCP handlers for knowledge graph operations.
+지식 그래프 작업을 위한 MCP 핸들러.
 
-This module contains handlers that process specific MCP requests
-and delegate to appropriate use cases.
+이 모듈은 특정 MCP 요청을 처리하고
+적절한 유스케이스에 위임하는 핸들러를 포함합니다.
 """
 
 from .node_handler import NodeHandler

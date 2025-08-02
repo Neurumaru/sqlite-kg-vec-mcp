@@ -1,33 +1,33 @@
 """
-SQLite database schema definitions and initialization.
+SQLite 데이터베이스 스키마 정의 및 초기화.
 """
 
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .connection import DatabaseConnection
 
 
 class SchemaManager:
     """
-    Manages the database schema for the knowledge graph and vector storage.
+    지식 그래프 및 벡터 저장을 위한 데이터베이스 스키마를 관리합니다.
     """
 
-    CURRENT_SCHEMA_VERSION = 3  # Current schema version
+    CURRENT_SCHEMA_VERSION = 3  # 현재 스키마 버전
 
     def __init__(self, db_path: str | Path):
         """
-        Initialize the schema manager.
+        스키마 관리자를 초기화합니다.
         Args:
-            db_path: Path to the SQLite database file
+            db_path: SQLite 데이터베이스 파일 경로
         """
         self.db_connection = DatabaseConnection(db_path)
 
     def initialize_schema(self) -> None:
         """
-        Initialize the database schema by creating all necessary tables, indices, and triggers.
+        모든 필요한 테이블, 인덱스 및 트리거를 생성하여 데이터베이스 스키마를 초기화합니다.
         """
         with self.db_connection as conn:
             self._create_schema_version_table(conn)
@@ -38,15 +38,15 @@ class SchemaManager:
             self._create_observation_tables(conn)
             self._create_embedding_tables(conn)
             self._create_sync_tables(conn)
-            # Set initial schema version
+            # 초기 스키마 버전 설정
             self._update_schema_version(conn, 1)
 
     def _create_schema_version_table(self, conn: sqlite3.Connection) -> None:
-        """Create the schema version tracking table."""
+        """스키마 버전 추적 테이블을 생성합니다."""
         conn.executescript(
             """
         CREATE TABLE IF NOT EXISTS schema_version (
-            id INTEGER PRIMARY KEY CHECK (id = 1), -- Only one row allowed
+            id INTEGER PRIMARY KEY CHECK (id = 1), -- 하나의 행만 허용
             version INTEGER NOT NULL,
             updated_at TEXT DEFAULT (datetime('now'))
         );
@@ -54,24 +54,24 @@ class SchemaManager:
         )
 
     def _create_entity_tables(self, conn: sqlite3.Connection) -> None:
-        """Create entity (node) related tables."""
+        """엔티티(노드) 관련 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Entities (Nodes) table
+        -- 엔티티 (노드) 테이블
         CREATE TABLE IF NOT EXISTS entities (
             id INTEGER PRIMARY KEY,
-            uuid TEXT UNIQUE NOT NULL, -- Stable identifier for external reference
+            uuid TEXT UNIQUE NOT NULL, -- 외부 참조를 위한 안정적인 식별자
             name TEXT,
             type TEXT NOT NULL,
             properties JSON,
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
         );
-        -- Indices for entity table
+        -- 엔티티 테이블 인덱스
         CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(type);
         CREATE INDEX IF NOT EXISTS idx_entities_name ON entities(name);
         CREATE INDEX IF NOT EXISTS idx_entities_uuid ON entities(uuid);
-        -- Trigger to update the updated_at timestamp
+        -- updated_at 타임스탬프 업데이트 트리거
         CREATE TRIGGER IF NOT EXISTS trg_entities_updated_at
         AFTER UPDATE ON entities
         FOR EACH ROW
@@ -83,10 +83,10 @@ class SchemaManager:
         )
 
     def _create_edge_tables(self, conn: sqlite3.Connection) -> None:
-        """Create binary edge related tables."""
+        """이진 엣지 관련 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Binary relationships (edges) table
+        -- 이진 관계 (엣지) 테이블
         CREATE TABLE IF NOT EXISTS edges (
             id INTEGER PRIMARY KEY,
             source_id INTEGER NOT NULL,
@@ -98,13 +98,13 @@ class SchemaManager:
             FOREIGN KEY (source_id) REFERENCES entities(id) ON DELETE CASCADE,
             FOREIGN KEY (target_id) REFERENCES entities(id) ON DELETE CASCADE
         );
-        -- Indices for edge table
+        -- 엣지 테이블 인덱스
         CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_id);
         CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_id);
         CREATE INDEX IF NOT EXISTS idx_edges_relation_type ON edges(relation_type);
         CREATE INDEX IF NOT EXISTS idx_edges_source_relation ON edges(source_id, relation_type);
         CREATE INDEX IF NOT EXISTS idx_edges_target_relation ON edges(target_id, relation_type);
-        -- Trigger to update the updated_at timestamp
+        -- updated_at 타임스탬프 업데이트 트리거
         CREATE TRIGGER IF NOT EXISTS trg_edges_updated_at
         AFTER UPDATE ON edges
         FOR EACH ROW
@@ -116,10 +116,10 @@ class SchemaManager:
         )
 
     def _create_hyperedge_tables(self, conn: sqlite3.Connection) -> None:
-        """Create hyperedge (n-ary relationships) related tables."""
+        """하이퍼엣지(n-ary 관계) 관련 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Hyperedges table (for n-ary relationships)
+        -- 하이퍼엣지 테이블 (n-ary 관계용)
         CREATE TABLE IF NOT EXISTS hyperedges (
             id INTEGER PRIMARY KEY,
             hyperedge_type TEXT NOT NULL,
@@ -127,7 +127,7 @@ class SchemaManager:
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
         );
-        -- Hyperedge members table (connects entities to hyperedges)
+        -- 하이퍼엣지 멤버 테이블 (엔티티를 하이퍼엣지에 연결)
         CREATE TABLE IF NOT EXISTS hyperedge_members (
             hyperedge_id INTEGER NOT NULL,
             entity_id INTEGER NOT NULL,
@@ -137,11 +137,11 @@ class SchemaManager:
             FOREIGN KEY (hyperedge_id) REFERENCES hyperedges(id) ON DELETE CASCADE,
             FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
         );
-        -- Indices for hyperedge tables
+        -- 하이퍼엣지 테이블 인덱스
         CREATE INDEX IF NOT EXISTS idx_hyperedges_type ON hyperedges(hyperedge_type);
         CREATE INDEX IF NOT EXISTS idx_hyperedge_members_entity ON hyperedge_members(entity_id);
         CREATE INDEX IF NOT EXISTS idx_hyperedge_members_role ON hyperedge_members(role);
-        -- Trigger to update the updated_at timestamp
+        -- updated_at 타임스탬프 업데이트 트리거
         CREATE TRIGGER IF NOT EXISTS trg_hyperedges_updated_at
         AFTER UPDATE ON hyperedges
         FOR EACH ROW
@@ -153,10 +153,10 @@ class SchemaManager:
         )
 
     def _create_document_tables(self, conn: sqlite3.Connection) -> None:
-        """Create document related tables."""
+        """문서 관련 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Documents table
+        -- 문서 테이블
         CREATE TABLE IF NOT EXISTS documents (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
@@ -171,7 +171,7 @@ class SchemaManager:
             connected_nodes JSON DEFAULT '[]',
             connected_relationships JSON DEFAULT '[]'
         );
-        -- Indices for document table
+        -- 문서 테이블 인덱스
         CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
         CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(doc_type);
         CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(title);
@@ -185,7 +185,7 @@ class SchemaManager:
         -- CREATE INDEX IF NOT EXISTS idx_documents_status_created ON documents(status, created_at);
         -- CREATE INDEX IF NOT EXISTS idx_documents_type_status ON documents(doc_type, status);
         -- CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(title, content, content='documents', content_rowid='rowid');
-        -- Trigger to update the updated_at timestamp and increment version
+        -- updated_at 타임스탬프 업데이트 및 버전 증가 트리거
         CREATE TRIGGER IF NOT EXISTS trg_documents_updated_at
         AFTER UPDATE ON documents
         FOR EACH ROW
@@ -199,10 +199,10 @@ class SchemaManager:
         )
 
     def _create_observation_tables(self, conn: sqlite3.Connection) -> None:
-        """Create observation related tables (for cold data storage)."""
+        """관찰 관련 테이블을 생성합니다 (콜드 데이터 저장용)."""
         conn.executescript(
             """
-        -- Observations table (for cold/historical data)
+        -- 관찰 테이블 (콜드/히스토리 데이터용)
         CREATE TABLE IF NOT EXISTS observations (
             id INTEGER PRIMARY KEY,
             entity_id INTEGER NOT NULL,
@@ -211,28 +211,28 @@ class SchemaManager:
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
         );
-        -- Index for observation table
+        -- 관찰 테이블 인덱스
         CREATE INDEX IF NOT EXISTS idx_observations_entity ON observations(entity_id);
         CREATE INDEX IF NOT EXISTS idx_observations_created_at ON observations(created_at);
         """
         )
 
     def _create_embedding_tables(self, conn: sqlite3.Connection) -> None:
-        """Create vector embedding related tables."""
+        """벡터 임베딩 관련 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Node embeddings table
+        -- 노드 임베딩 테이블
         CREATE TABLE IF NOT EXISTS node_embeddings (
             node_id INTEGER PRIMARY KEY,
-            embedding BLOB NOT NULL, -- Binary representation of the vector
-            dimensions INTEGER NOT NULL, -- Number of dimensions in the vector
-            model_info TEXT NOT NULL, -- Information about the embedding model
-            embedding_version INTEGER NOT NULL DEFAULT 1, -- For versioning/tracking
+            embedding BLOB NOT NULL, -- 벡터의 이진 표현
+            dimensions INTEGER NOT NULL, -- 벡터의 차원 수
+            model_info TEXT NOT NULL, -- 임베딩 모델 정보
+            embedding_version INTEGER NOT NULL DEFAULT 1, -- 버전 관리/추적용
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (node_id) REFERENCES entities(id) ON DELETE CASCADE
         );
-        -- Edge embeddings table
+        -- 엣지 임베딩 테이블
         CREATE TABLE IF NOT EXISTS edge_embeddings (
             edge_id INTEGER PRIMARY KEY,
             embedding BLOB NOT NULL,
@@ -243,7 +243,7 @@ class SchemaManager:
             updated_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (edge_id) REFERENCES edges(id) ON DELETE CASCADE
         );
-        -- Hyperedge embeddings table
+        -- 하이퍼엣지 임베딩 테이블
         CREATE TABLE IF NOT EXISTS hyperedge_embeddings (
             hyperedge_id INTEGER PRIMARY KEY,
             embedding BLOB NOT NULL,
@@ -254,7 +254,7 @@ class SchemaManager:
             updated_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (hyperedge_id) REFERENCES hyperedges(id) ON DELETE CASCADE
         );
-        -- Triggers to update the updated_at timestamps
+        -- updated_at 타임스탬프 업데이트 트리거
         CREATE TRIGGER IF NOT EXISTS trg_node_embeddings_updated_at
         AFTER UPDATE ON node_embeddings
         FOR EACH ROW
@@ -280,10 +280,10 @@ class SchemaManager:
         )
 
     def _create_sync_tables(self, conn: sqlite3.Connection) -> None:
-        """Create tables for vector-DB synchronization using outbox pattern."""
+        """아웃박스 패턴을 사용한 벡터-DB 동기화 테이블을 생성합니다."""
         conn.executescript(
             """
-        -- Vector operations outbox table (for async processing)
+        -- 벡터 작업 아웃박스 테이블 (비동기 처리용)
         CREATE TABLE IF NOT EXISTS vector_outbox (
             id INTEGER PRIMARY KEY,
             operation_type TEXT NOT NULL, -- 'insert', 'update', 'delete'
@@ -291,16 +291,16 @@ class SchemaManager:
             entity_id INTEGER NOT NULL,
             model_info TEXT,
             status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
-            correlation_id TEXT, -- For tracking related operations
+            correlation_id TEXT, -- 관련 작업 추적용
             retry_count INTEGER NOT NULL DEFAULT 0,
             last_error TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             updated_at TEXT DEFAULT (datetime('now'))
         );
-        -- Index for efficient outbox processing
+        -- 효율적인 아웃박스 처리를 위한 인덱스
         CREATE INDEX IF NOT EXISTS idx_vector_outbox_status ON vector_outbox(status);
         CREATE INDEX IF NOT EXISTS idx_vector_outbox_entity ON vector_outbox(entity_type, entity_id);
-        -- Sync failures logging table
+        -- 동기화 실패 로깅 테이블
         CREATE TABLE IF NOT EXISTS sync_failures (
             id INTEGER PRIMARY KEY,
             outbox_id INTEGER,
@@ -312,7 +312,7 @@ class SchemaManager:
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (outbox_id) REFERENCES vector_outbox(id) ON DELETE SET NULL
         );
-        -- Trigger to update vector_outbox updated_at
+        -- vector_outbox updated_at 업데이트 트리거
         CREATE TRIGGER IF NOT EXISTS trg_vector_outbox_updated_at
         AFTER UPDATE ON vector_outbox
         FOR EACH ROW
@@ -325,10 +325,10 @@ class SchemaManager:
 
     def _update_schema_version(self, conn: sqlite3.Connection, version: int) -> None:
         """
-        Update or insert the schema version.
+        스키마 버전을 업데이트하거나 삽입합니다.
         Args:
-            conn: SQLite connection
-            version: New schema version number
+            conn: SQLite 연결
+            version: 새 스키마 버전 번호
         """
         conn.execute(
             """
@@ -342,9 +342,9 @@ class SchemaManager:
 
     def get_schema_version(self) -> int:
         """
-        Get the current schema version.
+        현재 스키마 버전을 가져옵니다.
         Returns:
-            Current schema version number or 0 if not set
+            현재 스키마 버전 번호 또는 설정되지 않은 경우 0
         """
         with self.db_connection as conn:
             cursor = conn.cursor()
@@ -353,19 +353,19 @@ class SchemaManager:
                 result = cursor.fetchone()
                 return result[0] if result else 0
             except sqlite3.OperationalError:
-                # Schema version table doesn't exist, return 0
+                # 스키마 버전 테이블이 존재하지 않으면 0을 반환
                 return 0
 
-    def migrate_schema(self, target_version: int | None = None) -> bool:
+    def migrate_schema(self, target_version: Optional[int] = None) -> bool:
         """
-        Migrate schema to target version.
+        스키마를 대상 버전으로 마이그레이션합니다.
         Args:
-            target_version: Target schema version (defaults to latest)
+            target_version: 대상 스키마 버전 (기본값은 최신)
         Returns:
-            True if migration was successful
+            마이그레이션 성공 시 True
         Raises:
-            ValueError: If target version is invalid
-            sqlite3.Error: If migration fails
+            ValueError: 대상 버전이 잘못된 경우
+            sqlite3.Error: 마이그레이션 실패 시
         """
         if target_version is None:
             target_version = self.CURRENT_SCHEMA_VERSION
@@ -374,13 +374,13 @@ class SchemaManager:
             return True
         if target_version < current_version:
             raise ValueError(
-                f"Downgrade from version {current_version} to {target_version} not supported"
+                f"버전 {current_version}에서 {target_version}로의 다운그레이드는 지원되지 않습니다"
             )
         if target_version > self.CURRENT_SCHEMA_VERSION:
             raise ValueError(
-                f"Target version {target_version} is higher than latest version {self.CURRENT_SCHEMA_VERSION}"
+                f"대상 버전 {target_version}이(가) 최신 버전 {self.CURRENT_SCHEMA_VERSION}보다 높습니다"
             )
-        # Apply migrations step by step
+        # 단계별로 마이그레이션 적용
         conn = self.db_connection.connect()
         try:
             conn.execute("BEGIN TRANSACTION")
@@ -393,87 +393,87 @@ class SchemaManager:
             except Exception as exception:
                 conn.execute("ROLLBACK")
                 raise sqlite3.Error(
-                    f"Migration to version {target_version} failed: {exception}"
+                    f"버전 {target_version}으로의 마이그레이션 실패: {exception}"
                 ) from exception
         finally:
             conn.close()
 
     def _apply_migration(self, conn: sqlite3.Connection, version: int) -> None:
         """
-        Apply a specific migration version.
+        특정 마이그레이션 버전을 적용합니다.
         Args:
-            conn: SQLite connection
-            version: Migration version to apply
+            conn: SQLite 연결
+            version: 적용할 마이그레이션 버전
         """
         if version == 1:
-            # Initial schema creation
+            # 초기 스키마 생성
             self._create_entity_tables(conn)
             self._create_edge_tables(conn)
             self._create_hyperedge_tables(conn)
             self._create_embedding_tables(conn)
             self._create_observation_tables(conn)
         elif version == 2:
-            # Add generated columns for JSON optimization (if not already added)
+            # JSON 최적화를 위한 생성된 열 추가 (이미 추가되지 않은 경우)
             self._add_json_optimization_columns(conn)
         elif version == 3:
-            # Add documents table
+            # 문서 테이블 추가
             self._create_document_tables(conn)
         else:
-            raise ValueError(f"Unknown migration version: {version}")
+            raise ValueError(f"알 수 없는 마이그레이션 버전: {version}")
 
     def _add_json_optimization_columns(self, conn: sqlite3.Connection) -> None:
-        """Add JSON optimization columns if they don't exist."""
+        """존재하지 않는 경우 JSON 최적화 열을 추가합니다."""
         try:
-            # Check if columns already exist
+            # 열이 이미 존재하는지 확인
             cursor = conn.cursor()
             cursor.execute("PRAGMA table_info(entities)")
             columns = [row[1] for row in cursor.fetchall()]
             if "json_text_content" not in columns:
                 conn.executescript(
                     """
-                -- Add generated columns for entities
+                -- 엔티티에 대한 생성된 열 추가
                 ALTER TABLE entities ADD COLUMN json_text_content TEXT
                     GENERATED ALWAYS AS (JSON_EXTRACT(properties, '$.bio')) STORED;
                 ALTER TABLE entities ADD COLUMN json_category TEXT
                     GENERATED ALWAYS AS (JSON_EXTRACT(properties, '$.category')) STORED;
                 ALTER TABLE entities ADD COLUMN json_status TEXT
                     GENERATED ALWAYS AS (JSON_EXTRACT(properties, '$.status')) STORED;
-                -- Add indices
+                -- 인덱스 추가
                 CREATE INDEX IF NOT EXISTS idx_entities_json_text ON entities(json_text_content) WHERE json_text_content IS NOT NULL;
                 CREATE INDEX IF NOT EXISTS idx_entities_json_category ON entities(json_category) WHERE json_category IS NOT NULL;
                 CREATE INDEX IF NOT EXISTS idx_entities_json_status ON entities(json_status) WHERE json_status IS NOT NULL;
                 """
                 )
-            # Check edges table
+            # 엣지 테이블 확인
             cursor.execute("PRAGMA table_info(edges)")
             columns = [row[1] for row in cursor.fetchall()]
             if "json_weight" not in columns:
                 conn.executescript(
                     """
-                -- Add generated columns for edges
+                -- 엣지에 대한 생성된 열 추가
                 ALTER TABLE edges ADD COLUMN json_weight REAL
                     GENERATED ALWAYS AS (CAST(JSON_EXTRACT(properties, '$.weight') AS REAL)) STORED;
                 ALTER TABLE edges ADD COLUMN json_since TEXT
                     GENERATED ALWAYS AS (JSON_EXTRACT(properties, '$.since')) STORED;
                 ALTER TABLE edges ADD COLUMN json_confidence REAL
                     GENERATED ALWAYS AS (CAST(JSON_EXTRACT(properties, '$.confidence') AS REAL)) STORED;
-                -- Add indices
+                -- 인덱스 추가
                 CREATE INDEX IF NOT EXISTS idx_edges_json_weight ON edges(json_weight) WHERE json_weight IS NOT NULL;
                 CREATE INDEX IF NOT EXISTS idx_edges_json_since ON edges(json_since) WHERE json_since IS NOT NULL;
                 CREATE INDEX IF NOT EXISTS idx_edges_json_confidence ON edges(json_confidence) WHERE json_confidence IS NOT NULL;
                 """
                 )
         except sqlite3.Error as exception:
-            # If generated columns are not supported (older SQLite), skip silently
-            warnings.warn(f"Could not add JSON optimization columns: {exception}", stacklevel=2)
+            # 생성된 열이 지원되지 않는 경우 (이전 SQLite), 조용히 건너뜁니다
+            warnings.warn(f"JSON 최적화 열을 추가할 수 없습니다: {exception}", stacklevel=2)
 
     def backup_schema(self, backup_path: str) -> bool:
         """
-        Create a backup of the current database.
+        현재 데이터베이스의 백업을 생성합니다.
         Args:
-            backup_path: Path for the backup file
+            backup_path: 백업 파일 경로
         Returns:
-            True if backup was successful
+            백업 성공 시 True
         """
         try:
             with self.db_connection as conn:
@@ -482,15 +482,15 @@ class SchemaManager:
                 backup_conn.close()
             return True
         except Exception as exception:
-            raise sqlite3.Error(f"Backup failed: {exception}") from exception
+            raise sqlite3.Error(f"백업 실패: {exception}") from exception
 
     def validate_schema(self) -> dict:
         """
-        Validate the current schema integrity.
+        현재 스키마 무결성을 검증합니다.
         Returns:
-            Dictionary with validation results
+            검증 결과가 포함된 사전
         """
-        # Get version first before any connection operations
+        # 연결 작업 전에 먼저 버전 가져오기
         try:
             version = self.get_schema_version()
         except (sqlite3.Error, Exception):
@@ -498,15 +498,15 @@ class SchemaManager:
         results: dict[str, Any] = {"valid": True, "errors": [], "warnings": [], "version": version}
         conn = self.db_connection.connect()
         try:
-            # Check foreign key integrity
+            # 외래 키 무결성 확인
             cursor = conn.cursor()
             cursor.execute("PRAGMA foreign_key_check")
             fk_errors = cursor.fetchall()
             if fk_errors:
                 results["valid"] = False
-                error_list = [f"Foreign key error: {error}" for error in fk_errors]
+                error_list = [f"외래 키 오류: {error}" for error in fk_errors]
                 results["errors"].extend(error_list)
-            # Check table integrity
+            # 테이블 무결성 확인
             for table in [
                 "entities",
                 "edges",
@@ -519,19 +519,19 @@ class SchemaManager:
                     integrity = cursor.fetchone()[0]
                     if integrity != "ok":
                         results["valid"] = False
-                        results["errors"].append(f"Integrity check failed for {table}: {integrity}")
+                        results["errors"].append(f"{table}에 대한 무결성 검사 실패: {integrity}")
                 except sqlite3.Error:
-                    # Table might not exist, skip
+                    # 테이블이 존재하지 않을 수 있으므로 건너뜁니다
                     pass
-            # Check indices
+            # 인덱스 확인
             cursor.execute("PRAGMA index_list(entities)")
             if not cursor.fetchall():
                 warnings_list = results["warnings"]
-                warnings_list.append("No indices found on entities table")
+                warnings_list.append("엔티티 테이블에서 인덱스를 찾을 수 없습니다")
         except sqlite3.Error as exception:
             results["valid"] = False
             errors_list = results["errors"]
-            errors_list.append(f"Schema validation error: {exception}")
+            errors_list.append(f"스키마 검증 오류: {exception}")
         finally:
             conn.close()
         return results

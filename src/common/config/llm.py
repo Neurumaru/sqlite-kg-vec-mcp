@@ -1,128 +1,130 @@
 """
-LLM (Large Language Model) configuration settings.
+LLM (대규모 언어 모델) 구성 설정.
 """
 
 from __future__ import annotations
+
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
 class OllamaConfig(BaseSettings):
-    """Ollama service configuration."""
+    """Ollama 서비스 구성."""
 
-    host: str = Field(default="localhost", description="Ollama server host")
+    host: str = Field(default="localhost", description="Ollama 서버 호스트")
 
-    port: int = Field(default=11434, description="Ollama server port")
+    port: int = Field(default=11434, description="Ollama 서버 포트")
 
-    timeout: float = Field(default=30.0, description="Request timeout in seconds")
+    timeout: float = Field(default=30.0, description="초 단위 요청 타임아웃")
 
-    model: str = Field(default="llama3.2", description="Default Ollama model")
+    model: str = Field(default="llama3.2", description="기본 Ollama 모델")
 
-    temperature: float = Field(default=0.7, description="Default sampling temperature")
+    temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
-    max_tokens: int = Field(default=2000, description="Maximum tokens for responses")
+    max_tokens: int = Field(default=2000, description="응답을 위한 최대 토큰")
 
     @field_validator("port")
     @classmethod
     def validate_port(cls, v: int) -> int:
-        """Validate port number."""
+        """포트 번호 유효성 검사."""
         if not 1 <= v <= 65535:
-            raise ValueError("Port must be between 1 and 65535")
+            raise ValueError("포트는 1에서 65535 사이여야 합니다")
         return v
 
     @field_validator("temperature")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
-        """Validate temperature range."""
+        """온도 범위 유효성 검사."""
         if not 0.0 <= v <= 2.0:
-            raise ValueError("Temperature must be between 0.0 and 2.0")
+            raise ValueError("온도는 0.0에서 2.0 사이여야 합니다")
         return v
 
     model_config = {"env_prefix": "OLLAMA_", "extra": "ignore"}
 
 
 class OpenAIConfig(BaseSettings):
-    """OpenAI API configuration."""
+    """OpenAI API 구성."""
 
-    api_key: str | None = Field(default=None, description="OpenAI API key")
+    api_key: Optional[str] = Field(default=None, description="OpenAI API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str | None) -> str | None:
-        """Validate OpenAI API key format."""
+    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+        """OpenAI API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
-                raise ValueError("API key must be a non-empty string")
+                raise ValueError("API 키는 비어 있지 않은 문자열이어야 합니다")
             if not v.startswith(("sk-", "sk-proj-")):
-                raise ValueError("OpenAI API key must start with 'sk-' or 'sk-proj-'")
+                raise ValueError("OpenAI API 키는 'sk-' 또는 'sk-proj-'로 시작해야 합니다")
         return v
 
-    model: str = Field(default="gpt-4o-mini", description="Default OpenAI model")
+    model: str = Field(default="gpt-4o-mini", description="기본 OpenAI 모델")
 
     embedding_model: str = Field(
-        default="text-embedding-3-small", description="OpenAI embedding model"
+        default="text-embedding-3-small", description="OpenAI 임베딩 모델"
     )
 
-    embedding_dimension: int | None = Field(
-        default=None, description="Embedding dimension (model-specific)"
+    embedding_dimension: Optional[int] = Field(
+        default=None, description="임베딩 차원 (모델별)"
     )
 
-    temperature: float = Field(default=0.7, description="Default sampling temperature")
+    temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
-    max_tokens: int = Field(default=2000, description="Maximum tokens for responses")
+    max_tokens: int = Field(default=2000, description="응답을 위한 최대 토큰")
 
-    timeout: float = Field(default=30.0, description="Request timeout in seconds")
+    timeout: float = Field(default=30.0, description="초 단위 요청 타임아웃")
 
     @field_validator("temperature")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
-        """Validate temperature range."""
+        """온도 범위 유효성 검사."""
         if not 0.0 <= v <= 2.0:
-            raise ValueError("Temperature must be between 0.0 and 2.0")
+            raise ValueError("온도는 0.0에서 2.0 사이여야 합니다")
         return v
 
     @field_validator("embedding_dimension")
     @classmethod
-    def validate_embedding_dimension(cls, v: int | None) -> int | None:
-        """Validate embedding dimension."""
+    def validate_embedding_dimension(cls, v: Optional[int]) -> Optional[int]:
+        """임베딩 차원 유효성 검사."""
         if v is not None and v <= 0:
-            raise ValueError("Embedding dimension must be positive")
+            raise ValueError("임베딩 차원은 양수여야 합니다")
         return v
 
     model_config = {"env_prefix": "OPENAI_", "extra": "ignore"}
 
 
 class AnthropicConfig(BaseSettings):
-    """Anthropic (Claude) API configuration."""
+    """Anthropic (Claude) API 구성."""
 
-    api_key: str | None = Field(default=None, description="Anthropic API key")
+    api_key: Optional[str] = Field(default=None, description="Anthropic API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str | None) -> str | None:
-        """Validate Anthropic API key format."""
+    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+        """Anthropic API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
-                raise ValueError("API key must be a non-empty string")
+                raise ValueError("API 키는 비어 있지 않은 문자열이어야 합니다")
             if not v.startswith("sk-ant-"):
-                raise ValueError("Anthropic API key must start with 'sk-ant-'")
+                raise ValueError("Anthropic API 키는 'sk-ant-'로 시작해야 합니다")
         return v
 
-    model: str = Field(default="claude-3-haiku-20240307", description="Default Claude model")
+    model: str = Field(default="claude-3-haiku-20240307", description="기본 Claude 모델")
 
-    temperature: float = Field(default=0.7, description="Default sampling temperature")
+    temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
-    max_tokens: int = Field(default=2000, description="Maximum tokens for responses")
+    max_tokens: int = Field(default=2000, description="응답을 위한 최대 토큰")
 
-    timeout: float = Field(default=30.0, description="Request timeout in seconds")
+    timeout: float = Field(default=30.0, description="초 단위 요청 타임아웃")
 
     @field_validator("temperature")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
-        """Validate temperature range."""
+        """온도 범위 유효성 검사."""
         if not 0.0 <= v <= 1.0:
-            raise ValueError("Temperature must be between 0.0 and 1.0")
+            raise ValueError("온도는 0.0에서 1.0 사이여야 합니다")
         return v
 
     model_config = {"env_prefix": "ANTHROPIC_", "extra": "ignore"}
@@ -130,50 +132,50 @@ class AnthropicConfig(BaseSettings):
 
 class LLMConfig(BaseSettings):
     """
-    Combined LLM configuration settings.
+    결합된 LLM 구성 설정.
 
-    Includes settings for all supported LLM providers.
+    지원되는 모든 LLM 제공업체에 대한 설정을 포함합니다.
     """
 
-    # Default provider
+    # 기본 제공업체
     default_provider: str = Field(
-        default="ollama", description="Default LLM provider (ollama, openai, anthropic)"
+        default="ollama", description="기본 LLM 제공업체 (ollama, openai, anthropic)"
     )
 
-    # Provider configs
-    ollama: OllamaConfig = Field(default_factory=OllamaConfig, description="Ollama configuration")
+    # 제공업체 구성
+    ollama: OllamaConfig = Field(default_factory=OllamaConfig, description="Ollama 구성")
 
-    openai: OpenAIConfig = Field(default_factory=OpenAIConfig, description="OpenAI configuration")
+    openai: OpenAIConfig = Field(default_factory=OpenAIConfig, description="OpenAI 구성")
 
     anthropic: AnthropicConfig = Field(
-        default_factory=AnthropicConfig, description="Anthropic configuration"
+        default_factory=AnthropicConfig, description="Anthropic 구성"
     )
 
-    # Common settings
+    # 공통 설정
     retry_attempts: int = Field(
-        default=3, description="Number of retry attempts for failed requests"
+        default=3, description="실패한 요청에 대한 재시도 횟수"
     )
 
-    retry_delay: float = Field(default=1.0, description="Base delay between retries in seconds")
+    retry_delay: float = Field(default=1.0, description="초 단위 재시도 간 기본 지연")
 
     @field_validator("default_provider")
     @classmethod
     def validate_default_provider(cls, v: str) -> str:
-        """Validate default provider."""
+        """기본 제공업체 유효성 검사."""
         valid_providers = {"ollama", "openai", "anthropic"}
         if v not in valid_providers:
-            raise ValueError(f"Provider must be one of {valid_providers}")
+            raise ValueError(f"제공업체는 {valid_providers} 중 하나여야 합니다")
         return v
 
     def validate_provider_config(self) -> None:
-        """Validate that the selected provider has valid configuration."""
+        """선택된 제공업체가 유효한 구성을 가지고 있는지 확인합니다."""
         if self.default_provider == "openai" and not self.openai.api_key:
-            raise ValueError("OpenAI API key is required when using OpenAI provider")
+            raise ValueError("OpenAI 제공업체를 사용할 때는 OpenAI API 키가 필요합니다")
         if self.default_provider == "anthropic" and not self.anthropic.api_key:
-            raise ValueError("Anthropic API key is required when using Anthropic provider")
+            raise ValueError("Anthropic 제공업체를 사용할 때는 Anthropic API 키가 필요합니다")
 
     def get_active_provider_config(self) -> OllamaConfig | OpenAIConfig | AnthropicConfig:
-        """Get configuration for the active provider."""
+        """활성 제공업체의 구성을 가져옵니다."""
         if self.default_provider == "openai":
             return self.openai
         if self.default_provider == "anthropic":

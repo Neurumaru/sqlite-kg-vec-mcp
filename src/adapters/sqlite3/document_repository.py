@@ -1,11 +1,12 @@
 """
-SQLite implementation of the DocumentRepository port.
+DocumentRepository 포트의 SQLite 구현.
 """
 
 import json
 import logging
 from datetime import datetime
-from typing import Any
+from logging import Logger
+from typing import Any, Optional
 
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
 from src.domain.exceptions.document_exceptions import (
@@ -27,24 +28,24 @@ from src.ports.repositories.document import DocumentRepository
 
 class SQLiteDocumentRepository(DocumentRepository):
     """
-    SQLite implementation of the DocumentRepository port.
-    This adapter provides concrete implementation of document persistence
-    using SQLite as the underlying storage engine.
+    DocumentRepository 포트의 SQLite 구현.
+    이 어댑터는 SQLite를 기본 스토리지 엔진으로 사용하여
+    문서 지속성의 구체적인 구현을 제공합니다.
     """
 
-    def __init__(self, database: Database, logger: logging.Logger | None = None):
+    def __init__(self, database: Database, logger: Optional[Logger] = None):
         """
-        Initialize SQLite document repository adapter.
+        SQLite 문서 리포지토리 어댑터를 초기화합니다.
         Args:
-            database: Database connection interface
-            logger: Optional logger instance
+            database: 데이터베이스 연결 인터페이스
+            logger: 선택적 로거 인스턴스
         """
         self.database = database
         self.logger = logger or logging.getLogger(__name__)
 
     def _document_to_data(self, document: Document) -> DocumentData:
-        """Convert Document entity to DocumentData DTO."""
-        # Map domain status to DTO status
+        """Document 엔티티를 DocumentData DTO로 변환합니다."""
+        # 도메인 상태를 DTO 상태로 매핑
         status_mapping = {
             DocumentStatus.PENDING: DTODocumentStatus.PENDING,
             DocumentStatus.PROCESSING: DTODocumentStatus.PROCESSING,
@@ -68,8 +69,8 @@ class SQLiteDocumentRepository(DocumentRepository):
         )
 
     def _data_to_document(self, data: DocumentData) -> Document:
-        """Convert DocumentData DTO to Document entity."""
-        # Map DTO status to domain status
+        """DocumentData DTO를 Document 엔티티로 변환합니다."""
+        # DTO 상태를 도메인 상태로 매핑
         status_mapping = {
             DTODocumentStatus.PENDING: DocumentStatus.PENDING,
             DTODocumentStatus.PROCESSING: DocumentStatus.PROCESSING,
@@ -104,17 +105,17 @@ class SQLiteDocumentRepository(DocumentRepository):
         Raises:
             DocumentAlreadyExistsException: 문서가 이미 존재하는 경우
         """
-        # Convert DTO to entity
+        # DTO를 엔티티로 변환
         doc_entity = self._data_to_document(document)
         # 문서가 이미 존재하는지 확인
         existing = await self._get_document_by_id(doc_entity.id)
         if existing:
             raise DocumentAlreadyExistsException(str(doc_entity.id))
         await self._insert_document(doc_entity)
-        self.logger.info("Document saved: %s", doc_entity.id)
+        self.logger.info("문서 저장됨: %s", doc_entity.id)
         return document
 
-    async def find_by_id(self, document_id: str) -> DocumentData | None:
+    async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
         """
         ID로 문서를 찾습니다.
         Args:
@@ -257,7 +258,7 @@ class SQLiteDocumentRepository(DocumentRepository):
             DocumentNotFoundException: 문서가 존재하지 않는 경우
             ConcurrentModificationError: 동시 수정 충돌이 발생한 경우
         """
-        # Convert DTO to entity
+        # DTO를 엔티티로 변환
         doc_entity = self._data_to_document(document)
         # 현재 문서 버전 확인
         current = await self._get_document_by_id(doc_entity.id)
@@ -273,8 +274,8 @@ class SQLiteDocumentRepository(DocumentRepository):
         # 버전 증가
         doc_entity.increment_version()
         await self._update_document(doc_entity)
-        self.logger.info("Document updated: %s, version: %s", doc_entity.id, doc_entity.version)
-        # Return updated DTO
+        self.logger.info("문서 업데이트됨: %s, 버전: %s", doc_entity.id, doc_entity.version)
+        # 업데이트된 DTO 반환
         return self._document_to_data(doc_entity)
 
     async def update_with_knowledge(
@@ -292,7 +293,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         Returns:
             업데이트된 문서
         """
-        # Convert DTO to entity
+        # DTO를 엔티티로 변환
         doc_entity = self._data_to_document(document)
         async with self.database.transaction():
             # 동시성 체크
@@ -324,7 +325,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         affected_rows = await self.database.execute_command(command, parameters)
         success = affected_rows > 0
         if success:
-            self.logger.info("Document deleted: %s", document_id)
+            self.logger.info("문서 삭제됨: %s", document_id)
         return success
 
     async def exists(self, document_id: str) -> bool:
@@ -415,7 +416,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         # 현재는 모든 ID를 한 번에 처리하지만, 대용량 데이터 처리 시 메모리 효율성을 위해
         # 청크 단위로 나누어 처리하는 방식으로 개선 필요
         # 예: batch_size = 1000으로 설정하여 청크별 처리
-        # Use named parameters instead of positional ones
+        # 위치 매개변수 대신 명명된 매개변수 사용
         id_conditions = " OR ".join(f"id = :id_{i}" for i in range(len(document_ids)))
         command = f"""
             UPDATE documents
@@ -426,11 +427,11 @@ class SQLiteDocumentRepository(DocumentRepository):
         for i, doc_id in enumerate(document_ids):
             parameters[f"id_{i}"] = str(doc_id)
         affected_rows = await self.database.execute_command(command, parameters)
-        self.logger.info("Bulk updated %s documents to status %s", affected_rows, status.value)
+        self.logger.info("%s개 문서 상태를 %s로 일괄 업데이트함", affected_rows, status.value)
         return affected_rows
 
-    # Private helper methods
-    async def _get_document_by_id(self, document_id: DocumentId) -> Document | None:
+    # 비공개 헬퍼 메서드
+    async def _get_document_by_id(self, document_id: DocumentId) -> Optional[Document]:
         """문서 ID로 문서를 조회하는 내부 메서드."""
         query = "SELECT * FROM documents WHERE id = ?"
         parameters = {"id": str(document_id)}

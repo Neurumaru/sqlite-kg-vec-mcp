@@ -1,5 +1,5 @@
 """
-Domain event base class.
+도메인 이벤트 기본 클래스.
 """
 
 import uuid
@@ -14,9 +14,9 @@ T = TypeVar("T", bound="DomainEvent")
 @dataclass
 class DomainEvent(ABC):
     """
-    Domain event base class.
+    도메인 이벤트 기본 클래스.
 
-    Represents important events that occur in the domain.
+    도메인에서 발생하는 중요한 이벤트를 나타냅니다.
     """
 
     event_id: str

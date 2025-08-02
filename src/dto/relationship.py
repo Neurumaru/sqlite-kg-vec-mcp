@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 
 class RelationshipType(Enum):
@@ -45,11 +45,11 @@ class RelationshipData:
     target_node_id: str  # 끝 노드 식별자
     relationship_type: RelationshipType  # 관계 타입
     properties: dict[str, Any]  # 관계 속성
-    embedding: list[float] | None = None  # 임베딩 벡터
-    created_at: datetime | None = None  # 생성 시각
-    updated_at: datetime | None = None  # 업데이트 시각
+    embedding: Optional[list[float]] = None  # 임베딩 벡터
+    created_at: Optional[datetime] = None  # 생성 시각
+    updated_at: Optional[datetime] = None  # 업데이트 시각
     source_documents: list[str] = field(default_factory=list)  # 원본 문서 목록
-    confidence_score: float | None = None  # 신뢰도 점수
+    confidence_score: Optional[float] = None  # 신뢰도 점수
 
     def __post_init__(self) -> None:
         """

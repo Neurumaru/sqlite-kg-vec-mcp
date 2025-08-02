@@ -1,1 +1,1 @@
-"""Adapters for external system integration."""
+"""외부 시스템 연동을 위한 어댑터."""

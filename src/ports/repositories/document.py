@@ -6,6 +6,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.dto import DocumentData, DocumentStatus
 
@@ -24,22 +25,22 @@ class DocumentRepository(ABC):
         """
         문서를 저장합니다.
 
-        Args:
+        인자:
             document: 저장할 문서
 
-        Returns:
+        반환:
             저장된 문서
         """
 
     @abstractmethod
-    async def find_by_id(self, document_id: str) -> DocumentData | None:
+    async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
         """
         ID로 문서를 찾습니다.
 
-        Args:
+        인자:
             document_id: 문서 ID
 
-        Returns:
+        반환:
             찾은 문서 또는 None
         """
 
@@ -48,10 +49,10 @@ class DocumentRepository(ABC):
         """
         문서를 업데이트합니다.
 
-        Args:
+        인자:
             document: 업데이트할 문서
 
-        Returns:
+        반환:
             업데이트된 문서
         """
 
@@ -60,10 +61,10 @@ class DocumentRepository(ABC):
         """
         문서를 삭제합니다.
 
-        Args:
+        인자:
             document_id: 삭제할 문서 ID
 
-        Returns:
+        반환:
             삭제 성공 여부
         """
 
@@ -72,10 +73,10 @@ class DocumentRepository(ABC):
         """
         문서가 존재하는지 확인합니다.
 
-        Args:
+        인자:
             document_id: 확인할 문서 ID
 
-        Returns:
+        반환:
             존재 여부
         """
 
@@ -85,10 +86,10 @@ class DocumentRepository(ABC):
         """
         상태로 문서를 찾습니다.
 
-        Args:
+        인자:
             status: 문서 상태
 
-        Returns:
+        반환:
             해당 상태의 문서들
         """
 
@@ -97,10 +98,10 @@ class DocumentRepository(ABC):
         """
         처리되지 않은 문서들을 찾습니다.
 
-        Args:
+        인자:
             limit: 최대 반환 개수
 
-        Returns:
+        반환:
             미처리 문서들
         """
 
@@ -114,11 +115,11 @@ class DocumentRepository(ABC):
         """
         문서를 지식 요소들과 함께 업데이트합니다.
 
-        Args:
+        인자:
             document: 업데이트할 문서
             node_ids: 연결된 노드 ID들
             relationship_ids: 연결된 관계 ID들
 
-        Returns:
+        반환:
             업데이트된 문서
         """

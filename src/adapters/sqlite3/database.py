@@ -1,12 +1,13 @@
 """
-SQLite implementation of the Database port.
+Database 포트의 SQLite 구현.
 """
 
 import sqlite3
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from sqlite3 import Connection
+from typing import Any, Optional
 
 from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
@@ -16,23 +17,23 @@ from .connection import DatabaseConnection
 
 class SQLiteDatabase(Database, DatabaseMaintenance):
     """
-    SQLite implementation of the Database port.
-    This adapter provides concrete implementation of database operations
-    using SQLite as the underlying storage engine.
+    Database 포트의 SQLite 구현.
+    이 어댑터는 SQLite를 기본 스토리지 엔진으로 사용하여 데이터베이스 작업의
+    구체적인 구현을 제공합니다.
     """
 
     def __init__(
         self,
-        config: DatabaseConfig | None = None,
-        db_path: str | None = None,
-        optimize: bool | None = None,
+        config: Optional[DatabaseConfig] = None,
+        db_path: Optional[str] = None,
+        optimize: Optional[bool] = None,
     ):
         """
-        Initialize SQLite database adapter.
+        SQLite 데이터베이스 어댑터를 초기화합니다.
         Args:
-            config: Database 설정 객체
-            db_path: Path to the SQLite database file (deprecated, config 사용 권장)
-            optimize: Whether to apply optimization PRAGMAs (deprecated, config 사용 권장)
+            config: 데이터베이스 설정 객체
+            db_path: SQLite 데이터베이스 파일 경로 (사용 중단됨, config 사용 권장)
+            optimize: 최적화 PRAGMA 적용 여부 (사용 중단됨, config 사용 권장)
         """
         if config is None:
             config = DatabaseConfig()
@@ -42,15 +43,15 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self.check_same_thread = config.check_same_thread
         self.max_connections = config.max_connections
         self._connection_manager = DatabaseConnection(str(self.db_path), self.optimize)
-        self._connection: sqlite3.Connection | None = None
+        self._connection: Optional[Connection] = None
         self._active_transactions: dict[str, sqlite3.Connection] = {}
 
-    # Connection management
+    # 연결 관리
     async def connect(self) -> bool:
         """
-        Establish database connection.
+        데이터베이스 연결을 설정합니다.
         Returns:
-            True if connection was successful
+            연결 성공 시 True
         """
         try:
             self._connection = self._connection_manager.connect()
@@ -60,9 +61,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def disconnect(self) -> bool:
         """
-        Close database connection.
+        데이터베이스 연결을 닫습니다.
         Returns:
-            True if disconnection was successful
+            연결 해제 성공 시 True
         """
         try:
             for transaction_conn in self._active_transactions.values():
@@ -80,9 +81,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def is_connected(self) -> bool:
         """
-        Check if database is connected.
+        데이터베이스에 연결되었는지 확인합니다.
         Returns:
-            True if database is connected
+            데이터베이스에 연결된 경우 True
         """
         if not self._connection:
             return False
@@ -94,19 +95,19 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def ping(self) -> bool:
         """
-        Ping the database to check connectivity.
+        데이터베이스에 핑을 보내 연결 상태를 확인합니다.
         Returns:
-            True if database responds
+            데이터베이스가 응답하면 True
         """
         return await self.is_connected()
 
-    # Transaction management
+    # 트랜잭션 관리
     @asynccontextmanager
     async def transaction(self):  # pylint: disable=invalid-overridden-method
         """
-        Create a database transaction context.
+        데이터베이스 트랜잭션 컨텍스트를 생성합니다.
         Yields:
-            Transaction context
+            트랜잭션 컨텍스트
         """
         transaction_id = await self.begin_transaction()
         try:
@@ -118,12 +119,12 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def begin_transaction(self) -> str:
         """
-        Begin a new transaction.
+        새 트랜잭션을 시작합니다.
         Returns:
-            Transaction ID
+            트랜잭션 ID
         """
         if not self._connection:
-            raise RuntimeError("Database not connected")
+            raise RuntimeError("데이터베이스가 연결되지 않았습니다")
         transaction_id = str(uuid.uuid4())
         self._active_transactions[transaction_id] = self._connection
         self._connection.execute("BEGIN")
@@ -131,11 +132,11 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def commit_transaction(self, transaction_id: str) -> bool:
         """
-        Commit a transaction.
+        트랜잭션을 커밋합니다.
         Args:
-            transaction_id: Transaction ID to commit
+            transaction_id: 커밋할 트랜잭션 ID
         Returns:
-            True if commit was successful
+            커밋 성공 시 True
         """
         if transaction_id not in self._active_transactions:
             return False
@@ -149,11 +150,11 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def rollback_transaction(self, transaction_id: str) -> bool:
         """
-        Rollback a transaction.
+        트랜잭션을 롤백합니다.
         Args:
-            transaction_id: Transaction ID to rollback
+            transaction_id: 롤백할 트랜잭션 ID
         Returns:
-            True if rollback was successful
+            롤백 성공 시 True
         """
         if transaction_id not in self._active_transactions:
             return False
@@ -165,25 +166,25 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    # Query execution
+    # 쿼리 실행
     async def execute_query(
         self,
         query: str,
         parameters: dict[str, Any] | None = None,
-        transaction_id: str | None = None,
+        transaction_id: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         """
-        Execute a SELECT query.
+        SELECT 쿼리를 실행합니다.
         Args:
-            query: SQL query to execute
-            parameters: Optional query parameters
-            transaction_id: Optional transaction ID
+            query: 실행할 SQL 쿼리
+            parameters: 선택적 쿼리 매개변수
+            transaction_id: 선택적 트랜잭션 ID
         Returns:
-            Query results as list of dictionaries
+            딕셔너리 리스트 형태의 쿼리 결과
         """
         connection = self._get_connection(transaction_id)
         if not connection:
-            raise RuntimeError("Database not connected")
+            raise RuntimeError("데이터베이스가 연결되지 않았습니다")
         cursor = connection.cursor()
         try:
             if parameters:
@@ -202,20 +203,20 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         command: str,
         parameters: dict[str, Any] | None = None,
-        transaction_id: str | None = None,
+        transaction_id: Optional[str] = None,
     ) -> int:
         """
-        Execute a non-SELECT command (INSERT, UPDATE, DELETE).
+        SELECT가 아닌 명령(INSERT, UPDATE, DELETE)을 실행합니다.
         Args:
-            command: SQL command to execute
-            parameters: Optional command parameters
-            transaction_id: Optional transaction ID
+            command: 실행할 SQL 명령
+            parameters: 선택적 명령 매개변수
+            transaction_id: 선택적 트랜잭션 ID
         Returns:
-            Number of affected rows
+            영향을 받은 행의 수
         """
         connection = self._get_connection(transaction_id)
         if not connection:
-            raise RuntimeError("Database not connected")
+            raise RuntimeError("데이터베이스가 연결되지 않았습니다")
         cursor = connection.cursor()
         try:
             if parameters:
@@ -230,20 +231,20 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         commands: list[str],
         parameters: list[dict[str, Any]] | None = None,
-        transaction_id: str | None = None,
+        transaction_id: Optional[str] = None,
     ) -> list[int]:
         """
-        Execute multiple commands in batch.
+        여러 명령을 일괄 실행합니다.
         Args:
-            commands: List of SQL commands
-            parameters: Optional list of parameters for each command
-            transaction_id: Optional transaction ID
+            commands: SQL 명령 목록
+            parameters: 각 명령에 대한 선택적 매개변수 목록
+            transaction_id: 선택적 트랜잭션 ID
         Returns:
-            List of affected row counts
+            영향을 받은 행 수의 목록
         """
         connection = self._get_connection(transaction_id)
         if not connection:
-            raise RuntimeError("Database not connected")
+            raise RuntimeError("데이터베이스가 연결되지 않았습니다")
         results = []
         for i, command in enumerate(commands):
             cursor = connection.cursor()
@@ -258,18 +259,18 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 cursor.close()
         return results
 
-    # Schema management
+    # 스키마 관리
     async def create_table(
         self, table_name: str, schema: dict[str, Any], if_not_exists: bool = True
     ) -> bool:
         """
-        Create a database table.
+        데이터베이스 테이블을 생성합니다.
         Args:
-            table_name: Name of the table
-            schema: Table schema definition
-            if_not_exists: Whether to use IF NOT EXISTS clause
+            table_name: 테이블 이름
+            schema: 테이블 스키마 정의
+            if_not_exists: IF NOT EXISTS 절 사용 여부
         Returns:
-            True if table creation was successful
+            테이블 생성 성공 시 True
         """
         try:
             columns = []
@@ -295,12 +296,12 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
         """
-        Drop a database table.
+        데이터베이스 테이블을 삭제합니다.
         Args:
-            table_name: Name of the table
-            if_exists: Whether to use IF EXISTS clause
+            table_name: 테이블 이름
+            if_exists: IF EXISTS 절 사용 여부
         Returns:
-            True if table drop was successful
+            테이블 삭제 성공 시 True
         """
         try:
             if_exists_clause = "IF EXISTS " if if_exists else ""
@@ -312,11 +313,11 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def table_exists(self, table_name: str) -> bool:
         """
-        Check if a table exists.
+        테이블이 존재하는지 확인합니다.
         Args:
-            table_name: Name of the table
+            table_name: 테이블 이름
         Returns:
-            True if table exists
+            테이블이 존재하면 True
         """
         try:
             result = await self.execute_query(
@@ -329,11 +330,11 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def get_table_schema(self, table_name: str) -> dict[str, Any] | None:
         """
-        Get the schema of a table.
+        테이블의 스키마를 가져옵니다.
         Args:
-            table_name: Name of the table
+            table_name: 테이블 이름
         Returns:
-            Table schema or None if table doesn't exist
+            테이블 스키마 또는 테이블이 없으면 None
         """
         try:
             result = await self.execute_query(f"PRAGMA table_info({table_name})")
@@ -360,15 +361,15 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         if_not_exists: bool = True,
     ) -> bool:
         """
-        Create a database index.
+        데이터베이스 인덱스를 생성합니다.
         Args:
-            index_name: Name of the index
-            table_name: Table to index
-            columns: Columns to include in index
-            unique: Whether index should be unique
-            if_not_exists: Whether to use IF NOT EXISTS clause
+            index_name: 인덱스 이름
+            table_name: 인덱싱할 테이블
+            columns: 인덱스에 포함할 열
+            unique: 인덱스를 고유하게 만들지 여부
+            if_not_exists: IF NOT EXISTS 절 사용 여부
         Returns:
-            True if index creation was successful
+            인덱스 생성 성공 시 True
         """
         try:
             unique_clause = "UNIQUE " if unique else ""
@@ -382,12 +383,12 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def drop_index(self, index_name: str, if_exists: bool = True) -> bool:
         """
-        Drop a database index.
+        데이터베이스 인덱스를 삭제합니다.
         Args:
-            index_name: Name of the index
-            if_exists: Whether to use IF EXISTS clause
+            index_name: 인덱스 이름
+            if_exists: IF EXISTS 절 사용 여부
         Returns:
-            True if index drop was successful
+            인덱스 삭제 성공 시 True
         """
         try:
             if_exists_clause = "IF EXISTS " if if_exists else ""
@@ -397,12 +398,12 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    # Database maintenance
+    # 데이터베이스 유지보수
     async def vacuum(self) -> bool:
         """
-        Perform database vacuum operation.
+        데이터베이스 vacuum 작업을 수행합니다.
         Returns:
-            True if vacuum was successful
+            vacuum 성공 시 True
         """
         try:
             await self.execute_command("VACUUM")
@@ -410,13 +411,13 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    async def analyze(self, table_name: str | None = None) -> bool:
+    async def analyze(self, table_name: Optional[str] = None) -> bool:
         """
-        Analyze database statistics.
+        데이터베이스 통계를 분석합니다.
         Args:
-            table_name: Optional specific table to analyze
+            table_name: 분석할 특정 테이블 (선택 사항)
         Returns:
-            True if analysis was successful
+            분석 성공 시 True
         """
         try:
             if table_name:
@@ -429,20 +430,20 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def get_database_info(self) -> dict[str, Any]:
         """
-        Get database information and statistics.
+        데이터베이스 정보 및 통계를 가져옵니다.
         Returns:
-            Database information
+            데이터베이스 정보
         """
         try:
             info = {
                 "path": str(self.db_path),
                 "size_bytes": (self.db_path.stat().st_size if self.db_path.exists() else 0),
             }
-            # Get SQLite version and settings
+            # SQLite 버전 및 설정 가져오기
             version_result = await self.execute_query("SELECT sqlite_version()")
             if version_result:
                 info["sqlite_version"] = version_result[0]["sqlite_version()"]
-            # Get pragma settings
+            # pragma 설정 가져오기
             pragma_queries = [
                 "PRAGMA journal_mode",
                 "PRAGMA synchronous",
@@ -459,26 +460,26 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                     continue
             return info
         except Exception:
-            return {"error": "Failed to get database info"}
+            return {"error": "데이터베이스 정보를 가져오는 데 실패했습니다"}
 
     async def get_table_info(self, table_name: str) -> dict[str, Any] | None:
         """
-        Get information about a specific table.
+        특정 테이블에 대한 정보를 가져옵니다.
         Args:
-            table_name: Name of the table
+            table_name: 테이블 이름
         Returns:
-            Table information or None if table doesn't exist
+            테이블 정보 또는 테이블이 없으면 None
         """
         try:
-            # Check if table exists
+            # 테이블 존재 여부 확인
             if not await self.table_exists(table_name):
                 return None
             info: dict[str, Any] = {"name": table_name}
-            # Get row count
+            # 행 수 가져오기
             count_result = await self.execute_query(f"SELECT COUNT(*) as count FROM {table_name}")
             if count_result:
                 info["row_count"] = count_result[0]["count"]
-            # Get schema
+            # 스키마 가져오기
             schema = await self.get_table_schema(table_name)
             if schema:
                 info["schema"] = schema
@@ -486,12 +487,12 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return None
 
-    # Health and diagnostics
+    # 상태 및 진단
     async def health_check(self) -> dict[str, Any]:
         """
-        Perform database health check.
+        데이터베이스 상태 확인을 수행합니다.
         Returns:
-            Health status information
+            상태 정보
         """
         health: dict[str, Any] = {
             "connected": await self.is_connected(),
@@ -501,10 +502,10 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         }
         if health["connected"]:
             try:
-                # Test read
+                # 읽기 테스트
                 await self.execute_query("SELECT 1")
                 health["readable"] = True
-                # Test write (create and drop temp table)
+                # 쓰기 테스트 (임시 테이블 생성 및 삭제)
                 await self.execute_command("CREATE TEMP TABLE health_check_temp (id INTEGER)")
                 await self.execute_command("DROP TABLE health_check_temp")
                 health["writable"] = True
@@ -519,9 +520,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def get_connection_info(self) -> dict[str, Any]:
         """
-        Get connection information and status.
+        연결 정보 및 상태를 가져옵니다.
         Returns:
-            Connection information
+            연결 정보
         """
         return {
             "connected": await self.is_connected(),
@@ -533,16 +534,16 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     async def get_performance_stats(self) -> dict[str, Any]:
         """
-        Get database performance statistics.
+        데이터베이스 성능 통계를 가져옵니다.
         Returns:
-            Performance statistics
+            성능 통계
         """
         try:
             stats: dict[str, Any] = {}
-            # Database size
+            # 데이터베이스 크기
             if self.db_path.exists():
                 stats["file_size_bytes"] = self.db_path.stat().st_size
-            # Table statistics
+            # 테이블 통계
             tables_result = await self.execute_query(
                 "SELECT name FROM sqlite_master WHERE type='table'"
             )
@@ -556,24 +557,24 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             stats["tables"] = tables_dict
             return stats
         except Exception:
-            return {"error": "Failed to get performance stats"}
+            return {"error": "성능 통계를 가져오는 데 실패했습니다"}
 
     @property
-    def connection(self) -> sqlite3.Connection | None:
+    def connection(self) -> Optional[Connection]:
         """
-        Get the SQLite connection.
+        SQLite 연결을 가져옵니다.
         Returns:
-            SQLite connection or None if not connected
+            SQLite 연결 또는 연결되지 않은 경우 None
         """
         return self._connection
 
-    def _get_connection(self, transaction_id: str | None = None) -> sqlite3.Connection | None:
+    def _get_connection(self, transaction_id: Optional[str] = None) -> Optional[Connection]:
         """
-        Get the appropriate connection for the transaction.
+        트랜잭션에 적합한 연결을 가져옵니다.
         Args:
-            transaction_id: Optional transaction ID
+            transaction_id: 선택적 트랜잭션 ID
         Returns:
-            SQLite connection or None
+            SQLite 연결 또는 None
         """
         if transaction_id and transaction_id in self._active_transactions:
             return self._active_transactions[transaction_id]
