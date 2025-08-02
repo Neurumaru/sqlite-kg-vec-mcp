@@ -1,11 +1,11 @@
 """
-FastMCP server infrastructure exceptions.
+FastMCP 서버 인프라 예외.
 
-These exceptions handle MCP protocol errors, server lifecycle issues,
-and message processing failures.
+이 예외들은 MCP 프로토콜 오류, 서버 생명주기 문제,
+메시지 처리 실패 등을 처리합니다.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import ConnectionException
@@ -14,31 +14,31 @@ from ..exceptions.data import DataParsingException
 
 class MCPException(InfrastructureException):
     """
-    Base exception for MCP protocol errors.
+    MCP 프로토콜 오류의 기본 예외.
 
-    Covers issues with MCP message handling, protocol compliance,
-    and server communication.
+    MCP 메시지 핸들링, 프로토콜 준수,
+    서버 통신 관련 문제를 다룹니다.
     """
 
     def __init__(
         self,
         operation: str,
         message: str,
-        mcp_method: str | None = None,
-        error_code: str | None = None,
+        mcp_method: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP exception.
+        MCP 예외를 초기화합니다.
 
         Args:
-            operation: MCP operation being performed
-            message: Detailed error message
-            mcp_method: MCP method name if relevant
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            operation: 수행 중인 MCP 작업
+            message: 상세 오류 메시지
+            mcp_method: 관련된 MCP 메서드 이름
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.operation = operation
         self.mcp_method = mcp_method
@@ -57,9 +57,9 @@ class MCPException(InfrastructureException):
 
 class MCPServerException(MCPException):
     """
-    MCP server lifecycle errors.
+    MCP 서버 생명주기 오류.
 
-    Handles server startup, shutdown, and runtime issues.
+    서버 시작, 종료, 런타임 문제를 처리합니다.
     """
 
     def __init__(
@@ -67,22 +67,22 @@ class MCPServerException(MCPException):
         server_state: str,
         operation: str,
         message: str,
-        port: int | None = None,
-        host: str | None = None,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP server exception.
+        MCP 서버 예외를 초기화합니다.
 
         Args:
-            server_state: Current server state
-            operation: Server operation being performed
-            message: Detailed error message
-            port: Server port if relevant
-            host: Server host if relevant
-            context: Additional context
-            original_error: Original exception
+            server_state: 현재 서버 상태
+            operation: 수행 중인 서버 작업
+            message: 상세 오류 메시지
+            port: 관련된 서버 포트
+            host: 관련된 서버 호스트
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.server_state = server_state
         self.port = port
@@ -103,10 +103,10 @@ class MCPServerException(MCPException):
 
 class MCPMessageException(DataParsingException):
     """
-    MCP message processing errors.
+    MCP 메시지 처리 오류.
 
-    Handles issues with message parsing, validation,
-    and protocol compliance.
+    메시지 파싱, 유효성 검사, 프로토콜 준수 관련
+    문제를 처리합니다.
     """
 
     def __init__(
@@ -114,20 +114,20 @@ class MCPMessageException(DataParsingException):
         message_type: str,
         message_content: str,
         validation_error: str,
-        mcp_method: str | None = None,
+        mcp_method: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP message exception.
+        MCP 메시지 예외를 초기화합니다.
 
         Args:
-            message_type: Type of MCP message
-            message_content: Raw message content (truncated)
-            validation_error: Specific validation error
-            mcp_method: MCP method name if available
-            context: Additional context
-            original_error: Original exception
+            message_type: MCP 메시지 유형
+            message_content: 원본 메시지 내용 (일부)
+            validation_error: 특정 유효성 검사 오류
+            mcp_method: 관련된 MCP 메서드 이름
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.message_type = message_type
         self.mcp_method = mcp_method
@@ -148,10 +148,9 @@ class MCPMessageException(DataParsingException):
 
 class MCPToolException(MCPException):
     """
-    MCP tool execution errors.
+    MCP 도구 실행 오류.
 
-    Handles failures during tool discovery, registration,
-    and execution.
+    도구 발견, 등록, 실행 중 발생하는 실패를 처리합니다.
     """
 
     def __init__(
@@ -161,18 +160,18 @@ class MCPToolException(MCPException):
         message: str,
         tool_args: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP tool exception.
+        MCP 도구 예외를 초기화합니다.
 
         Args:
-            tool_name: Name of the MCP tool
-            operation: Tool operation being performed
-            message: Detailed error message
-            tool_args: Tool arguments if relevant
-            context: Additional context
-            original_error: Original exception
+            tool_name: MCP 도구의 이름
+            operation: 수행 중인 도구 작업
+            message: 상세 오류 메시지
+            tool_args: 관련된 도구 인수
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.tool_name = tool_name
         self.tool_args = tool_args or {}
@@ -190,10 +189,9 @@ class MCPToolException(MCPException):
 
 class MCPResourceException(MCPException):
     """
-    MCP resource access errors.
+    MCP 리소스 접근 오류.
 
-    Handles issues with resource discovery, access control,
-    and resource operations.
+    리소스 발견, 접근 제어, 리소스 작업 관련 문제를 처리합니다.
     """
 
     def __init__(
@@ -201,20 +199,20 @@ class MCPResourceException(MCPException):
         resource_uri: str,
         operation: str,
         message: str,
-        resource_type: str | None = None,
+        resource_type: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP resource exception.
+        MCP 리소스 예외를 초기화합니다.
 
         Args:
-            resource_uri: URI of the resource
-            operation: Resource operation being performed
-            message: Detailed error message
-            resource_type: Type of resource if known
-            context: Additional context
-            original_error: Original exception
+            resource_uri: 리소스의 URI
+            operation: 수행 중인 리소스 작업
+            message: 상세 오류 메시지
+            resource_type: 알려진 경우 리소스 유형
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.resource_uri = resource_uri
         self.resource_type = resource_type
@@ -234,10 +232,10 @@ class MCPResourceException(MCPException):
 
 class MCPPromptException(MCPException):
     """
-    MCP prompt handling errors.
+    MCP 프롬프트 처리 오류.
 
-    Handles issues with prompt discovery, template processing,
-    and prompt execution.
+    프롬프트 발견, 템플릿 처리, 프롬프트 실행 관련
+    문제를 처리합니다.
     """
 
     def __init__(
@@ -247,18 +245,18 @@ class MCPPromptException(MCPException):
         message: str,
         prompt_args: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP prompt exception.
+        MCP 프롬프트 예외를 초기화합니다.
 
         Args:
-            prompt_name: Name of the prompt
-            operation: Prompt operation being performed
-            message: Detailed error message
-            prompt_args: Prompt arguments if relevant
-            context: Additional context
-            original_error: Original exception
+            prompt_name: 프롬프트의 이름
+            operation: 수행 중인 프롬프트 작업
+            message: 상세 오류 메시지
+            prompt_args: 관련된 프롬프트 인수
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.prompt_name = prompt_name
         self.prompt_args = prompt_args or {}
@@ -276,10 +274,10 @@ class MCPPromptException(MCPException):
 
 class MCPConnectionException(ConnectionException):
     """
-    MCP client connection errors.
+    MCP 클라이언트 연결 오류.
 
-    Handles issues with client connections, transport layers,
-    and communication channels.
+    클라이언트 연결, 전송 계층, 통신 채널 관련
+    문제를 처리합니다.
     """
 
     def __init__(
@@ -287,20 +285,20 @@ class MCPConnectionException(ConnectionException):
         transport_type: str,
         endpoint: str,
         message: str,
-        client_id: str | None = None,
+        client_id: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize MCP connection exception.
+        MCP 연결 예외를 초기화합니다.
 
         Args:
-            transport_type: Type of transport (stdio, sse, websocket)
-            endpoint: Connection endpoint
-            message: Detailed error message
-            client_id: Client identifier if available
-            context: Additional context
-            original_error: Original exception
+            transport_type: 전송 유형 (stdio, sse, websocket)
+            endpoint: 연결 엔드포인트
+            message: 상세 오류 메시지
+            client_id: 사용 가능한 경우 클라이언트 식별자
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.transport_type = transport_type
         self.client_id = client_id

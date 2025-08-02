@@ -1,18 +1,17 @@
 """
-Connection-related infrastructure exceptions.
+연결 관련 인프라 예외.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from .base import InfrastructureException
 
 
 class ConnectionException(InfrastructureException):
     """
-    Base exception for connection-related errors.
+    연결 관련 오류의 기본 예외.
 
-    This exception covers failures in establishing or maintaining
-    connections to external systems.
+    이 예외는 외부 시스템과의 연결 설정 또는 유지 실패를 다룹니다.
     """
 
     def __init__(
@@ -20,25 +19,25 @@ class ConnectionException(InfrastructureException):
         service: str,
         endpoint: str,
         message: str,
-        error_code: str | None = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize connection exception.
+        연결 예외를 초기화합니다.
 
         Args:
-            service: Name of the service (e.g., "SQLite", "Ollama")
-            endpoint: Connection endpoint (URL, file path, etc.)
-            message: Detailed error message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            service: 서비스 이름 (예: "SQLite", "Ollama")
+            endpoint: 연결 엔드포인트 (URL, 파일 경로 등)
+            message: 상세 오류 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.service = service
         self.endpoint = endpoint
 
-        full_message = f"{service} connection failed ({endpoint}): {message}"
+        full_message = f"{service} 연결 실패 ({endpoint}): {message}"
         super().__init__(
             message=full_message,
             error_code=error_code or "CONNECTION_FAILED",
@@ -49,29 +48,29 @@ class ConnectionException(InfrastructureException):
 
 class DatabaseConnectionException(ConnectionException):
     """
-    Database connection failures.
+    데이터베이스 연결 실패.
 
-    Used for any database connection issues including
-    file access, permissions, corruption, etc.
+    파일 접근, 권한, 손상 등을 포함한 모든 데이터베이스 연결 문제에
+    사용됩니다.
     """
 
     def __init__(
         self,
         db_path: str,
         message: str,
-        error_code: str | None = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize database connection exception.
+        데이터베이스 연결 예외를 초기화합니다.
 
         Args:
-            db_path: Database file path or connection string
-            message: Detailed error message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            db_path: 데이터베이스 파일 경로 또는 연결 문자열
+            message: 상세 오류 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         super().__init__(
             service="Database",
@@ -86,31 +85,31 @@ class DatabaseConnectionException(ConnectionException):
 
 class HTTPConnectionException(ConnectionException):
     """
-    HTTP connection failures.
+    HTTP 연결 실패.
 
-    Used for network-related issues when connecting to
-    HTTP APIs and services.
+    HTTP API 및 서비스에 연결할 때 발생하는 네트워크 관련 문제에
+    사용됩니다.
     """
 
     def __init__(
         self,
         url: str,
         message: str,
-        status_code: int | None = None,
-        error_code: str | None = None,
+        status_code: Optional[int] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize HTTP connection exception.
+        HTTP 연결 예외를 초기화합니다.
 
         Args:
-            url: Target URL
-            message: Detailed error message
-            status_code: HTTP status code if available
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            url: 대상 URL
+            message: 상세 오류 메시지
+            status_code: 사용 가능한 경우 HTTP 상태 코드
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.status_code = status_code
 

@@ -1,34 +1,33 @@
 """
-Base infrastructure exception classes.
+기본 인프라 예외 클래스.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 
 class InfrastructureException(Exception):
     """
-    Base exception for all infrastructure-related errors.
+    모든 인프라 관련 오류를 위한 기본 예외.
 
-    This exception represents technical failures in external systems,
-    databases, APIs, and other infrastructure components. It serves
-    as the root of the infrastructure exception hierarchy.
+    이 예외는 외부 시스템, 데이터베이스, API 및 기타 인프라 컴포넌트의
+    기술적 실패를 나타냅니다. 이는 인프라 예외 계층의 루트 역할을 합니다.
     """
 
     def __init__(
         self,
         message: str,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize infrastructure exception.
+        인프라 예외를 초기화합니다.
 
-        Args:
-            message: Human-readable error message
-            error_code: Optional error code for categorization
-            context: Additional context information
-            original_error: Original exception that caused this error
+        인자:
+            message: 사람이 읽을 수 있는 오류 메시지
+            error_code: 분류를 위한 선택적 오류 코드
+            context: 추가 컨텍스트 정보
+            original_error: 이 오류를 발생시킨 원본 예외
         """
         super().__init__(message)
         self.message = message
@@ -37,15 +36,15 @@ class InfrastructureException(Exception):
         self.original_error = original_error
 
     def __str__(self) -> str:
-        """Return string representation of the exception."""
+        """예외의 문자열 표현을 반환합니다."""
         if self.error_code:
             return f"[{self.error_code}] {self.message}"
         return self.message
 
     def add_context(self, key: str, value: Any) -> None:
-        """Add context information to the exception."""
+        """예외에 컨텍스트 정보를 추가합니다."""
         self.context[key] = value
 
     def get_context(self) -> dict[str, Any]:
-        """Get all context information."""
+        """모든 컨텍스트 정보를 가져옵니다."""
         return self.context.copy()

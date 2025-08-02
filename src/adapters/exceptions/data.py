@@ -1,47 +1,47 @@
 """
-Data-related infrastructure exceptions.
+데이터 관련 인프라 예외.
 """
 
 import re
-from typing import Any
+from typing import Any, Optional
 
 from .base import InfrastructureException
 
 
 class DataException(InfrastructureException):
     """
-    Base exception for data-related errors.
+    데이터 관련 오류의 기본 예외.
 
-    This exception covers issues with data processing, validation,
-    parsing, and integrity in infrastructure components.
+    이 예외는 인프라 구성 요소의 데이터 처리, 유효성 검사,
+    파싱 및 무결성 문제를 다룹니다.
     """
 
     def __init__(
         self,
         operation: str,
         message: str,
-        data_type: str | None = None,
-        error_code: str | None = None,
+        data_type: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize data exception.
+        데이터 예외를 초기화합니다.
 
         Args:
-            operation: Operation being performed when error occurred
-            message: Detailed error message
-            data_type: Type of data being processed (optional)
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            operation: 오류 발생 시 수행 중이던 작업
+            message: 상세 오류 메시지
+            data_type: 처리 중인 데이터 유형 (선택 사항)
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.operation = operation
         self.data_type = data_type
 
-        full_message = f"Data error in {operation}: {message}"
+        full_message = f"{operation}에서 데이터 오류 발생: {message}"
         if data_type:
-            full_message = f"Data error in {operation} ({data_type}): {message}"
+            full_message = f"{operation} ({data_type})에서 데이터 오류 발생: {message}"
 
         super().__init__(
             message=full_message,
@@ -53,40 +53,40 @@ class DataException(InfrastructureException):
 
 class DataIntegrityException(DataException):
     """
-    Data integrity violations.
+    데이터 무결성 위반.
 
-    Used for constraint violations, foreign key errors,
-    unique constraint violations, etc.
+    제약 조건 위반, 외래 키 오류,
+    고유 제약 조건 위반 등에 사용됩니다.
     """
 
     def __init__(
         self,
         constraint: str,
-        table: str | None = None,
-        message: str | None = None,
-        error_code: str | None = None,
+        table: Optional[str] = None,
+        message: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize data integrity exception.
+        데이터 무결성 예외를 초기화합니다.
 
         Args:
-            constraint: Name or type of constraint violated
-            table: Table name where violation occurred (optional)
-            message: Optional custom message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            constraint: 위반된 제약 조건의 이름 또는 유형
+            table: 위반이 발생한 테이블 이름 (선택 사항)
+            message: 선택적 사용자 지정 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.constraint = constraint
         self.table = table
 
         if message is None:
             if table:
-                message = f"Integrity constraint '{constraint}' violated on table '{table}'"
+                message = f"테이블 '{table}'에서 무결성 제약 조건 '{constraint}' 위반"
             else:
-                message = f"Integrity constraint '{constraint}' violated"
+                message = f"무결성 제약 조건 '{constraint}' 위반"
 
         super().__init__(
             operation="data integrity check",
@@ -100,40 +100,40 @@ class DataIntegrityException(DataException):
 
 class DataValidationException(DataException):
     """
-    Data validation failures.
+    데이터 유효성 검사 실패.
 
-    Used for schema validation, format validation,
-    and business rule validation at the data level.
+    스키마 유효성 검사, 형식 유효성 검사 및
+    데이터 수준의 비즈니스 규칙 유효성 검사에 사용됩니다.
     """
 
     def __init__(
         self,
         field: str,
-        value: str | int | float | bool | None,
+        value: str | int | float | Optional[bool],
         expected_format: str,
-        message: str | None = None,
-        error_code: str | None = None,
+        message: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize data validation exception.
+        데이터 유효성 검사 예외를 초기화합니다.
 
         Args:
-            field: Field name that failed validation
-            value: Invalid value
-            expected_format: Expected format or constraint
-            message: Optional custom message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            field: 유효성 검사에 실패한 필드 이름
+            value: 잘못된 값
+            expected_format: 예상 형식 또는 제약 조건
+            message: 선택적 사용자 지정 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.field = field
         self.value = value
         self.expected_format = expected_format
 
         if message is None:
-            message = f"Field '{field}' validation failed: expected {expected_format}, got {type(value).__name__}"
+            message = f"필드 '{field}' 유효성 검사 실패: 예상 형식 {expected_format}, 실제 형식 {type(value).__name__}"
 
         super().__init__(
             operation="data validation",
@@ -147,31 +147,31 @@ class DataValidationException(DataException):
 
 class DataParsingException(DataException):
     """
-    Data parsing failures.
+    데이터 파싱 실패.
 
-    Used for JSON parsing, XML parsing, CSV parsing,
-    and other structured data format issues.
+    JSON 파싱, XML 파싱, CSV 파싱 및
+    기타 구조화된 데이터 형식 문제에 사용됩니다.
     """
 
     def __init__(
         self,
         data_format: str,
         message: str,
-        raw_data: str | None = None,
-        error_code: str | None = None,
+        raw_data: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize data parsing exception.
+        데이터 파싱 예외를 초기화합니다.
 
         Args:
-            data_format: Format being parsed (JSON, XML, CSV, etc.)
-            message: Detailed error message
-            raw_data: Raw data that failed to parse (truncated if long)
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            data_format: 파싱 중인 형식 (JSON, XML, CSV 등)
+            message: 상세 오류 메시지
+            raw_data: 파싱에 실패한 원시 데이터 (길면 잘림)
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.data_format = data_format
         self.raw_data = raw_data

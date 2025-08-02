@@ -1,44 +1,44 @@
 """
-Timeout-related infrastructure exceptions.
+타임아웃 관련 인프라 예외.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from .base import InfrastructureException
 
 
 class TimeoutException(InfrastructureException):
     """
-    Base exception for timeout-related errors.
+    타임아웃 관련 오류의 기본 예외.
 
-    This exception covers timeouts in operations with external systems.
+    이 예외는 외부 시스템과의 작업에서 발생하는 타임아웃을 다룹니다.
     """
 
     def __init__(
         self,
         operation: str,
         timeout_duration: float,
-        message: str | None = None,
-        error_code: str | None = None,
+        message: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize timeout exception.
+        타임아웃 예외를 초기화합니다.
 
         Args:
-            operation: Description of the operation that timed out
-            timeout_duration: Timeout duration in seconds
-            message: Optional custom message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            operation: 타임아웃된 작업에 대한 설명
+            timeout_duration: 타임아웃 기간(초)
+            message: 선택적 사용자 지정 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.operation = operation
         self.timeout_duration = timeout_duration
 
         if message is None:
-            message = f"Operation '{operation}' timed out after {timeout_duration}s"
+            message = f"'{operation}' 작업이 {timeout_duration}초 후 타임아웃되었습니다"
 
         super().__init__(
             message=message,
@@ -50,40 +50,40 @@ class TimeoutException(InfrastructureException):
 
 class DatabaseTimeoutException(TimeoutException):
     """
-    Database operation timeouts.
+    데이터베이스 작업 타임아웃.
 
-    Used for database queries, transactions, or connection
-    operations that exceed time limits.
+    시간 제한을 초과하는 데이터베이스 쿼리, 트랜잭션 또는 연결 작업에
+    사용됩니다.
     """
 
     def __init__(
         self,
         operation: str,
         timeout_duration: float,
-        query: str | None = None,
-        error_code: str | None = None,
+        query: Optional[str] = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize database timeout exception.
+        데이터베이스 타임아웃 예외를 초기화합니다.
 
         Args:
-            operation: Database operation description
-            timeout_duration: Timeout duration in seconds
-            query: SQL query that timed out (optional)
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            operation: 데이터베이스 작업 설명
+            timeout_duration: 타임아웃 기간(초)
+            query: 타임아웃된 SQL 쿼리 (선택 사항)
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.query = query
 
-        message = f"Database {operation} timed out after {timeout_duration}s"
+        message = f"데이터베이스 {operation}이(가) {timeout_duration}초 후 타임아웃되었습니다"
         if query:
-            message += f" (Query: {query[:100]}...)"
+            message += f" (쿼리: {query[:100]}...)"
 
         super().__init__(
-            operation=f"Database {operation}",
+            operation=f"데이터베이스 {operation}",
             timeout_duration=timeout_duration,
             message=message,
             error_code=error_code or "DB_TIMEOUT",
@@ -94,9 +94,9 @@ class DatabaseTimeoutException(TimeoutException):
 
 class HTTPTimeoutException(TimeoutException):
     """
-    HTTP request timeouts.
+    HTTP 요청 타임아웃.
 
-    Used for HTTP API calls that exceed time limits.
+    시간 제한을 초과하는 HTTP API 호출에 사용됩니다.
     """
 
     def __init__(
@@ -104,25 +104,25 @@ class HTTPTimeoutException(TimeoutException):
         url: str,
         method: str,
         timeout_duration: float,
-        error_code: str | None = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize HTTP timeout exception.
+        HTTP 타임아웃 예외를 초기화합니다.
 
         Args:
-            url: Target URL
-            method: HTTP method (GET, POST, etc.)
-            timeout_duration: Timeout duration in seconds
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            url: 대상 URL
+            method: HTTP 메서드 (GET, POST 등)
+            timeout_duration: 타임아웃 기간(초)
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 예외
         """
         self.url = url
         self.method = method
 
-        message = f"HTTP {method} request to {url} timed out after {timeout_duration}s"
+        message = f"{url}에 대한 HTTP {method} 요청이 {timeout_duration}초 후 타임아웃되었습니다"
 
         super().__init__(
             operation=f"HTTP {method}",

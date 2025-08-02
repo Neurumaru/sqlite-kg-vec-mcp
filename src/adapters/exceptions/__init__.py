@@ -1,10 +1,10 @@
 """
-Infrastructure exceptions for adapter layer.
+어댑터 계층을 위한 인프라 예외.
 
-This module provides common infrastructure exception base classes that can be
-inherited by technology-specific exceptions in each adapter folder.
-These exceptions follow hexagonal architecture principles by keeping
-infrastructure concerns separate from domain logic.
+이 모듈은 각 어댑터 폴더의 기술별 예외가 상속할 수 있는
+공통 인프라 예외 기본 클래스를 제공합니다.
+이러한 예외는 인프라 관련 문제를 도메인 로직과 분리하여
+헥사고날 아키텍처 원칙을 따릅니다.
 """
 
 from .authentication import (

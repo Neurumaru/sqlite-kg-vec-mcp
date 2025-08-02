@@ -1,11 +1,11 @@
 """
-Ollama-specific infrastructure exceptions.
+Ollama 관련 인프라 예외.
 
-These exceptions handle Ollama LLM service errors and provide
-meaningful abstractions for common API failure scenarios.
+이 예외들은 Ollama LLM 서비스 오류를 처리하고
+일반적인 API 실패 시나리오에 대한 의미 있는 추상화를 제공합니다.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -17,33 +17,32 @@ from ...adapters.exceptions.timeout import HTTPTimeoutException
 
 class OllamaConnectionException(HTTPConnectionException):
     """
-    Ollama service connection failures.
+    Ollama 서비스 연결 실패.
 
-    Handles network issues, service unavailability,
-    and connection setup problems.
+    네트워크 문제, 서비스 비가용성, 연결 설정 문제를 처리합니다.
     """
 
     def __init__(
         self,
         base_url: str,
         message: str,
-        status_code: int | None = None,
+        status_code: Optional[int] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize Ollama connection exception.
+        Ollama 연결 예외를 초기화합니다.
 
         Args:
-            base_url: Ollama server base URL
-            message: Detailed error message
-            status_code: HTTP status code if available
-            context: Additional context
-            original_error: Original exception
+            base_url: Ollama 서버 기본 URL
+            message: 상세 오류 메시지
+            status_code: 사용 가능한 경우 HTTP 상태 코드
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         super().__init__(
             url=base_url,
-            message=f"Ollama service: {message}",
+            message=f"Ollama 서비스: {message}",
             status_code=status_code,
             error_code="OLLAMA_CONNECTION_FAILED",
             context=context,
@@ -56,20 +55,20 @@ class OllamaConnectionException(HTTPConnectionException):
         cls, base_url: str, requests_error: requests.RequestException
     ) -> "OllamaConnectionException":
         """
-        Create exception from requests error.
+        requests 오류로부터 예외를 생성합니다.
 
         Args:
-            base_url: Ollama server base URL
-            requests_error: Original requests exception
+            base_url: Ollama 서버 기본 URL
+            requests_error: 원래 requests 예외
 
         Returns:
-            OllamaConnectionException instance
+            OllamaConnectionException 인스턴스
         """
         if isinstance(requests_error, requests.ConnectionError):
-            message = "Cannot connect to Ollama server"
+            message = "Ollama 서버에 연결할 수 없습니다."
         elif isinstance(requests_error, requests.HTTPError):
             status_code = getattr(requests_error.response, "status_code", None)
-            message = f"HTTP error {status_code}"
+            message = f"HTTP 오류 {status_code}"
             return cls(
                 base_url=base_url,
                 message=message,
@@ -84,10 +83,9 @@ class OllamaConnectionException(HTTPConnectionException):
 
 class OllamaTimeoutException(HTTPTimeoutException):
     """
-    Ollama request timeouts.
+    Ollama 요청 시간 초과.
 
-    Handles timeouts during model operations, generation,
-    and API calls.
+    모델 작업, 생성, API 호출 중 시간 초과를 처리합니다.
     """
 
     def __init__(
@@ -96,17 +94,17 @@ class OllamaTimeoutException(HTTPTimeoutException):
         operation: str,
         timeout_duration: float,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize Ollama timeout exception.
+        Ollama 시간 초과 예외를 초기화합니다.
 
         Args:
-            base_url: Ollama server base URL
-            operation: Operation that timed out
-            timeout_duration: Timeout duration in seconds
-            context: Additional context
-            original_error: Original exception
+            base_url: Ollama 서버 기본 URL
+            operation: 시간 초과된 작업
+            timeout_duration: 초 단위 시간 초과 기간
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         super().__init__(
             url=base_url,
@@ -122,10 +120,9 @@ class OllamaTimeoutException(HTTPTimeoutException):
 
 class OllamaModelException(InfrastructureException):
     """
-    Ollama model-related errors.
+    Ollama 모델 관련 오류.
 
-    Handles model not found, model loading failures,
-    and model configuration issues.
+    모델을 찾을 수 없거나, 모델 로딩 실패, 모델 설정 문제를 처리합니다.
     """
 
     def __init__(
@@ -133,25 +130,25 @@ class OllamaModelException(InfrastructureException):
         model_name: str,
         operation: str,
         message: str,
-        error_code: str | None = None,
+        error_code: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize Ollama model exception.
+        Ollama 모델 예외를 초기화합니다.
 
         Args:
-            model_name: Name of the model
-            operation: Operation being performed
-            message: Detailed error message
-            error_code: Optional error code
-            context: Additional context
-            original_error: Original exception
+            model_name: 모델 이름
+            operation: 수행 중인 작업
+            message: 상세 오류 메시지
+            error_code: 선택적 오류 코드
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.model_name = model_name
         self.operation = operation
 
-        full_message = f"Ollama model '{model_name}' error during {operation}: {message}"
+        full_message = f"Ollama 모델 '{model_name}' 작업({operation}) 중 오류: {message}"
 
         super().__init__(
             message=full_message,
@@ -163,33 +160,32 @@ class OllamaModelException(InfrastructureException):
 
 class OllamaModelNotFoundException(OllamaModelException):
     """
-    Ollama model not found.
+    Ollama 모델을 찾을 수 없음.
 
-    Raised when a requested model is not available
-    on the Ollama server.
+    요청된 모델이 Ollama 서버에서 사용 가능하지 않을 때 발생합니다.
     """
 
     def __init__(
         self,
         model_name: str,
-        available_models: list | None = None,
+        available_models: Optional[list] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize model not found exception.
+        모델을 찾을 수 없음 예외를 초기화합니다.
 
         Args:
-            model_name: Name of the missing model
-            available_models: List of available models
-            context: Additional context
-            original_error: Original exception
+            model_name: 누락된 모델의 이름
+            available_models: 사용 가능한 모델 목록
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.available_models = available_models or []
 
-        message = f"Model '{model_name}' not found"
+        message = f"모델 '{model_name}'을(를) 찾을 수 없습니다."
         if self.available_models:
-            message += f". Available models: {', '.join(self.available_models)}"
+            message += f". 사용 가능한 모델: {', '.join(self.available_models)}"
 
         super().__init__(
             model_name=model_name,
@@ -203,10 +199,9 @@ class OllamaModelNotFoundException(OllamaModelException):
 
 class OllamaGenerationException(InfrastructureException):
     """
-    Ollama text generation errors.
+    Ollama 텍스트 생성 오류.
 
-    Handles failures during text generation, prompt processing,
-    and response parsing.
+    텍스트 생성, 프롬프트 처리, 응답 파싱 중 실패를 처리합니다.
     """
 
     def __init__(
@@ -216,24 +211,24 @@ class OllamaGenerationException(InfrastructureException):
         message: str,
         generation_params: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize generation exception.
+        생성 예외를 초기화합니다.
 
         Args:
-            model_name: Model used for generation
-            prompt: Input prompt (truncated for logging)
-            message: Detailed error message
-            generation_params: Generation parameters used
-            context: Additional context
-            original_error: Original exception
+            model_name: 생성에 사용된 모델
+            prompt: 입력 프롬프트 (로깅을 위해 잘림)
+            message: 상세 오류 메시지
+            generation_params: 사용된 생성 매개변수
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.model_name = model_name
         self.prompt = prompt[:200] + "..." if len(prompt) > 200 else prompt
         self.generation_params = generation_params or {}
 
-        full_message = f"Ollama generation failed with model '{model_name}': {message}"
+        full_message = f"Ollama 생성 실패(모델: '{model_name}'): {message}"
 
         super().__init__(
             message=full_message,
@@ -245,31 +240,30 @@ class OllamaGenerationException(InfrastructureException):
 
 class OllamaResponseException(DataParsingException):
     """
-    Ollama response parsing errors.
+    Ollama 응답 파싱 오류.
 
-    Handles issues with parsing JSON responses,
-    malformed responses, and unexpected response formats.
+    JSON 응답 파싱, 잘못된 형식의 응답, 예상치 못한 응답 형식 문제를 처리합니다.
     """
 
     def __init__(
         self,
         response_text: str,
         expected_format: str = "JSON",
-        parsing_error: str | None = None,
+        parsing_error: Optional[str] = None,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize response parsing exception.
+        응답 파싱 예외를 초기화합니다.
 
         Args:
-            response_text: Raw response text (truncated)
-            expected_format: Expected response format
-            parsing_error: Specific parsing error message
-            context: Additional context
-            original_error: Original parsing exception
+            response_text: 원본 응답 텍스트 (잘림)
+            expected_format: 예상 응답 형식
+            parsing_error: 특정 파싱 오류 메시지
+            context: 추가 컨텍스트
+            original_error: 원래 파싱 예외
         """
-        message = f"Failed to parse Ollama response as {expected_format}"
+        message = f"Ollama 응답을 {expected_format}(으)로 파싱하지 못했습니다."
         if parsing_error:
             message += f": {parsing_error}"
 
@@ -285,10 +279,9 @@ class OllamaResponseException(DataParsingException):
 
 class OllamaConfigurationException(InfrastructureException):
     """
-    Ollama configuration errors.
+    Ollama 설정 오류.
 
-    Handles invalid server URLs, missing configuration,
-    and service setup issues.
+    잘못된 서버 URL, 누락된 설정, 서비스 설정 문제를 처리합니다.
     """
 
     def __init__(
@@ -297,23 +290,23 @@ class OllamaConfigurationException(InfrastructureException):
         invalid_value: Any,
         message: str,
         context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        original_error: Optional[Exception] = None,
     ):
         """
-        Initialize configuration exception.
+        설정 예외를 초기화합니다.
 
         Args:
-            config_parameter: Configuration parameter with issue
-            invalid_value: Invalid configuration value
-            message: Detailed error message
-            context: Additional context
-            original_error: Original exception
+            config_parameter: 문제가 있는 설정 매개변수
+            invalid_value: 잘못된 설정 값
+            message: 상세 오류 메시지
+            context: 추가 컨텍스트
+            original_error: 원래 발생한 예외
         """
         self.config_parameter = config_parameter
         self.invalid_value = invalid_value
 
         full_message = (
-            f"Ollama configuration error for '{config_parameter}' = '{invalid_value}': {message}"
+            f"'{config_parameter}' = '{invalid_value}'에 대한 Ollama 설정 오류: {message}"
         )
 
         super().__init__(
