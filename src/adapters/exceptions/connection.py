@@ -2,7 +2,7 @@
 연결 관련 인프라 예외.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from .base import InfrastructureException
 

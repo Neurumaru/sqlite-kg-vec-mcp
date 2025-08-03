@@ -2,7 +2,7 @@
 관찰 가능성을 외부 서비스와 연결하기 위한 통합 모듈.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from langfuse import Langfuse
 from opentelemetry import metrics, trace
@@ -31,7 +31,11 @@ class ObservabilityIntegration:
     - 커스텀 모니터링 솔루션
     """
 
-    def __init__(self, config: dict[str, Any]] = None, timeout_config: Optional[TimeoutConfig] = None):
+    def __init__(
+        self,
+        config: Optional[dict[str, Any]] = None,
+        timeout_config: Optional[TimeoutConfig] = None,
+    ):
         """
         관찰 가능성 통합을 초기화합니다.
 
@@ -127,12 +131,17 @@ class ObservabilityIntegration:
                         insecure=otel_config.get("insecure", True),
                         timeout=int(self.timeout_config.observability_export_timeout),
                     ),
-                    export_interval_millis=int(self.timeout_config.metrics_collection_interval * 1000),
+                    export_interval_millis=int(
+                        self.timeout_config.metrics_collection_interval * 1000
+                    ),
                 )
             else:
                 # 개발을 위한 콘솔 메트릭스 익스포터
                 metric_reader = PeriodicExportingMetricReader(
-                    ConsoleMetricExporter(), export_interval_millis=int(self.timeout_config.metrics_collection_interval * 1000)
+                    ConsoleMetricExporter(),
+                    export_interval_millis=int(
+                        self.timeout_config.metrics_collection_interval * 1000
+                    ),
                 )
 
             meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
@@ -173,7 +182,7 @@ class ObservabilityIntegration:
                 error_message=str(exception),
             )
 
-    def get_external_service(self) -> Any]:
+    def get_external_service(self) -> Any:
         """
         외부 관찰 가능성 서비스 인스턴스를 가져옵니다.
 
@@ -182,7 +191,7 @@ class ObservabilityIntegration:
         """
         return self._external_service
 
-    def create_trace(self, name: str, **metadata) -> str]:
+    def create_trace(self, name: str, **metadata) -> str:
         """
         외부 서비스에 트레이스를 생성합니다.
 
@@ -273,7 +282,7 @@ class ObservabilityIntegration:
                 error_message=str(exception),
             )
 
-    def record_metric(self, name: str, value: float, tags: dict[str, str]] = None) -> None:
+    def record_metric(self, name: str, value: float, tags: Optional[dict[str, str]] = None) -> None:
         """
         외부 서비스에 메트릭을 기록합니다.
 
@@ -356,9 +365,13 @@ class ObservabilityIntegration:
             elif isinstance(self._external_service, dict):
                 # OpenTelemetry 프로바이더 플러시
                 if "tracer_provider" in self._external_service:
-                    self._external_service["tracer_provider"].force_flush(int(self.timeout_config.observability_flush_timeout))
+                    self._external_service["tracer_provider"].force_flush(
+                        int(self.timeout_config.observability_flush_timeout)
+                    )
                 if "meter_provider" in self._external_service:
-                    self._external_service["meter_provider"].force_flush(int(self.timeout_config.observability_flush_timeout))
+                    self._external_service["meter_provider"].force_flush(
+                        int(self.timeout_config.observability_flush_timeout)
+                    )
                 self.logger.debug("opentelemetry_data_flushed")
         except Exception as exception:
             self.logger.error(
@@ -375,7 +388,7 @@ class ObservabilityManager:
     이것은 테스트 용이성과 격리를 개선하기 위해 이전 싱글톤 패턴을 대체합니다.
     """
 
-    def __init__(self, config: dict[str, Any]] = None):
+    def __init__(self, config: Optional[dict[str, Any]] = None):
         """
         구성으로 관찰 가능성 관리자를 초기화합니다.
 
@@ -394,7 +407,7 @@ class ObservabilityManager:
         return self._integration
 
     def create_new_integration(
-        self, config: dict[str, Any]] = None
+        self, config: Optional[dict[str, Any]] = None
     ) -> ObservabilityIntegration:
         """
         새로운 관찰 가능성 통합 인스턴스를 생성합니다.
@@ -409,7 +422,7 @@ class ObservabilityManager:
 
 
 # ObservabilityManager 인스턴스 생성을 위한 팩토리 함수
-def create_observability_manager(config: dict[str, Any]] = None) -> ObservabilityManager:
+def create_observability_manager(config: Optional[dict[str, Any]] = None) -> ObservabilityManager:
     """
     새로운 ObservabilityManager 인스턴스를 생성합니다.
 
@@ -424,7 +437,7 @@ def create_observability_manager(config: dict[str, Any]] = None) -> Observabilit
 
 # 이전 버전 호환성 함수 (deprecated)
 def initialize_observability(
-    config: dict[str, Any]] = None,
+    config: Optional[dict[str, Any]] = None,
 ) -> ObservabilityIntegration:
     """전역 관찰 가능성 통합을 초기화합니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
@@ -432,7 +445,7 @@ def initialize_observability(
     return ObservabilityIntegration(config)
 
 
-def get_observability_integration() -> ObservabilityIntegration]:
+def get_observability_integration() -> ObservabilityIntegration:
     """전역 관찰 가능성 통합 인스턴스를 가져옵니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
     # 대신 의존성 주입 패턴을 사용하세요

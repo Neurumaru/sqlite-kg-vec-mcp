@@ -5,7 +5,7 @@
 벡터 데이터베이스 오류를 처리합니다.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.data import DataValidationException
@@ -165,7 +165,7 @@ class VectorSearchException(VectorException):
         self,
         query_vector_dimension: int,
         index_dimension: Optional[int] = None,
-        search_params: dict[str, Any]] = None,
+        search_params: Optional[dict[str, Any]] = None,
         message: Optional[str] = None,
         context: Optional[dict[str, Any]] = None,
         original_error: Optional[Exception] = None,
@@ -307,7 +307,7 @@ class VectorNormalizationException(VectorException):
         vector_shape: tuple,
         normalization_type: str,
         message: str,
-        vector_stats: dict[str, float]] = None,
+        vector_stats: Optional[dict[str, float]] = None,
         context: Optional[dict[str, Any]] = None,
         original_error: Optional[Exception] = None,
     ):
