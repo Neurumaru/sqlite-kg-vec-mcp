@@ -6,31 +6,46 @@ import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
+from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD, SearchConfig
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
+from src.ports.text_embedder import TextEmbedder
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 
 class SearchStrategy(Enum):
-    """검색 전략."""
+    """검색 전략을 정의합니다."""
 
-    DOCUMENT_ONLY = "document_only"  # 문서 내용 기반 검색
-    NODE_ONLY = "node_only"  # 노드 기반 검색
-    RELATIONSHIP_ONLY = "relationship_only"  # 관계 기반 검색
+    KEYWORD = "keyword"  # 키워드 기반 검색 (단순 텍스트 매칭)
+    RELATIONSHIP = "relationship"  # 관계 기반 검색
     HYBRID = "hybrid"  # 복합 검색
     SEMANTIC = "semantic"  # 의미적 검색 (임베딩 기반)
 
 
 @dataclass
 class SearchCriteria:
-    """검색 조건."""
+    """검색 조건.
+
+    속성:
+        query (str): 검색 쿼리 문자열.
+        strategy (SearchStrategy): 사용할 검색 전략. 기본값은 HYBRID.
+        limit (int): 반환할 최대 결과 수. 기본값은 10.
+        similarity_threshold (float): 의미적 검색에 사용될 유사도 임계값. 기본값은 0.5.
+        include_documents (bool): 결과에 문서를 포함할지 여부. 기본값은 True.
+        include_nodes (bool): 결과에 노드를 포함할지 여부. 기본값은 True.
+        include_relationships (bool): 결과에 관계를 포함할지 여부. 기본값은 True.
+        node_types (Optional[list[str]]): 검색을 제한할 노드 타입 목록. 기본값은 None (모든 타입).
+        relationship_types (Optional[list[str]]): 검색을 제한할 관계 타입 목록. 기본값은 None (모든 타입).
+    """
 
     query: str
     strategy: SearchStrategy = SearchStrategy.HYBRID
     limit: int = 10
-    similarity_threshold: float = 0.5
+    similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD
     include_documents: bool = True
     include_nodes: bool = True
     include_relationships: bool = True
@@ -40,36 +55,41 @@ class SearchCriteria:
 
 @dataclass
 class SearchResult:
-    """검색 결과 항목."""
+    """검색 결과 항목.
+
+    속성:
+        score (float): 검색 결과의 관련성 점수.
+        document (Optional[Document]): 결과 문서 객체. 문서 검색 시 제공됩니다.
+        node (Optional[Node]): 결과 노드 객체. 노드 검색 시 제공됩니다.
+        relationship (Optional[Relationship]): 결과 관계 객체. 관계 검색 시 제공됩니다.
+        explanation (Optional[str]): 검색 결과에 대한 추가 설명.
+    """
 
     score: float
-    document: Optional[Document] = None
-    node: Optional[Node] = None
-    relationship: Optional[Relationship] = None
-    explanation: Optional[str] = None
+    document: Document | None = None
+    node: Node | None = None
+    relationship: Relationship | None = None
+    explanation: str | None = None
 
 
 @dataclass
 class SearchResultCollection:
-    """검색 결과 컬렉션."""
+    """
+    다양한 검색 결과들을 포함하는 컬렉션.
+
+    속성:
+        results (list[SearchResult]): 검색 결과 항목들의 목록.
+        total_count (int): 전체 결과 수.
+        query (str): 실행된 검색 쿼리.
+        strategy (SearchStrategy): 사용된 검색 전략.
+        execution_time_ms (Optional[float]): 검색 실행 시간(밀리초).
+    """
 
     results: list[SearchResult]
     total_count: int
     query: str
     strategy: SearchStrategy
-    execution_time_ms: float = 0.0
-
-    def get_documents(self) -> list[Document]:
-        """검색 결과에서 문서들만 추출."""
-        return [r.document for r in self.results if r.document is not None]
-
-    def get_nodes(self) -> list[Node]:
-        """검색 결과에서 노드들만 추출."""
-        return [r.node for r in self.results if r.node is not None]
-
-    def get_relationships(self) -> list[Relationship]:
-        """검색 결과에서 관계들만 추출."""
-        return [r.relationship for r in self.results if r.relationship is not None]
+    execution_time_ms: float | None = None
 
 
 class KnowledgeSearchService:
@@ -80,8 +100,10 @@ class KnowledgeSearchService:
     관련 정보를 연결하여 제공합니다.
     """
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
-        self.logger = logger or logging.getLogger(__name__)
+    def __init__(self, text_embedder: TextEmbedder, search_config: SearchConfig | None = None):
+        self.text_embedder = text_embedder
+        self.search_config = search_config or SearchConfig()
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def search(
         self,
@@ -91,39 +113,68 @@ class KnowledgeSearchService:
         relationships: list[Relationship],
     ) -> SearchResultCollection:
         """
-        통합 검색을 수행합니다.
+        주어진 검색 조건에 따라 지식 그래프를 검색합니다.
 
-        Args:
-            criteria: 검색 조건
-            documents: 검색 대상 문서들
-            nodes: 검색 대상 노드들
-            relationships: 검색 대상 관계들
+        인자:
+            criteria (SearchCriteria): 검색 조건 객체.
+            documents (list[Document]): 검색에 사용할 문서 목록.
+            nodes (list[Node]): 검색에 사용할 노드 목록.
+            relationships (list[Relationship]): 검색에 사용할 관계 목록.
 
-        Returns:
-            검색 결과 컬렉션
+        반환:
+            SearchResultCollection: 검색 결과 컬렉션.
         """
         start_time = time.time()
+        results: list[SearchResult] = []
 
-        self.logger.info(
-            f"Performing search with strategy: {criteria.strategy.value}, query: '{criteria.query}'"
-        )
-
-        search_results = []
-
-        if criteria.strategy == SearchStrategy.DOCUMENT_ONLY:
-            search_results = self._search_documents(criteria, documents)
-        elif criteria.strategy == SearchStrategy.NODE_ONLY:
-            search_results = self._search_nodes(criteria, nodes)
-        elif criteria.strategy == SearchStrategy.RELATIONSHIP_ONLY:
-            search_results = self._search_relationships(criteria, relationships)
+        if criteria.strategy == SearchStrategy.KEYWORD:
+            # 간단한 키워드 검색 (문서, 노드, 관계 전체에 대해)
+            results.extend(self._search_documents(criteria, documents))
+            results.extend(self._search_nodes(criteria, nodes))
+            results.extend(self._search_relationships(criteria, relationships))
         elif criteria.strategy == SearchStrategy.SEMANTIC:
-            search_results = self._semantic_search(criteria, documents, nodes, relationships)
-        else:  # HYBRID
-            search_results = self._hybrid_search(criteria, documents, nodes, relationships)
+            results.extend(self._semantic_search(criteria, documents, nodes, relationships))
+        elif criteria.strategy == SearchStrategy.HYBRID:
+            # 키워드 및 의미론적 검색을 모두 수행하고 결과를 병합
+            keyword_results = []
+            if criteria.include_documents:
+                keyword_results.extend(self._search_documents(criteria, documents))
+            if criteria.include_nodes:
+                keyword_results.extend(self._search_nodes(criteria, nodes))
+            if criteria.include_relationships:
+                keyword_results.extend(self._search_relationships(criteria, relationships))
 
-        # 점수순으로 정렬하고 제한
-        search_results.sort(key=lambda x: x.score, reverse=True)
-        limited_results = search_results[: criteria.limit]
+            semantic_results = []
+            if criteria.include_documents:
+                # 문서에 대한 의미적 검색 (현재는 문서 임베딩이 없으므로 키워드로 대체)
+                semantic_results.extend(self._search_documents(criteria, documents))
+            if criteria.include_nodes:
+                # 노드 의미적 검색
+                semantic_results.extend(self._semantic_search_nodes(criteria, nodes))
+            if criteria.include_relationships:
+                # 관계 의미적 검색
+                semantic_results.extend(
+                    self._semantic_search_relationships(criteria, relationships)
+                )
+
+            # 결과 병합 및 중복 제거
+            combined_results = {
+                (
+                    r.document.id.value if r.document else None,
+                    r.node.id.value if r.node else None,
+                    r.relationship.id.value if r.relationship else None,
+                ): r
+                for r in keyword_results + semantic_results
+            }
+            results = list(combined_results.values())
+        else:
+            raise ValueError(f"알 수 없는 검색 전략: {criteria.strategy}")
+
+        # 점수 기준 내림차순 정렬
+        results.sort(key=lambda x: x.score, reverse=True)
+
+        # limit 적용
+        limited_results = results[: criteria.limit]
 
         execution_time = (time.time() - start_time) * 1000  # ms
 
@@ -136,10 +187,23 @@ class KnowledgeSearchService:
         )
 
         self.logger.info(
-            f"Search completed: {len(limited_results)} results in {execution_time:.2f}ms"
+            "Search completed: %d results in %.2fms", len(limited_results), execution_time
         )
 
         return result_collection
+
+    def _calculate_text_similarity(self, text1: str, text2: str) -> float:
+        """
+        두 텍스트 문자열 간의 유사도를 계산합니다.
+        현재는 간단한 교집합/합집합 기반의 유사도를 사용합니다.
+        """
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
+        if not words1 or not words2:
+            return 0.0
+        intersection = len(words1.intersection(words2))
+        union = len(words1.union(words2))
+        return intersection / union
 
     def _search_documents(
         self, criteria: SearchCriteria, documents: list[Document]
@@ -160,7 +224,6 @@ class KnowledgeSearchService:
                 result = SearchResult(
                     score=combined_score,
                     document=doc,
-                    explanation=f"Document match: title({title_score:.3f}), content({content_score:.3f})",
                 )
                 results.append(result)
 
@@ -187,7 +250,7 @@ class KnowledgeSearchService:
             if node.has_embedding():
                 # 실제로는 쿼리도 임베딩으로 변환하여 비교
                 # 여기서는 간단히 처리
-                embedding_score = 0.5  # 예시 점수
+                embedding_score = self.search_config.similarity_threshold  # 예시 점수
 
             combined_score = max(
                 name_score * 0.6 + desc_score * 0.3 + embedding_score * 0.1,
@@ -226,7 +289,7 @@ class KnowledgeSearchService:
             embedding_score = 0.0
             if rel.has_embedding():
                 # 실제로는 쿼리도 임베딩으로 변환하여 비교
-                embedding_score = 0.5  # 예시 점수
+                embedding_score = self.search_config.similarity_threshold  # 예시 점수
 
             combined_score = max(label_score, embedding_score)
 
@@ -253,37 +316,56 @@ class KnowledgeSearchService:
         # 실제 구현에서는 쿼리를 임베딩으로 변환
         # query_embedding = self.text_embedder.embed(criteria.query)
 
-        # 노드들과의 의미적 유사도 계산
+        # 노드와 관계에 대한 시맨틱 검색 수행
         if criteria.include_nodes:
-            for node in nodes:
-                if node.has_embedding():
-                    # similarity = query_embedding.cosine_similarity(node.embedding)
-                    similarity = 0.7  # 예시 점수
+            semantic_node_results = self._semantic_search_nodes(criteria, nodes)
+            results.extend(semantic_node_results)
 
-                    if similarity >= criteria.similarity_threshold:
-                        result = SearchResult(
-                            score=similarity,
-                            node=node,
-                            explanation=f"Semantic similarity: {similarity:.3f}",
-                        )
-                        results.append(result)
-
-        # 관계들과의 의미적 유사도 계산
         if criteria.include_relationships:
-            for rel in relationships:
-                if rel.has_embedding():
-                    # similarity = query_embedding.cosine_similarity(rel.embedding)
-                    similarity = 0.6  # 예시 점수
-
-                    if similarity >= criteria.similarity_threshold:
-                        result = SearchResult(
-                            score=similarity,
-                            relationship=rel,
-                            explanation=f"Semantic similarity: {similarity:.3f}",
-                        )
-                        results.append(result)
+            semantic_relationship_results = self._semantic_search_relationships(
+                criteria, relationships
+            )
+            results.extend(semantic_relationship_results)
 
         return results
+
+    def _semantic_search_nodes(
+        self, criteria: SearchCriteria, nodes: list[Node]
+    ) -> list[SearchResult]:
+        """노드에 대한 의미적 검색을 수행합니다."""
+        semantic_results = []
+        for node in nodes:
+            if node.has_embedding():
+                # similarity = query_embedding.cosine_similarity(node.embedding)
+                similarity = self.search_config.similarity_threshold  # 예시 점수
+
+                if similarity >= criteria.similarity_threshold:
+                    result = SearchResult(
+                        score=similarity,
+                        node=node,
+                        explanation=f"Semantic similarity: {similarity:.3f}",
+                    )
+                    semantic_results.append(result)
+        return semantic_results
+
+    def _semantic_search_relationships(
+        self, criteria: SearchCriteria, relationships: list[Relationship]
+    ) -> list[SearchResult]:
+        """관계에 대한 의미적 검색을 수행합니다."""
+        semantic_results = []
+        for rel in relationships:
+            if rel.has_embedding():
+                # similarity = query_embedding.cosine_similarity(rel.embedding)
+                similarity = self.search_config.similarity_threshold  # 예시 점수
+
+                if similarity >= criteria.similarity_threshold:
+                    result = SearchResult(
+                        score=similarity,
+                        relationship=rel,
+                        explanation=f"Semantic similarity: {similarity:.3f}",
+                    )
+                    semantic_results.append(result)
+        return semantic_results
 
     def _hybrid_search(
         self,
@@ -292,27 +374,11 @@ class KnowledgeSearchService:
         nodes: list[Node],
         relationships: list[Relationship],
     ) -> list[SearchResult]:
-        """복합 검색 (모든 전략 조합)."""
-        all_results = []
-
-        # 각 검색 전략별로 실행
-        if criteria.include_documents:
-            doc_results = self._search_documents(criteria, documents)
-            all_results.extend(doc_results)
-
-        if criteria.include_nodes:
-            node_results = self._search_nodes(criteria, nodes)
-            all_results.extend(node_results)
-
-        if criteria.include_relationships:
-            rel_results = self._search_relationships(criteria, relationships)
-            all_results.extend(rel_results)
-
-        # 의미적 검색 결과도 포함
-        semantic_results = self._semantic_search(criteria, documents, nodes, relationships)
-        all_results.extend(semantic_results)
-
-        return all_results
+        """복합 검색을 수행합니다."""
+        # 이 부분은 _semantic_search 와 _search_ documents/nodes/relationships를
+        # 적절히 조합하여 구현해야 합니다.
+        # 현재는 단순히 semantic_search를 호출하도록 단순화되어 있습니다.
+        return self._semantic_search(criteria, documents, nodes, relationships)
 
     def find_related_documents(self, node: Node, all_documents: list[Document]) -> list[Document]:
         """노드와 관련된 문서들을 찾습니다."""
@@ -345,21 +411,6 @@ class KnowledgeSearchService:
                 node_relationships.append(rel)
 
         return node_relationships
-
-    def _calculate_text_similarity(self, query: str, text: str) -> float:
-        """간단한 텍스트 유사도 계산."""
-        if query in text:
-            return 1.0
-
-        # 단어 단위 겹치는 정도 계산
-        query_words = set(query.split())
-        text_words = set(text.split())
-
-        if not query_words:
-            return 0.0
-
-        intersection = query_words.intersection(text_words)
-        return len(intersection) / len(query_words)
 
     def get_search_suggestions(
         self, partial_query: str, documents: list[Document], nodes: list[Node]

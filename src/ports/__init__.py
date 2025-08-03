@@ -14,7 +14,10 @@ from .repositories.relationship import RelationshipRepository
 
 # 서비스 포트
 from .text_embedder import TextEmbedder
+from .vector_reader import VectorReader
+from .vector_retriever import VectorRetriever
 from .vector_store import VectorStore
+from .vector_writer import VectorWriter
 
 __all__ = [
     # Repository 포트
@@ -26,4 +29,7 @@ __all__ = [
     "KnowledgeExtractor",
     "TextEmbedder",
     "VectorStore",
+    "VectorReader",
+    "VectorWriter",
+    "VectorRetriever",
 ]
