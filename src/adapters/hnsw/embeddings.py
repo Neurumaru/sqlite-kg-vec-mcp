@@ -6,8 +6,11 @@ import json
 import sqlite3
 import warnings
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
+
+from src.config.embedding_config import EmbeddingConfig
 
 # from .search import create_embedder  # 순환 임포트 방지를 위해 동적 임포트 사용
 
@@ -73,14 +76,16 @@ class EmbeddingManager:
     엔티티, 관계, 하이퍼엣지에 대한 벡터 임베딩을 관리합니다.
     """
 
-    def __init__(self, connection: sqlite3.Connection):
+    def __init__(self, connection: sqlite3.Connection, config: EmbeddingConfig = None):
         """
         임베딩 관리자를 초기화합니다.
 
         Args:
             connection: SQLite 데이터베이스 연결
+            config: 임베딩 설정 (없으면 기본값 사용)
         """
         self.connection = connection
+        self.config = config or EmbeddingConfig()
         # self.unit_of_work = UnitOfWork(connection)  # TODO: UnitOfWork 구현
 
     def store_embedding(
@@ -170,7 +175,7 @@ class EmbeddingManager:
         self.connection.commit()
         return cursor.rowcount > 0
 
-    def get_embedding(self, entity_type: str, entity_id: int) -> Embedding | None:
+    def get_embedding(self, entity_type: str, entity_id: int) -> Embedding:
         """
         특정 엔티티에 대한 임베딩을 가져옵니다.
 
@@ -234,7 +239,7 @@ class EmbeddingManager:
     def get_all_embeddings(
         self,
         entity_type: str,
-        model_info: str | None = None,
+        model_info: Optional[str] = None,
         batch_size: int = 1000,
         offset: int = 0,
     ) -> list[Embedding]:
@@ -454,7 +459,7 @@ class EmbeddingManager:
         return processed_count
 
     def _generate_embedding_for_entity(
-        self, entity_type: str, entity_id: int, model_info: str | None = None
+        self, entity_type: str, entity_id: int, model_info: Optional[str] = None
     ) -> np.ndarray:
         """
         엔티티의 텍스트 콘텐츠를 추출하여 임베딩을 생성합니다.

@@ -15,6 +15,7 @@ from typing import Any, cast
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
 from src.adapters.sqlite3.graph.relationships import RelationshipManager
+from src.config.embedding_config import EmbeddingConfig
 from src.config.search_config import SearchConfig
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship, RelationshipType
@@ -37,7 +38,7 @@ class ExtractionResult:
 
     entities_created: int = 0
     relationships_created: int = 0
-    errors: list[str] | None = None
+    errors: list[str]] = None
     processing_time: float = 0.0
 
     def __post_init__(self):
@@ -53,7 +54,8 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         connection: sqlite3.Connection,
         ollama_client: OllamaClient,
         auto_embed: bool = True,
-        search_config: SearchConfig | None = None,
+        search_config: Optional[SearchConfig] = None,
+        embedding_config: Optional[EmbeddingConfig] = None,
     ):
         """
         지식 추출기를 초기화합니다.
@@ -63,11 +65,13 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
             ollama_client: LLM 작업을 위한 Ollama 클라이언트
             auto_embed: 임베딩을 자동으로 생성할지 여부
             search_config: 검색 설정 (없으면 기본값 사용)
+            embedding_config: 임베딩 및 배치 설정 (없으면 기본값 사용)
         """
         self.connection = connection
         self.ollama_client = ollama_client
         self.auto_embed = auto_embed
         self.search_config = search_config or SearchConfig()
+        self.embedding_config = embedding_config or EmbeddingConfig()
 
         # 관리자 초기화
         self.entity_manager = EntityManager(connection)
@@ -80,7 +84,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def extract_from_text(
         self,
         text: str,
-        source_id: str | None = None,
+        source_id: Optional[str] = None,
         enhance_descriptions: bool = True,
     ) -> ExtractionResult:
         """
@@ -154,7 +158,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def _process_entities(
         self,
         entities: list[dict[str, Any]],
-        source_id: str | None,
+        source_id: str],
         enhance_descriptions: bool,
         errors: list[str],
     ) -> int:
@@ -263,18 +267,21 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         return created_count
 
     def extract_from_documents(
-        self, documents: list[dict[str, str]], batch_size: int = 10
+        self, documents: list[dict[str, str]], batch_size: Optional[int] = None
     ) -> list[ExtractionResult]:
         """
         여러 문서를 배치로 처리하여 지식을 추출합니다.
 
         Args:
             documents: 'text' 및 선택적 'id' 필드가 있는 문서 목록
-            batch_size: 각 배치에서 처리할 문서 수
+            batch_size: 각 배치에서 처리할 문서 수 (None이면 설정값 사용)
 
         Returns:
             각 문서에 대한 ExtractionResult 목록
         """
+        if batch_size is None:
+            batch_size = self.embedding_config.knowledge_extraction_batch_size
+            
         results = []
 
         for i in range(0, len(documents), batch_size):
