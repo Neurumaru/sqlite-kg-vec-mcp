@@ -6,6 +6,7 @@ import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD, SearchConfig
 from src.domain.entities.document import Document
@@ -49,8 +50,8 @@ class SearchCriteria:
     include_documents: bool = True
     include_nodes: bool = True
     include_relationships: bool = True
-    node_types: list[str] | None = None
-    relationship_types: list[str] | None = None
+    node_types: Optional[list[str]] = None
+    relationship_types: Optional[list[str]] = None
 
 
 @dataclass
@@ -66,10 +67,10 @@ class SearchResult:
     """
 
     score: float
-    document: Document | None = None
-    node: Node | None = None
-    relationship: Relationship | None = None
-    explanation: str | None = None
+    document: Optional[Document] = None
+    node: Optional[Node] = None
+    relationship: Optional[Relationship] = None
+    explanation: Optional[str] = None
 
 
 @dataclass
@@ -89,7 +90,7 @@ class SearchResultCollection:
     total_count: int
     query: str
     strategy: SearchStrategy
-    execution_time_ms: float | None = None
+    execution_time_ms: Optional[float] = None
 
 
 class KnowledgeSearchService:
@@ -100,7 +101,7 @@ class KnowledgeSearchService:
     관련 정보를 연결하여 제공합니다.
     """
 
-    def __init__(self, text_embedder: TextEmbedder, search_config: SearchConfig | None = None):
+    def __init__(self, text_embedder: TextEmbedder, search_config: Optional[SearchConfig] = None):
         self.text_embedder = text_embedder
         self.search_config = search_config or SearchConfig()
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -217,8 +218,11 @@ class KnowledgeSearchService:
             title_score = self._calculate_text_similarity(query_lower, doc.title.lower())
             content_score = self._calculate_text_similarity(query_lower, doc.content.lower())
 
-            # 제목에 더 높은 가중치
-            combined_score = title_score * 0.7 + content_score * 0.3
+            # 제목과 내용에 설정된 가중치 적용
+            combined_score = (
+                title_score * self.search_config.document_title_weight
+                + content_score * self.search_config.document_content_weight
+            )
 
             if combined_score >= criteria.similarity_threshold:
                 result = SearchResult(
@@ -252,10 +256,13 @@ class KnowledgeSearchService:
                 # 여기서는 간단히 처리
                 embedding_score = self.search_config.similarity_threshold  # 예시 점수
 
-            combined_score = max(
-                name_score * 0.6 + desc_score * 0.3 + embedding_score * 0.1,
-                embedding_score,
+            # 가중치 기반 점수와 순수 임베딩 점수 중 최대값 사용
+            weighted_score = (
+                name_score * self.search_config.node_name_weight
+                + desc_score * self.search_config.node_description_weight
+                + embedding_score * self.search_config.node_embedding_weight
             )
+            combined_score = max(weighted_score, embedding_score)
 
             if combined_score >= criteria.similarity_threshold:
                 result = SearchResult(

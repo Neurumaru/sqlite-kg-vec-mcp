@@ -3,6 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.domain.entities.node import Node, NodeType
 from src.domain.value_objects.document_id import DocumentId
@@ -18,22 +19,22 @@ class NodeManagementUseCase(ABC):
         self,
         name: str,
         node_type: NodeType,
-        description: str | None = None,
-        properties: dict | None = None,
-        source_documents: list[DocumentId] | None = None,
+        description: Optional[str] = None,
+        properties: Optional[dict] = None,
+        source_documents: Optional[list[DocumentId]] = None,
     ) -> Node:
         """새 노드를 생성합니다."""
 
     @abstractmethod
-    async def get_node(self, node_id: NodeId) -> Node | None:
+    async def get_node(self, node_id: NodeId) -> Optional[Node]:
         """노드를 조회합니다."""
 
     @abstractmethod
     async def list_nodes(
         self,
-        node_type: NodeType | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
+        node_type: Optional[NodeType] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> list[Node]:
         """노드 목록을 조회합니다."""
 
@@ -41,9 +42,9 @@ class NodeManagementUseCase(ABC):
     async def update_node(
         self,
         node_id: NodeId,
-        name: str | None = None,
-        description: str | None = None,
-        properties: dict | None = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        properties: Optional[dict] = None,
     ) -> Node:
         """노드를 업데이트합니다."""
 
@@ -72,12 +73,12 @@ class NodeEmbeddingUseCase(ABC):
         """노드의 임베딩을 업데이트합니다."""
 
     @abstractmethod
-    async def get_node_embedding(self, node_id: NodeId) -> Vector | None:
+    async def get_node_embedding(self, node_id: NodeId) -> Optional[Vector]:
         """노드의 임베딩을 조회합니다."""
 
     @abstractmethod
     async def find_similar_nodes(
-        self, node_id: NodeId, limit: int = 10, threshold: float = 0.7
+        self, node_id: NodeId, limit: int = 10, threshold: Optional[float] = None
     ) -> list[tuple[Node, float]]:
         """유사한 노드들을 찾습니다."""
 
@@ -98,7 +99,7 @@ class NodeEmbeddingUseCase(ABC):
 
     @abstractmethod
     async def batch_create_nodes(
-        self, node_data: list[tuple[str, NodeType, str | None, dict | None]]
+        self, node_data: list[tuple[str, NodeType, Optional[str], Optional[dict]]]
     ) -> list[Node]:
         """
         여러 노드를 일괄 생성합니다.

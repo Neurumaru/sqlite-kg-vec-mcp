@@ -4,6 +4,7 @@ SQLite 벡터 저장소의 검색 작업 구현체.
 
 from typing import Any
 
+from src.config.search_config import SearchConfig
 from src.domain.value_objects.document_metadata import DocumentMetadata
 from src.domain.value_objects.search_result import VectorSearchResult, VectorSearchResultCollection
 from src.domain.value_objects.vector import Vector
@@ -18,6 +19,16 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
 
     고급 벡터 검색 및 리트리벌 작업을 담당합니다.
     """
+
+    def __init__(
+        self,
+        db_path: str,
+        table_name: str = "vectors",
+        optimize: bool = True,
+        search_config: SearchConfig | None = None,
+    ):
+        super().__init__(db_path, table_name, optimize)
+        self.search_config = search_config or SearchConfig()
 
     async def retrieve(
         self,
@@ -40,21 +51,23 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         """
         if search_type == "similarity":
             return await self._similarity_retrieve(query, k, **kwargs)
-        elif search_type == "mmr":
+        if search_type == "mmr":
             return await self.retrieve_mmr(
                 query,
                 k=k,
                 fetch_k=kwargs.get("fetch_k", 20),
-                lambda_mult=kwargs.get("lambda_mult", 0.5),
+                lambda_mult=kwargs.get("lambda_mult", self.search_config.mmr_lambda),
                 **kwargs,
             )
-        elif search_type == "similarity_score_threshold":
+        if search_type == "similarity_score_threshold":
             return await self._similarity_score_threshold_retrieve(
-                query, k=k, score_threshold=kwargs.get("score_threshold", 0.5), **kwargs
+                query,
+                k=k,
+                score_threshold=kwargs.get("score_threshold", self.search_config.score_threshold),
+                **kwargs,
             )
-        else:
-            # 기본값으로 similarity 검색 수행
-            return await self._similarity_retrieve(query, k, **kwargs)
+        # 기본값으로 similarity 검색 수행
+        return await self._similarity_retrieve(query, k, **kwargs)
 
     async def retrieve_with_filter(
         self,
@@ -83,7 +96,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         query: str,
         k: int = 4,
         fetch_k: int = 20,
-        lambda_mult: float = 0.5,
+        lambda_mult: float | None = None,
         **kwargs: Any,
     ) -> VectorSearchResultCollection:
         """
@@ -100,6 +113,10 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
             VectorSearchResultCollection 객체
         """
         try:
+            # lambda_mult 기본값 설정
+            if lambda_mult is None:
+                lambda_mult = self.search_config.mmr_lambda
+
             # 먼저 많은 후보를 가져옴
             initial_results = await self._similarity_retrieve(query, fetch_k, **kwargs)
 
