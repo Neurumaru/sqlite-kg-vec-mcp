@@ -15,6 +15,7 @@ from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExpo
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+from src.domain.config.timeout_config import TimeoutConfig
 
 from .logger import get_observable_logger
 
@@ -30,16 +31,18 @@ class ObservabilityIntegration:
     - 커스텀 모니터링 솔루션
     """
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any]] = None, timeout_config: Optional[TimeoutConfig] = None):
         """
         관찰 가능성 통합을 초기화합니다.
 
         인자:
             config: 외부 서비스 구성
+            timeout_config: 타임아웃 설정 객체
         """
         self.config = config or {}
+        self.timeout_config = timeout_config or TimeoutConfig.from_env()
         self.logger = get_observable_logger("observability_integration", "common")
-        self._external_service: Any | None = None
+        self._external_service: Optional[Any] = None
 
         # 구성된 경우 외부 서비스 초기화
         self._initialize_external_service()
@@ -106,7 +109,7 @@ class ObservabilityIntegration:
                     endpoint=otel_config["endpoint"],
                     headers=otel_config.get("headers", {}),
                     insecure=otel_config.get("insecure", True),
-                    timeout=otel_config.get("timeout", 30),
+                    timeout=int(self.timeout_config.observability_export_timeout),
                 )
                 tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             else:
@@ -122,14 +125,14 @@ class ObservabilityIntegration:
                         endpoint=otel_config["endpoint"].replace("/v1/traces", "/v1/metrics"),
                         headers=otel_config.get("headers", {}),
                         insecure=otel_config.get("insecure", True),
-                        timeout=otel_config.get("timeout", 30),
+                        timeout=int(self.timeout_config.observability_export_timeout),
                     ),
-                    export_interval_millis=30000,  # 30초
+                    export_interval_millis=int(self.timeout_config.metrics_collection_interval * 1000),
                 )
             else:
                 # 개발을 위한 콘솔 메트릭스 익스포터
                 metric_reader = PeriodicExportingMetricReader(
-                    ConsoleMetricExporter(), export_interval_millis=30000
+                    ConsoleMetricExporter(), export_interval_millis=int(self.timeout_config.metrics_collection_interval * 1000)
                 )
 
             meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
@@ -170,7 +173,7 @@ class ObservabilityIntegration:
                 error_message=str(exception),
             )
 
-    def get_external_service(self) -> Any | None:
+    def get_external_service(self) -> Any]:
         """
         외부 관찰 가능성 서비스 인스턴스를 가져옵니다.
 
@@ -179,7 +182,7 @@ class ObservabilityIntegration:
         """
         return self._external_service
 
-    def create_trace(self, name: str, **metadata) -> str | None:
+    def create_trace(self, name: str, **metadata) -> str]:
         """
         외부 서비스에 트레이스를 생성합니다.
 
@@ -270,7 +273,7 @@ class ObservabilityIntegration:
                 error_message=str(exception),
             )
 
-    def record_metric(self, name: str, value: float, tags: dict[str, str] | None = None) -> None:
+    def record_metric(self, name: str, value: float, tags: dict[str, str]] = None) -> None:
         """
         외부 서비스에 메트릭을 기록합니다.
 
@@ -353,9 +356,9 @@ class ObservabilityIntegration:
             elif isinstance(self._external_service, dict):
                 # OpenTelemetry 프로바이더 플러시
                 if "tracer_provider" in self._external_service:
-                    self._external_service["tracer_provider"].force_flush(30)
+                    self._external_service["tracer_provider"].force_flush(int(self.timeout_config.observability_flush_timeout))
                 if "meter_provider" in self._external_service:
-                    self._external_service["meter_provider"].force_flush(30)
+                    self._external_service["meter_provider"].force_flush(int(self.timeout_config.observability_flush_timeout))
                 self.logger.debug("opentelemetry_data_flushed")
         except Exception as exception:
             self.logger.error(
@@ -372,7 +375,7 @@ class ObservabilityManager:
     이것은 테스트 용이성과 격리를 개선하기 위해 이전 싱글톤 패턴을 대체합니다.
     """
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any]] = None):
         """
         구성으로 관찰 가능성 관리자를 초기화합니다.
 
@@ -391,7 +394,7 @@ class ObservabilityManager:
         return self._integration
 
     def create_new_integration(
-        self, config: dict[str, Any] | None = None
+        self, config: dict[str, Any]] = None
     ) -> ObservabilityIntegration:
         """
         새로운 관찰 가능성 통합 인스턴스를 생성합니다.
@@ -406,7 +409,7 @@ class ObservabilityManager:
 
 
 # ObservabilityManager 인스턴스 생성을 위한 팩토리 함수
-def create_observability_manager(config: dict[str, Any] | None = None) -> ObservabilityManager:
+def create_observability_manager(config: dict[str, Any]] = None) -> ObservabilityManager:
     """
     새로운 ObservabilityManager 인스턴스를 생성합니다.
 
@@ -421,7 +424,7 @@ def create_observability_manager(config: dict[str, Any] | None = None) -> Observ
 
 # 이전 버전 호환성 함수 (deprecated)
 def initialize_observability(
-    config: dict[str, Any] | None = None,
+    config: dict[str, Any]] = None,
 ) -> ObservabilityIntegration:
     """전역 관찰 가능성 통합을 초기화합니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
@@ -429,7 +432,7 @@ def initialize_observability(
     return ObservabilityIntegration(config)
 
 
-def get_observability_integration() -> ObservabilityIntegration | None:
+def get_observability_integration() -> ObservabilityIntegration]:
     """전역 관찰 가능성 통합 인스턴스를 가져옵니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
     # 대신 의존성 주입 패턴을 사용하세요

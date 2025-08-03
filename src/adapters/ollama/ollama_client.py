@@ -11,6 +11,7 @@ import requests
 
 from src.common.config.llm import OllamaConfig
 from src.common.observability import get_observable_logger, with_observability
+from src.domain.config.timeout_config import TimeoutConfig
 
 from .exceptions import (
     OllamaConnectionException,
@@ -30,7 +31,7 @@ class LLMResponse:
     model: str
     tokens_used: int
     response_time: float
-    metadata: dict[str, Any] | None = None
+    metadata: Optional[dict[str, Any]] = None
 
 
 class OllamaClient:
@@ -38,27 +39,33 @@ class OllamaClient:
 
     def __init__(
         self,
-        config: OllamaConfig | None = None,
-        base_url: str | None = None,
-        model: str | None = None,
-        timeout: int | None = None,
+        config: Optional[Optional[OllamaConfig] = None,
+        timeout_config: Optional[Optional[TimeoutConfig] = None,
+        base_url: Optional[Optional[str] = None,
+        model: Optional[Optional[str] = None,
+        timeout: Optional[Optional[int] = None,
     ):
         """
         Ollama 클라이언트를 초기화합니다.
 
         Args:
             config: Ollama 설정 객체
+            timeout_config: 타임아웃 설정 객체
             base_url: Ollama 서버 URL (더 이상 사용되지 않음, 대신 config 사용)
             model: 사용할 모델 이름 (더 이상 사용되지 않음, 대신 config 사용)
-            timeout: 초 단위 요청 시간 초과 (더 이상 사용되지 않음, 대신 config 사용)
+            timeout: 초 단위 요청 시간 초과 (더 이상 사용되지 않음, 대신 timeout_config 사용)
         """
         if config is None:
             config = OllamaConfig()
+        
+        if timeout_config is None:
+            timeout_config = TimeoutConfig.from_env()
 
         # 이전 버전과의 호환성을 위해 제공된 경우 개별 매개변수로 설정 재정의
         self.base_url = (base_url or f"http://{config.host}:{config.port}").rstrip("/")
         self.model = model or config.model
-        self.timeout = timeout or int(config.timeout)
+        self.timeout = timeout or int(timeout_config.ollama_standard_timeout)
+        self.timeout_config = timeout_config
         self.temperature = config.temperature
         self.max_tokens = config.max_tokens
         self.session = requests.Session()
@@ -70,7 +77,7 @@ class OllamaClient:
     def _test_connection(self) -> bool:
         """Ollama 서버에 대한 연결을 테스트합니다."""
         try:
-            response = self.session.get(f"{self.base_url}/api/tags", timeout=5)
+            response = self.session.get(f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout)
             response.raise_for_status()
             return True
         except requests.ConnectionError as exception:
@@ -85,7 +92,7 @@ class OllamaClient:
             self.logger.warning(
                 "ollama_connection_timeout",
                 base_url=self.base_url,
-                timeout_duration=5,
+                timeout_duration=self.timeout_config.ollama_quick_timeout,
                 error_message=str(exception),
             )
             return False
@@ -111,9 +118,9 @@ class OllamaClient:
     def generate(
         self,
         prompt: str,
-        system_prompt: str | None = None,
+        system_prompt: Optional[Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: int | None = None,
+        max_tokens: Optional[Optional[int] = None,
         stream: bool = False,
     ) -> LLMResponse:
         """
@@ -344,7 +351,7 @@ class OllamaClient:
     def list_available_models(self) -> list[str]:
         """Ollama에서 사용 가능한 모델 목록을 가져옵니다."""
         try:
-            response = self.session.get(f"{self.base_url}/api/tags", timeout=10)
+            response = self.session.get(f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout)
             response.raise_for_status()
 
             data = response.json()
@@ -369,7 +376,7 @@ class OllamaClient:
             response = self.session.post(
                 f"{self.base_url}/api/pull",
                 json=data,
-                timeout=300,  # 모델 다운로드를 위한 5분
+                timeout=self.timeout_config.ollama_download_timeout,  # 모델 다운로드
             )
             response.raise_for_status()
 

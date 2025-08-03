@@ -6,8 +6,10 @@ import datetime
 import sqlite3
 import warnings
 from pathlib import Path
+from typing import Optional, Union
 
 from src.common.observability import get_observable_logger
+from src.domain.config.timeout_config import TimeoutConfig
 
 from .exceptions import SQLiteConnectionException
 
@@ -18,7 +20,7 @@ def adapt_datetime(dt: datetime.datetime) -> str:
     return dt.isoformat()
 
 
-def convert_datetime(s: str | bytes) -> datetime.datetime | str | bytes:
+def convert_datetime(s: Union[str, bytes]) -> Union[datetime.datetime, str, bytes]:
     """SQLite의 문자열을 다시 datetime으로 변환합니다."""
     try:
         if isinstance(s, bytes):
@@ -39,16 +41,18 @@ class DatabaseConnection:
     최적화된 설정으로 SQLite 데이터베이스 연결을 관리합니다.
     """
 
-    def __init__(self, db_path: str | Path, optimize: bool = True):
+    def __init__(self, db_path: Union[str, Path], optimize: Optional[bool = True, timeout_config: Optional[TimeoutConfig] = None):
         """
         데이터베이스 연결을 초기화합니다.
         Args:
             db_path: SQLite 데이터베이스 파일 경로
             optimize: 최적화 PRAGMA 적용 여부
+            timeout_config: 타임아웃 설정 객체
         """
         self.db_path = Path(db_path)
-        self.connection: sqlite3.Connection | None = None
+        self.connection: Optional[sqlite3.Connection] = None
         self.optimize = optimize
+        self.timeout_config = timeout_config or TimeoutConfig.from_env()
         self.logger = get_observable_logger("database_connection", "adapter")
 
     def connect(self) -> sqlite3.Connection:
@@ -73,7 +77,7 @@ class DatabaseConnection:
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
                 isolation_level=None,  # 트랜잭션을 명시적으로 관리할 것입니다.
                 check_same_thread=False,  # 여러 스레드에서 사용 허용
-                timeout=30.0,
+                timeout=self.timeout_config.database_connection_timeout,
             )
             # 행을 딕셔너리로 반환하도록 설정
             self.connection.row_factory = sqlite3.Row
@@ -109,8 +113,8 @@ class DatabaseConnection:
         cursor = self.connection.cursor()
         # 더 나은 동시성과 성능을 위한 WAL 모드
         cursor.execute("PRAGMA journal_mode=WAL;")
-        # 즉각적인 잠금 오류를 방지하기 위한 busy_timeout 설정 (5초)
-        cursor.execute("PRAGMA busy_timeout=5000;")
+        # 즉각적인 잠금 오류를 방지하기 위한 busy_timeout 설정
+        cursor.execute(f"PRAGMA busy_timeout={self.timeout_config.get_database_busy_timeout_ms()};")
         # 일반 동기화 모드 (내구성과 성능 간의 균형)
         cursor.execute("PRAGMA synchronous=NORMAL;")
         # 외래 키 제약 조건 활성화
