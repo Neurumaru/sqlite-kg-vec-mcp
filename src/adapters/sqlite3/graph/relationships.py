@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from ..transactions import UnitOfWork
 from .entities import Entity
@@ -25,8 +25,8 @@ class Relationship:
     created_at: str
     updated_at: str
     # 이 필드들은 상세 정보를 로드할 때 채워집니다.
-    source: Optional[Entity] = None
-    target: Optional[Entity] = None
+    source: Entity | None = None
+    target: Entity | None = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> Relationship:
@@ -121,7 +121,7 @@ class RelationshipManager:
 
     def get_relationship(
         self, relationship_id: int, include_entities: bool = False
-    ) -> Optional[Relationship]:
+    ) -> Relationship | None:
         """
         ID로 관계를 가져옵니다.
         Args:
@@ -158,7 +158,7 @@ class RelationshipManager:
 
     def update_relationship(
         self, relationship_id: int, properties: dict[str, Any]
-    ) -> Optional[Relationship]:
+    ) -> Relationship | None:
         """
         관계의 속성을 업데이트합니다.
         Args:
@@ -211,9 +211,9 @@ class RelationshipManager:
 
     def find_relationships(
         self,
-        source_id: Optional[int] = None,
-        target_id: Optional[int] = None,
-        relation_type: Optional[str] = None,
+        source_id: int | None = None,
+        target_id: int | None = None,
+        relation_type: str | None = None,
         property_filters: dict[str, Any] | None = None,
         include_entities: bool = False,
         limit: int = 100,

@@ -5,7 +5,7 @@ SQLite 데이터베이스 스키마 정의 및 초기화.
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .connection import DatabaseConnection
 
@@ -356,7 +356,7 @@ class SchemaManager:
                 # 스키마 버전 테이블이 존재하지 않으면 0을 반환
                 return 0
 
-    def migrate_schema(self, target_version: Optional[int] = None) -> bool:
+    def migrate_schema(self, target_version: int | None = None) -> bool:
         """
         스키마를 대상 버전으로 마이그레이션합니다.
         Args:

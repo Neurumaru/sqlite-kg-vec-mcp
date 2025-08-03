@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from src.dto import RelationshipData
 
@@ -32,7 +31,7 @@ class RelationshipRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, relationship_id: str) -> Optional[RelationshipData]:
+    async def find_by_id(self, relationship_id: str) -> RelationshipData | None:
         """
         ID로 관계를 찾습니다.
 

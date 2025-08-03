@@ -18,7 +18,7 @@ class PathNode:
     """그래프 순회 중 경로의 노드를 나타냅니다."""
 
     entity: Entity
-    relationship: Optional[Relationship] = None
+    relationship: Relationship | None = None
     parent: Optional["PathNode"] = None
     depth: int = 0
 

@@ -134,7 +134,7 @@ class KnowledgeGraph:
         try:
             if schema_manager.get_schema_version() == 0:
                 schema_manager.initialize_schema()
-        except sqlite3.OperationalError: # exception 변수명으로 변경
+        except sqlite3.OperationalError:  # exception 변수명으로 변경
             # 스키마가 아직 존재하지 않음
             schema_manager.initialize_schema()
 

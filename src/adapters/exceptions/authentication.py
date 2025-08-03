@@ -2,7 +2,7 @@
 인증 및 권한 부여 관련 인프라 예외.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -20,9 +20,9 @@ class AuthenticationException(InfrastructureException):
         service: str,
         auth_type: str,
         message: str,
-        error_code: Optional[str] = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         인증 예외를 초기화합니다.
@@ -61,10 +61,10 @@ class AuthorizationException(InfrastructureException):
         service: str,
         resource: str,
         required_permission: str,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
+        message: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         권한 부여 예외를 초기화합니다.

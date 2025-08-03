@@ -6,7 +6,7 @@ import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -17,11 +17,11 @@ class TraceContext:
 
     trace_id: str
     span_id: str
-    parent_span_id: Optional[str] = None
-    operation: Optional[str] = None
-    layer: Optional[str] = None
-    component: Optional[str] = None
-    start_time: Optional[datetime] = None
+    parent_span_id: str | None = None
+    operation: str | None = None
+    layer: str | None = None
+    component: str | None = None
+    start_time: datetime | None = None
     metadata: dict[str, Any] | None = None
 
     def __post_init__(self):
@@ -52,10 +52,10 @@ class TraceContext:
 
 
 # 트레이스 전파를 위한 컨텍스트 변수
-_trace_context: ContextVar[Optional[TraceContext]] = ContextVar("trace_context", default=None)
+_trace_context: ContextVar[TraceContext | None] = ContextVar("trace_context", default=None)
 
 
-def get_current_trace_id() -> Optional[str]:
+def get_current_trace_id() -> str | None:
     """
     현재 트레이스 ID를 컨텍스트에서 가져옵니다.
 
@@ -66,7 +66,7 @@ def get_current_trace_id() -> Optional[str]:
     return context.trace_id if context else None
 
 
-def get_current_span_id() -> Optional[str]:
+def get_current_span_id() -> str | None:
     """
     현재 스팬 ID를 컨텍스트에서 가져옵니다.
 
@@ -77,7 +77,7 @@ def get_current_span_id() -> Optional[str]:
     return context.span_id if context else None
 
 
-def get_current_trace_context() -> Optional[TraceContext]:
+def get_current_trace_context() -> TraceContext | None:
     """
     현재 트레이스 컨텍스트를 가져옵니다.
 
@@ -91,7 +91,7 @@ def create_trace_context(
     operation: str,
     layer: str,
     component: str,
-    parent_context: Optional[TraceContext] = None,
+    parent_context: TraceContext | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> TraceContext:
     """
@@ -127,7 +127,7 @@ def create_trace_context(
     )
 
 
-def set_trace_context(context: Optional[TraceContext]) -> None:
+def set_trace_context(context: TraceContext | None) -> None:
     """
     현재 트레이스 컨텍스트를 설정합니다.
 
@@ -150,7 +150,7 @@ class TraceContextManager:
             trace_context: 사용할 트레이스 컨텍스트
         """
         self.trace_context = trace_context
-        self.previous_context: Optional[TraceContext] = None
+        self.previous_context: TraceContext | None = None
 
     def __enter__(self) -> TraceContext:
         """컨텍스트에 진입합니다."""

@@ -4,7 +4,6 @@
 
 import logging
 from dataclasses import dataclass
-from typing import List, Optional
 
 from src.domain.entities.document import Document, DocumentStatus
 
@@ -23,7 +22,7 @@ class DocumentValidationRules:
     allow_processing_while_processing: bool = False
 
     # 메타데이터 관련 규칙
-    required_metadata_keys: Optional[List[str]] = None
+    required_metadata_keys: list[str] | None = None
     max_metadata_size: int = 10_000
 
     def __post_init__(self) -> None:
@@ -46,8 +45,8 @@ class DocumentValidationResult:
     """문서 검증 결과."""
 
     is_valid: bool
-    errors: List[str]
-    warnings: List[str]
+    errors: list[str]
+    warnings: list[str]
 
     @classmethod
     def valid(cls) -> "DocumentValidationResult":
@@ -55,24 +54,22 @@ class DocumentValidationResult:
         return cls(is_valid=True, errors=[], warnings=[])
 
     @classmethod
-    def invalid(cls, errors: List[str], warnings: Optional[List[str]] = None) -> "DocumentValidationResult":
+    def invalid(
+        cls, errors: list[str], warnings: list[str] | None = None
+    ) -> "DocumentValidationResult":
         """무효한 결과 생성."""
         return cls(is_valid=False, errors=errors, warnings=warnings or [])
 
     def add_error(self, error: str) -> "DocumentValidationResult":
         """에러 추가 (새로운 인스턴스 반환)."""
         return DocumentValidationResult(
-            is_valid=False,
-            errors=self.errors + [error],
-            warnings=self.warnings
+            is_valid=False, errors=self.errors + [error], warnings=self.warnings
         )
 
     def add_warning(self, warning: str) -> "DocumentValidationResult":
         """경고 추가 (새로운 인스턴스 반환)."""
         return DocumentValidationResult(
-            is_valid=self.is_valid,
-            errors=self.errors,
-            warnings=self.warnings + [warning]
+            is_valid=self.is_valid, errors=self.errors, warnings=self.warnings + [warning]
         )
 
 
@@ -85,8 +82,8 @@ class DocumentValidationService:
 
     def __init__(
         self,
-        rules: Optional[DocumentValidationRules] = None,
-        logger: Optional[logging.Logger] = None
+        rules: DocumentValidationRules | None = None,
+        logger: logging.Logger | None = None,
     ):
         self.rules = rules or DocumentValidationRules()
         self.logger = logger or logging.getLogger(__name__)

@@ -5,7 +5,7 @@
 벡터 데이터베이스 오류를 처리합니다.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.data import DataValidationException
@@ -23,10 +23,10 @@ class VectorException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        vector_dimension: Optional[int] = None,
-        error_code: Optional[str] = None,
+        vector_dimension: int | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 예외를 초기화합니다.
@@ -67,10 +67,10 @@ class EmbeddingGenerationException(VectorException):
         text: str,
         model_name: str,
         message: str,
-        expected_dimension: Optional[int] = None,
-        actual_dimension: Optional[int] = None,
+        expected_dimension: int | None = None,
+        actual_dimension: int | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         임베딩 생성 예외를 초기화합니다.
@@ -116,9 +116,9 @@ class VectorDimensionException(DataValidationException):
         expected_dimension: int,
         actual_dimension: int,
         operation: str,
-        vector_id: Optional[str] = None,
+        vector_id: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 차원 예외를 초기화합니다.
@@ -164,11 +164,11 @@ class VectorSearchException(VectorException):
     def __init__(
         self,
         query_vector_dimension: int,
-        index_dimension: Optional[int] = None,
+        index_dimension: int | None = None,
         search_params: dict[str, Any] | None = None,
-        message: Optional[str] = None,
+        message: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 검색 예외를 초기화합니다.
@@ -215,10 +215,10 @@ class VectorIndexException(VectorException):
         index_name: str,
         operation: str,
         message: str,
-        vector_count: Optional[int] = None,
-        dimension: Optional[int] = None,
+        vector_count: int | None = None,
+        dimension: int | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 인덱스 예외를 초기화합니다.
@@ -261,10 +261,10 @@ class VectorStorageException(VectorException):
         self,
         storage_type: str,
         operation: str,
-        entity_id: Optional[str] = None,
-        message: Optional[str] = None,
+        entity_id: str | None = None,
+        message: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 저장 예외를 초기화합니다.
@@ -309,7 +309,7 @@ class VectorNormalizationException(VectorException):
         message: str,
         vector_stats: dict[str, float] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         벡터 정규화 예외를 초기화합니다.

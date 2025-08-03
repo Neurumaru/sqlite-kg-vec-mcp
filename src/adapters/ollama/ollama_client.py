@@ -5,7 +5,7 @@ SQLite KG Vec MCP와 LLM 통합을 위한 Ollama 클라이언트.
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import requests
 
@@ -38,10 +38,10 @@ class OllamaClient:
 
     def __init__(
         self,
-        config: Optional[OllamaConfig] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
-        timeout: Optional[int] = None,
+        config: OllamaConfig | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        timeout: int | None = None,
     ):
         """
         Ollama 클라이언트를 초기화합니다.
@@ -111,9 +111,9 @@ class OllamaClient:
     def generate(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_tokens: int | None = None,
         stream: bool = False,
     ) -> LLMResponse:
         """

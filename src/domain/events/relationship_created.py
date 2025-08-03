@@ -3,7 +3,6 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .base import DomainEvent
 
@@ -20,7 +19,7 @@ class RelationshipCreated(DomainEvent):
     relationship_type: str = ""
     relationship_label: str = ""
     confidence: float = 0.0
-    source_document_id: Optional[str] = None
+    source_document_id: str | None = None
 
     def __init__(
         self,
@@ -34,7 +33,7 @@ class RelationshipCreated(DomainEvent):
         relationship_type: str,
         relationship_label: str,
         confidence: float,
-        source_document_id: Optional[str] = None,
+        source_document_id: str | None = None,
         version: int = 1,
         metadata=None,
     ):
@@ -63,7 +62,7 @@ class RelationshipCreated(DomainEvent):
         relationship_type: str,
         relationship_label: str,
         confidence: float,
-        source_document_id: Optional[str] = None,
+        source_document_id: str | None = None,
         **kwargs,
     ) -> "RelationshipCreated":
         """관계 생성 이벤트 생성."""

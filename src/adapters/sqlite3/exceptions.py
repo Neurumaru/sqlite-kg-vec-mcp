@@ -5,7 +5,7 @@ SQLite 관련 인프라 예외.
 """
 
 import sqlite3
-from typing import Any, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import DatabaseConnectionException
@@ -24,9 +24,9 @@ class SQLiteConnectionException(DatabaseConnectionException):
         self,
         db_path: str,
         message: str,
-        sqlite_error_code: Optional[str] = None,
+        sqlite_error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         SQLite 연결 예외를 초기화합니다.
@@ -84,11 +84,11 @@ class SQLiteIntegrityException(DataIntegrityException):
     def __init__(
         self,
         constraint: str,
-        table: Optional[str] = None,
-        column: Optional[str] = None,
-        value: Optional[Any] = None,
+        table: str | None = None,
+        column: str | None = None,
+        value: Any | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         SQLite 무결성 예외를 초기화합니다.
@@ -126,7 +126,7 @@ class SQLiteIntegrityException(DataIntegrityException):
 
     @classmethod
     def from_sqlite_error(
-        cls, sqlite_error: sqlite3.IntegrityError, table: Optional[str] = None
+        cls, sqlite_error: sqlite3.IntegrityError, table: str | None = None
     ) -> "SQLiteIntegrityException":
         """
         SQLite IntegrityError로부터 예외를 생성합니다.
@@ -167,9 +167,9 @@ class SQLiteOperationalException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        db_path: Optional[str] = None,
+        db_path: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         SQLite 운영 예외를 초기화합니다.
@@ -197,7 +197,7 @@ class SQLiteOperationalException(InfrastructureException):
         cls,
         operation: str,
         sqlite_error: sqlite3.OperationalError,
-        db_path: Optional[str] = None,
+        db_path: str | None = None,
     ) -> "SQLiteOperationalException":
         """
         SQLite OperationalError로부터 예외를 생성합니다.
@@ -226,10 +226,10 @@ class SQLiteTimeoutException(DatabaseTimeoutException):
         self,
         operation: str,
         timeout_duration: float,
-        db_path: Optional[str] = None,
-        query: Optional[str] = None,
+        db_path: str | None = None,
+        query: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         SQLite 시간 초과 예외를 초기화합니다.
@@ -264,7 +264,7 @@ class SQLiteTransactionException(InfrastructureException):
         state: str,
         message: str,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         SQLite 트랜잭션 예외를 초기화합니다.

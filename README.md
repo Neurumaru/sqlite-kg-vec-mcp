@@ -11,7 +11,7 @@ A comprehensive knowledge management system that processes documents, extracts k
 - **Document Processing**: Automated extraction of entities and relationships from documents
 - **Knowledge Graph**: Store and manage nodes (entities) and relationships with full provenance
 - **Semantic Search**: Vector-based similarity search using multiple embedding providers
-- **Hexagonal Architecture**: Clean separation of domain logic, ports, and adapters
+- **Hexagonal Architecture**: Clean se2paration of domain logic, ports, and adapters
 - **Multiple Adapters**: Support for SQLite, Ollama, OpenAI, HuggingFace, and more
 - **MCP Integration**: Model Context Protocol server interface for AI assistant integration
 

@@ -2,7 +2,7 @@
 MCP 작업을 위한 관계 관리 핸들러.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import Context
 
@@ -36,8 +36,8 @@ class RelationshipHandler(BaseHandler):
         relation_type: str,
         label: str,
         properties: dict[str, Any] | None = None,
-        weight: Optional[float] = None,
-        ctx: Optional[Context] = None,
+        weight: float | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         노드 간에 새 관계를 생성합니다.
@@ -96,7 +96,7 @@ class RelationshipHandler(BaseHandler):
     async def get_edge(
         self,
         edge_id: int,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 가져옵니다.
@@ -136,10 +136,10 @@ class RelationshipHandler(BaseHandler):
     async def update_edge(
         self,
         edge_id: int,
-        label: Optional[str] = None,
+        label: str | None = None,
         properties: dict[str, Any] | None = None,
-        weight: Optional[float] = None,
-        ctx: Optional[Context] = None,
+        weight: float | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프의 관계를 업데이트합니다.
@@ -182,7 +182,7 @@ class RelationshipHandler(BaseHandler):
     async def delete_edge(
         self,
         edge_id: int,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 삭제합니다.
@@ -217,12 +217,12 @@ class RelationshipHandler(BaseHandler):
 
     async def find_edges(
         self,
-        relation_type: Optional[str] = None,
-        source_node_id: Optional[int] = None,
-        target_node_id: Optional[int] = None,
+        relation_type: str | None = None,
+        source_node_id: int | None = None,
+        target_node_id: int | None = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 찾습니다.

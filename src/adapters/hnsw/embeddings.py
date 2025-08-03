@@ -6,7 +6,6 @@ import json
 import sqlite3
 import warnings
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -171,7 +170,7 @@ class EmbeddingManager:
         self.connection.commit()
         return cursor.rowcount > 0
 
-    def get_embedding(self, entity_type: str, entity_id: int) -> Optional[Embedding]:
+    def get_embedding(self, entity_type: str, entity_id: int) -> Embedding | None:
         """
         특정 엔티티에 대한 임베딩을 가져옵니다.
 
@@ -235,7 +234,7 @@ class EmbeddingManager:
     def get_all_embeddings(
         self,
         entity_type: str,
-        model_info: Optional[str] = None,
+        model_info: str | None = None,
         batch_size: int = 1000,
         offset: int = 0,
     ) -> list[Embedding]:
@@ -455,7 +454,7 @@ class EmbeddingManager:
         return processed_count
 
     def _generate_embedding_for_entity(
-        self, entity_type: str, entity_id: int, model_info: Optional[str] = None
+        self, entity_type: str, entity_id: int, model_info: str | None = None
     ) -> np.ndarray:
         """
         엔티티의 텍스트 콘텐츠를 추출하여 임베딩을 생성합니다.

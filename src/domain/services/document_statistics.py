@@ -36,7 +36,7 @@ class DocumentStatisticsService:
                 "processing": processing,
                 "pending": pending,
                 "failed": failed,
-            }
+            },
         }
 
     def get_document_metrics(self, document: Document) -> dict[str, Any]:

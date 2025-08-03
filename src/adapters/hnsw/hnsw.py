@@ -6,7 +6,7 @@
 import pickle
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import hnswlib
 import numpy as np
@@ -33,7 +33,7 @@ class HNSWIndex:
         dim: int = 128,
         ef_construction: int = 200,
         m_parameter: int = 16,
-        index_dir: str | Optional[Path] = None,
+        index_dir: str | Path | None = None,
         backend: str | HNSWBackend = HNSWBackend.HNSWLIB,
     ):
         """
@@ -97,7 +97,7 @@ class HNSWIndex:
         self.idx_to_id = {}
         self.is_initialized = True
 
-    def load_index(self, filename: Optional[str] = None) -> None:
+    def load_index(self, filename: str | None = None) -> None:
         """
         이전에 저장된 인덱스와 매핑을 로드합니다.
 
@@ -139,7 +139,7 @@ class HNSWIndex:
         else:
             raise FileNotFoundError(f"인덱스 파일을 찾을 수 없습니다: {index_path}")
 
-    def save_index(self, filename: Optional[str] = None) -> None:
+    def save_index(self, filename: str | None = None) -> None:
         """
         인덱스와 ID 매핑을 디스크에 저장합니다.
 
@@ -357,7 +357,7 @@ class HNSWIndex:
         self,
         query_vector: np.ndarray,
         k: int = 10,
-        ef_search: Optional[int] = None,
+        ef_search: int | None = None,
         filter_entity_types: list[str] | None = None,
     ) -> list[tuple[str, int, float]]:
         """
@@ -424,7 +424,7 @@ class HNSWIndex:
         self,
         embedding_manager: "EmbeddingManager",
         entity_types: list[str] | None = None,
-        model_info: Optional[str] = None,
+        model_info: str | None = None,
         batch_size: int = 1000,
     ) -> int:
         """

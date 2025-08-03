@@ -3,7 +3,7 @@ OpenAI 텍스트 임베딩 어댑터.
 """
 
 import time
-from typing import Any, Optional
+from typing import Any
 
 try:
     import openai
@@ -25,10 +25,10 @@ class OpenAITextEmbedder(TextEmbedder):
 
     def __init__(
         self,
-        config: Optional[OpenAIConfig] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        dimension: Optional[int] = None,
+        config: OpenAIConfig | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        dimension: int | None = None,
     ):
         """
         OpenAI 임베딩 어댑터를 초기화합니다.

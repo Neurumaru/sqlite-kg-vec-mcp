@@ -5,7 +5,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class EventData:
     payload: dict[str, Any]  # 이벤트 데이터
     timestamp: datetime  # 이벤트 발생 시각
     correlation_id: str  # 상관관계 식별자
-    user_id: Optional[str] = None  # 사용자 식별자
+    user_id: str | None = None  # 사용자 식별자
     version: int = 1  # 이벤트 스키마 버전
 
     @classmethod
@@ -41,8 +41,8 @@ class EventData:
         entity_type: str,
         payload: dict[str, Any],
         timestamp: datetime,
-        correlation_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        correlation_id: str | None = None,
+        user_id: str | None = None,
         version: int = 1,
     ) -> "EventData":
         """

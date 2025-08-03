@@ -3,7 +3,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from src.domain.entities.document import Document
 from src.domain.services.document_processor import KnowledgeExtractionResult
@@ -15,7 +14,7 @@ class DocumentManagementUseCase(ABC):
 
     @abstractmethod
     async def create_document(
-        self, title: str, content: str, metadata: Optional[dict] = None
+        self, title: str, content: str, metadata: dict | None = None
     ) -> Document:
         """새 문서를 생성합니다.
 
@@ -32,12 +31,12 @@ class DocumentManagementUseCase(ABC):
         """
 
     @abstractmethod
-    async def get_document(self, document_id: DocumentId) -> Optional[Document]:
+    async def get_document(self, document_id: DocumentId) -> Document | None:
         """문서를 조회합니다."""
 
     @abstractmethod
     async def list_documents(
-        self, limit: Optional[int] = None, offset: Optional[int] = None
+        self, limit: int | None = None, offset: int | None = None
     ) -> list[Document]:
         """문서 목록을 조회합니다."""
 
@@ -45,9 +44,9 @@ class DocumentManagementUseCase(ABC):
     async def update_document(
         self,
         document_id: DocumentId,
-        title: Optional[str] = None,
-        content: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        title: str | None = None,
+        content: str | None = None,
+        metadata: dict | None = None,
     ) -> Document:
         """문서를 업데이트합니다."""
 

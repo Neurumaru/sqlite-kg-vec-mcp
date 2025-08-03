@@ -5,7 +5,7 @@ Ollama 관련 인프라 예외.
 일반적인 API 실패 시나리오에 대한 의미 있는 추상화를 제공합니다.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -26,9 +26,9 @@ class OllamaConnectionException(HTTPConnectionException):
         self,
         base_url: str,
         message: str,
-        status_code: Optional[int] = None,
+        status_code: int | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         Ollama 연결 예외를 초기화합니다.
@@ -94,7 +94,7 @@ class OllamaTimeoutException(HTTPTimeoutException):
         operation: str,
         timeout_duration: float,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         Ollama 시간 초과 예외를 초기화합니다.
@@ -130,9 +130,9 @@ class OllamaModelException(InfrastructureException):
         model_name: str,
         operation: str,
         message: str,
-        error_code: Optional[str] = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         Ollama 모델 예외를 초기화합니다.
@@ -168,9 +168,9 @@ class OllamaModelNotFoundException(OllamaModelException):
     def __init__(
         self,
         model_name: str,
-        available_models: Optional[list] = None,
+        available_models: list | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         모델을 찾을 수 없음 예외를 초기화합니다.
@@ -211,7 +211,7 @@ class OllamaGenerationException(InfrastructureException):
         message: str,
         generation_params: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         생성 예외를 초기화합니다.
@@ -249,9 +249,9 @@ class OllamaResponseException(DataParsingException):
         self,
         response_text: str,
         expected_format: str = "JSON",
-        parsing_error: Optional[str] = None,
+        parsing_error: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         응답 파싱 예외를 초기화합니다.
@@ -290,7 +290,7 @@ class OllamaConfigurationException(InfrastructureException):
         invalid_value: Any,
         message: str,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         설정 예외를 초기화합니다.

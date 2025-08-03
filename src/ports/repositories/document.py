@@ -6,7 +6,6 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from src.dto import DocumentData, DocumentStatus
 
@@ -33,7 +32,7 @@ class DocumentRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
+    async def find_by_id(self, document_id: str) -> DocumentData | None:
         """
         ID로 문서를 찾습니다.
 

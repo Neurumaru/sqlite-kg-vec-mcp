@@ -3,7 +3,7 @@
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.domain.entities.document import Document, DocumentStatus
 from src.domain.entities.node import Node
@@ -17,7 +17,6 @@ from src.domain.value_objects.relationship_id import RelationshipId
 from src.ports.knowledge_extractor import KnowledgeExtractor
 from src.ports.mappers import DocumentMapper, NodeMapper, RelationshipMapper
 from src.ports.repositories.document import DocumentRepository
-
 
 
 class DocumentProcessor:
@@ -34,25 +33,30 @@ class DocumentProcessor:
         document_mapper: DocumentMapper,
         node_mapper: NodeMapper,
         relationship_mapper: RelationshipMapper,
-        document_validation_service: Optional[DocumentValidationService] = None,
-        document_persistence_service: Optional[DocumentPersistenceService] = None,
-        document_statistics_service: Optional[DocumentStatisticsService] = None,
-        document_repository: Optional[DocumentRepository] = None,
-        logger: Optional[logging.Logger] = None,
+        document_validation_service: DocumentValidationService | None = None,
+        document_persistence_service: DocumentPersistenceService | None = None,
+        document_statistics_service: DocumentStatisticsService | None = None,
+        document_repository: DocumentRepository | None = None,
+        logger: logging.Logger | None = None,
     ):
         self.knowledge_extractor = knowledge_extractor
         self.document_mapper = document_mapper
         self.node_mapper = node_mapper
         self.relationship_mapper = relationship_mapper
-        self.document_validation_service = document_validation_service or DocumentValidationService()
+        self.document_validation_service = (
+            document_validation_service or DocumentValidationService()
+        )
         # 영속성 서비스 초기화 (repository가 있는 경우만)
+        self.document_persistence_service: DocumentPersistenceService | None
         if document_repository and not document_persistence_service:
             self.document_persistence_service = DocumentPersistenceService(
                 document_repository, document_mapper, logger
             )
         else:
             self.document_persistence_service = document_persistence_service
-        self.document_statistics_service = document_statistics_service or DocumentStatisticsService()
+        self.document_statistics_service = (
+            document_statistics_service or DocumentStatisticsService()
+        )
         self.document_repository = document_repository
         self.logger = logger or logging.getLogger(__name__)
 

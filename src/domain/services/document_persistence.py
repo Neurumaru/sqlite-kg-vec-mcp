@@ -3,7 +3,6 @@
 """
 
 import logging
-from typing import Optional
 
 from src.domain.entities.document import Document
 from src.ports.mappers import DocumentMapper
@@ -16,11 +15,12 @@ class DocumentPersistenceService:
 
     문서의 저장, 업데이트, 상태 관리를 담당합니다.
     """
+
     def __init__(
         self,
         document_repository: DocumentRepository,
         document_mapper: DocumentMapper,
-        logger: Optional[logging.Logger] = None
+        logger: logging.Logger | None = None,
     ):
         self.document_repository = document_repository
         self.document_mapper = document_mapper
@@ -37,10 +37,7 @@ class DocumentPersistenceService:
             self.logger.info("문서 저장됨: %s", document.id)
 
     async def update_document_with_knowledge(
-        self,
-        document: Document,
-        node_ids: list[str],
-        relationship_ids: list[str]
+        self, document: Document, node_ids: list[str], relationship_ids: list[str]
     ) -> None:
         """문서를 지식 요소들과 함께 업데이트합니다."""
         document_data = self.document_mapper.to_data(document)
@@ -49,7 +46,9 @@ class DocumentPersistenceService:
         )
         self.logger.info(
             "문서 %s 지식 요소 업데이트 완료: 노드 %d개, 관계 %d개",
-            document.id, len(node_ids), len(relationship_ids)
+            document.id,
+            len(node_ids),
+            len(relationship_ids),
         )
 
     async def update_document_status(self, document: Document) -> None:

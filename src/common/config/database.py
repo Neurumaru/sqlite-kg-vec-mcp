@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -40,7 +39,7 @@ class DatabaseConfig(BaseSettings):
 
     backup_interval: int = Field(default=3600, description="초 단위 백업 간격")
 
-    backup_path: Optional[str] = Field(default=None, description="데이터베이스 백업 경로")
+    backup_path: str | None = Field(default=None, description="데이터베이스 백업 경로")
 
     @field_validator("db_path")
     @classmethod
@@ -61,7 +60,7 @@ class DatabaseConfig(BaseSettings):
 
     @field_validator("backup_path")
     @classmethod
-    def validate_backup_path(cls, v: Optional[str]) -> Optional[str]:
+    def validate_backup_path(cls, v: str | None) -> str | None:
         """제공된 경우 백업 경로 형식 유효성 검사."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
             raise ValueError("백업 경로는 비어 있지 않은 문자열이어야 합니다")
@@ -75,7 +74,7 @@ class DatabaseConfig(BaseSettings):
         return path.parent
 
     @property
-    def backup_directory(self) -> Optional[Path]:
+    def backup_directory(self) -> Path | None:
         """
         필요한 경우 백업 디렉토리 경로를 가져오고 생성합니다.
         """

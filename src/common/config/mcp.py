@@ -5,7 +5,6 @@ MCP (모델 컨텍스트 프로토콜) 서버 구성 설정.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -31,7 +30,7 @@ class MCPConfig(BaseSettings):
     port: int = Field(default=8000, description="서버 포트 번호")
 
     # 벡터 설정
-    vector_index_dir: Optional[str] = Field(
+    vector_index_dir: str | None = Field(
         default=None, description="벡터 인덱스 파일을 저장할 디렉토리"
     )
 
@@ -54,13 +53,9 @@ class MCPConfig(BaseSettings):
     timeout: float = Field(default=30.0, description="초 단위 요청 타임아웃")
 
     # 검색 설정
-    max_search_results: int = Field(
-        default=50, description="반환할 최대 검색 결과 수"
-    )
+    max_search_results: int = Field(default=50, description="반환할 최대 검색 결과 수")
 
-    search_threshold: float = Field(
-        default=0.7, description="검색 결과의 최소 유사도 임계값"
-    )
+    search_threshold: float = Field(default=0.7, description="검색 결과의 최소 유사도 임계값")
 
     # 로깅
     log_level: str = Field(default="INFO", description="MCP 서버의 로깅 레벨")
@@ -116,14 +111,14 @@ class MCPConfig(BaseSettings):
 
     @field_validator("vector_index_dir")
     @classmethod
-    def validate_vector_index_dir(cls, v: Optional[str]) -> Optional[str]:
+    def validate_vector_index_dir(cls, v: str | None) -> str | None:
         """벡터 인덱스 디렉토리 형식 유효성 검사."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
             raise ValueError("벡터 인덱스 디렉토리는 비어 있지 않은 문자열이어야 합니다")
         return v
 
     @property
-    def vector_index_directory(self) -> Optional[Path]:
+    def vector_index_directory(self) -> Path | None:
         """필요한 경우 벡터 인덱스 디렉토리 경로를 가져오고 생성합니다."""
         if self.vector_index_dir is None:
             return None

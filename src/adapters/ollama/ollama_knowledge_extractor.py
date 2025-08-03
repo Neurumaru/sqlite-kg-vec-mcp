@@ -10,7 +10,7 @@ import logging
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
@@ -76,7 +76,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def extract_from_text(
         self,
         text: str,
-        source_id: Optional[str] = None,
+        source_id: str | None = None,
         enhance_descriptions: bool = True,
     ) -> ExtractionResult:
         """
@@ -150,7 +150,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def _process_entities(
         self,
         entities: list[dict[str, Any]],
-        source_id: Optional[str],
+        source_id: str | None,
         enhance_descriptions: bool,
         errors: list[str],
     ) -> int:

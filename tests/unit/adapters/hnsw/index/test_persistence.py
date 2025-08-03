@@ -11,7 +11,6 @@ from src.adapters.hnsw.hnsw import HNSWIndex
 
 
 class TestHNSWIndexLoadIndex(unittest.TestCase):
-
     """HNSWIndex.load_index 메서드의 단위 테스트."""
 
     def setUp(self):

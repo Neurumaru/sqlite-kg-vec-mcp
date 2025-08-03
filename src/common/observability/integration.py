@@ -2,7 +2,7 @@
 관찰 가능성을 외부 서비스와 연결하기 위한 통합 모듈.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from langfuse import Langfuse
 from opentelemetry import metrics, trace
@@ -39,7 +39,7 @@ class ObservabilityIntegration:
         """
         self.config = config or {}
         self.logger = get_observable_logger("observability_integration", "common")
-        self._external_service: Optional[Any] = None
+        self._external_service: Any | None = None
 
         # 구성된 경우 외부 서비스 초기화
         self._initialize_external_service()
@@ -70,7 +70,7 @@ class ObservabilityIntegration:
 
             self.logger.info("langfuse_initialized", host=langfuse_config.get("host"))
 
-        except ImportError: # exception 변수명으로 변경
+        except ImportError:  # exception 변수명으로 변경
             self.logger.warning(
                 "langfuse_not_available",
                 message="Langfuse 통합을 활성화하려면 langfuse 패키지를 설치하세요",
@@ -170,7 +170,7 @@ class ObservabilityIntegration:
                 error_message=str(exception),
             )
 
-    def get_external_service(self) -> Optional[Any]:
+    def get_external_service(self) -> Any | None:
         """
         외부 관찰 가능성 서비스 인스턴스를 가져옵니다.
 
@@ -179,7 +179,7 @@ class ObservabilityIntegration:
         """
         return self._external_service
 
-    def create_trace(self, name: str, **metadata) -> Optional[str]:
+    def create_trace(self, name: str, **metadata) -> str | None:
         """
         외부 서비스에 트레이스를 생성합니다.
 
@@ -293,7 +293,9 @@ class ObservabilityIntegration:
                     counter.add(value, attributes=tags or {})
                 else:
                     # 다른 메트릭의 경우 히스토그램 사용
-                    histogram = meter.create_histogram(name, description=f"{name}에 대한 히스토그램")
+                    histogram = meter.create_histogram(
+                        name, description=f"{name}에 대한 히스토그램"
+                    )
                     histogram.record(value, attributes=tags or {})
 
                 self.logger.debug(
@@ -427,7 +429,7 @@ def initialize_observability(
     return ObservabilityIntegration(config)
 
 
-def get_observability_integration() -> Optional[ObservabilityIntegration]:
+def get_observability_integration() -> ObservabilityIntegration | None:
     """전역 관찰 가능성 통합 인스턴스를 가져옵니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
     # 대신 의존성 주입 패턴을 사용하세요

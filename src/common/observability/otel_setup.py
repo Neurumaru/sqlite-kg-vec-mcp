@@ -5,7 +5,7 @@ OpenTelemetry 공식 패턴을 따른 초기화 모듈.
 """
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 try:
     from opentelemetry import metrics, trace
@@ -30,7 +30,7 @@ except ImportError:
 def setup_tracing(
     service_name: str = "sqlite-kg-vec-mcp",
     service_version: str = "0.2.0",
-    endpoint: Optional[str] = None,
+    endpoint: str | None = None,
     insecure: bool = True,
     enable_console: bool = True,
 ) -> bool:
@@ -93,7 +93,7 @@ def setup_tracing(
 def setup_metrics(
     service_name: str = "sqlite-kg-vec-mcp",
     service_version: str = "0.2.0",
-    endpoint: Optional[str] = None,
+    endpoint: str | None = None,
     insecure: bool = True,
     enable_console: bool = True,
 ) -> bool:
@@ -205,9 +205,9 @@ def configure_from_env() -> dict[str, Any]:
 
 
 def initialize_opentelemetry(
-    service_name: Optional[str] = None,
-    service_version: Optional[str] = None,
-    endpoint: Optional[str] = None,
+    service_name: str | None = None,
+    service_version: str | None = None,
+    endpoint: str | None = None,
     enable_tracing: bool = True,
     enable_metrics: bool = True,
     enable_auto_instrumentation: bool = True,

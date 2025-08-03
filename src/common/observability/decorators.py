@@ -5,7 +5,7 @@
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from .context import (
     TraceContextManager,
@@ -16,9 +16,9 @@ from .logger import get_observable_logger
 
 
 def with_observability(
-    operation: Optional[str] = None,
-    layer: Optional[str] = None,
-    component: Optional[str] = None,
+    operation: str | None = None,
+    layer: str | None = None,
+    component: str | None = None,
     include_args: bool = False,
     include_result: bool = False,
 ):
@@ -91,7 +91,7 @@ def with_observability(
 
                     return result
 
-                except Exception as exception: # exception 변수명으로 변경
+                except Exception as exception:  # exception 변수명으로 변경
                     # 실패 로깅
                     logger.operation_failed(func_operation, start_time, exception, **log_context)
                     raise
@@ -109,9 +109,9 @@ def with_observability(
 
 
 def with_trace(
-    operation: Optional[str] = None,
-    layer: Optional[str] = None,
-    component: Optional[str] = None,
+    operation: str | None = None,
+    layer: str | None = None,
+    component: str | None = None,
     metadata: dict[str, Any] | None = None,
 ):
     """
@@ -148,7 +148,7 @@ def with_trace(
     return decorator
 
 
-def with_metrics(metric_name: Optional[str] = None, tags: dict[str, str] | None = None):
+def with_metrics(metric_name: str | None = None, tags: dict[str, str] | None = None):
     """
     자동 메트릭 수집을 추가하는 데코레이터.
 

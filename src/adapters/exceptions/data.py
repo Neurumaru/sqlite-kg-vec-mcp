@@ -3,7 +3,7 @@
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -20,10 +20,10 @@ class DataException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        data_type: Optional[str] = None,
-        error_code: Optional[str] = None,
+        data_type: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         데이터 예외를 초기화합니다.
@@ -62,11 +62,11 @@ class DataIntegrityException(DataException):
     def __init__(
         self,
         constraint: str,
-        table: Optional[str] = None,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
+        table: str | None = None,
+        message: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         데이터 무결성 예외를 초기화합니다.
@@ -109,12 +109,12 @@ class DataValidationException(DataException):
     def __init__(
         self,
         field: str,
-        value: str | int | float | Optional[bool],
+        value: str | int | float | bool | None,
         expected_format: str,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
+        message: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         데이터 유효성 검사 예외를 초기화합니다.
@@ -157,10 +157,10 @@ class DataParsingException(DataException):
         self,
         data_format: str,
         message: str,
-        raw_data: Optional[str] = None,
-        error_code: Optional[str] = None,
+        raw_data: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         데이터 파싱 예외를 초기화합니다.

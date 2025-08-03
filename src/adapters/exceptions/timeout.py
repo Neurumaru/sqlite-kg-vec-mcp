@@ -2,7 +2,7 @@
 타임아웃 관련 인프라 예외.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from .base import InfrastructureException
 
@@ -18,10 +18,10 @@ class TimeoutException(InfrastructureException):
         self,
         operation: str,
         timeout_duration: float,
-        message: Optional[str] = None,
-        error_code: Optional[str] = None,
+        message: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         타임아웃 예외를 초기화합니다.
@@ -60,10 +60,10 @@ class DatabaseTimeoutException(TimeoutException):
         self,
         operation: str,
         timeout_duration: float,
-        query: Optional[str] = None,
-        error_code: Optional[str] = None,
+        query: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         데이터베이스 타임아웃 예외를 초기화합니다.
@@ -104,9 +104,9 @@ class HTTPTimeoutException(TimeoutException):
         url: str,
         method: str,
         timeout_duration: float,
-        error_code: Optional[str] = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         HTTP 타임아웃 예외를 초기화합니다.

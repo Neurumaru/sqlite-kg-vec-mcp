@@ -2,7 +2,7 @@
 MCP 작업을 위한 노드 관리 핸들러.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import Context
 
@@ -31,10 +31,10 @@ class NodeHandler(BaseHandler):
     async def create_node(
         self,
         node_type: str,
-        name: Optional[str] = None,
+        name: str | None = None,
         properties: dict[str, Any] | None = None,
-        node_uuid: Optional[str] = None,
-        ctx: Optional[Context] = None,
+        node_uuid: str | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에 새 노드를 생성합니다.
@@ -80,9 +80,9 @@ class NodeHandler(BaseHandler):
 
     async def get_node(
         self,
-        node_id: Optional[int] = None,
-        node_uuid: Optional[str] = None,
-        ctx: Optional[Context] = None,
+        node_id: int | None = None,
+        node_uuid: str | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 가져옵니다.
@@ -133,9 +133,9 @@ class NodeHandler(BaseHandler):
     async def update_node(
         self,
         node_id: int,
-        name: Optional[str] = None,
+        name: str | None = None,
         properties: dict[str, Any] | None = None,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프의 노드를 업데이트합니다.
@@ -176,7 +176,7 @@ class NodeHandler(BaseHandler):
     async def delete_node(
         self,
         node_id: int,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 삭제합니다.
@@ -211,10 +211,10 @@ class NodeHandler(BaseHandler):
 
     async def find_nodes(
         self,
-        node_type: Optional[str] = None,
+        node_type: str | None = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 찾습니다.

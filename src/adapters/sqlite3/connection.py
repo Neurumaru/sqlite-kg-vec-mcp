@@ -6,7 +6,6 @@ import datetime
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Optional
 
 from src.common.observability import get_observable_logger
 
@@ -48,7 +47,7 @@ class DatabaseConnection:
             optimize: 최적화 PRAGMA 적용 여부
         """
         self.db_path = Path(db_path)
-        self.connection: Optional[sqlite3.Connection] = None
+        self.connection: sqlite3.Connection | None = None
         self.optimize = optimize
         self.logger = get_observable_logger("database_connection", "adapter")
 

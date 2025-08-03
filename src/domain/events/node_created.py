@@ -3,7 +3,6 @@
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .base import DomainEvent
 
@@ -17,7 +16,7 @@ class NodeCreated(DomainEvent):
     node_id: str = ""
     node_name: str = ""
     node_type: str = ""
-    source_document_id: Optional[str] = None
+    source_document_id: str | None = None
 
     def __init__(
         self,
@@ -28,7 +27,7 @@ class NodeCreated(DomainEvent):
         node_id: str,
         node_name: str,
         node_type: str,
-        source_document_id: Optional[str] = None,
+        source_document_id: str | None = None,
         version: int = 1,
         metadata=None,
     ):
@@ -51,7 +50,7 @@ class NodeCreated(DomainEvent):
         aggregate_id: str,
         node_name: str,
         node_type: str,
-        source_document_id: Optional[str] = None,
+        source_document_id: str | None = None,
         **kwargs,
     ) -> "NodeCreated":
         """노드 생성 이벤트 생성."""

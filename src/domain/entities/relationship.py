@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -54,9 +54,9 @@ class Relationship:
     source_documents: list[DocumentId] = field(default_factory=list)
 
     # 임베딩 정보
-    embedding: Optional[Vector] = None
-    embedding_model: Optional[str] = None
-    embedding_created_at: Optional[datetime] = None
+    embedding: Vector | None = None
+    embedding_model: str | None = None
+    embedding_created_at: datetime | None = None
 
     # 추출 정보 (문서 내 컨텍스트, 문장 등)
     extraction_metadata: dict[str, Any] = field(default_factory=dict)
@@ -72,8 +72,8 @@ class Relationship:
     def add_source_document(
         self,
         document_id: DocumentId,
-        context: Optional[str] = None,
-        sentence: Optional[str] = None,
+        context: str | None = None,
+        sentence: str | None = None,
     ) -> None:
         """원본 문서를 추가합니다."""
         if document_id not in self.source_documents:
@@ -95,8 +95,8 @@ class Relationship:
     def add_extraction_context(
         self,
         document_id: DocumentId,
-        context: Optional[str] = None,
-        sentence: Optional[str] = None,
+        context: str | None = None,
+        sentence: str | None = None,
     ) -> None:
         """문서 내 추출 컨텍스트를 추가합니다."""
         self.extraction_metadata[f"context_{document_id}"] = {
@@ -169,7 +169,7 @@ class Relationship:
         """특정 노드가 이 관계에 포함되는지 확인합니다."""
         return node_id in (self.source_node_id, self.target_node_id)
 
-    def get_other_node_id(self, node_id: NodeId) -> Optional[NodeId]:
+    def get_other_node_id(self, node_id: NodeId) -> NodeId | None:
         """주어진 노드에 대해 다른 노드 ID를 반환합니다."""
         if self.source_node_id == node_id:
             return self.target_node_id

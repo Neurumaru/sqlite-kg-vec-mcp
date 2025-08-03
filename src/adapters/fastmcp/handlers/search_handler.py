@@ -2,7 +2,7 @@
 MCP 작업을 위한 검색 및 순회 핸들러.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from fastmcp import Context
 
@@ -47,7 +47,7 @@ class SearchHandler(BaseHandler):
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         텍스트 쿼리로 지식 그래프를 검색합니다.
@@ -132,8 +132,8 @@ class SearchHandler(BaseHandler):
         self,
         node_id: int,
         limit: int = 10,
-        threshold: Optional[float] = None,
-        ctx: Optional[Context] = None,
+        threshold: float | None = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         주어진 노드와 유사한 노드를 검색합니다.
@@ -237,7 +237,7 @@ class SearchHandler(BaseHandler):
         self,
         node_id: int,
         depth: int = 1,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 이웃 노드를 가져옵니다.
@@ -297,7 +297,7 @@ class SearchHandler(BaseHandler):
         source_node_id: int,
         target_node_id: int,
         max_depth: int = 5,
-        ctx: Optional[Context] = None,
+        ctx: Context | None = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 두 노드 간의 경로를 찾습니다.

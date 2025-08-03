@@ -7,7 +7,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Any, Optional
+from typing import Any
 
 from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
@@ -24,9 +24,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     def __init__(
         self,
-        config: Optional[DatabaseConfig] = None,
-        db_path: Optional[str] = None,
-        optimize: Optional[bool] = None,
+        config: DatabaseConfig | None = None,
+        db_path: str | None = None,
+        optimize: bool | None = None,
     ):
         """
         SQLite 데이터베이스 어댑터를 초기화합니다.
@@ -43,7 +43,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self.check_same_thread = config.check_same_thread
         self.max_connections = config.max_connections
         self._connection_manager = DatabaseConnection(str(self.db_path), self.optimize)
-        self._connection: Optional[Connection] = None
+        self._connection: Connection | None = None
         self._active_transactions: dict[str, sqlite3.Connection] = {}
 
     # 연결 관리
@@ -171,7 +171,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         query: str,
         parameters: dict[str, Any] | None = None,
-        transaction_id: Optional[str] = None,
+        transaction_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         SELECT 쿼리를 실행합니다.
@@ -203,7 +203,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         command: str,
         parameters: dict[str, Any] | None = None,
-        transaction_id: Optional[str] = None,
+        transaction_id: str | None = None,
     ) -> int:
         """
         SELECT가 아닌 명령(INSERT, UPDATE, DELETE)을 실행합니다.
@@ -231,7 +231,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self,
         commands: list[str],
         parameters: list[dict[str, Any]] | None = None,
-        transaction_id: Optional[str] = None,
+        transaction_id: str | None = None,
     ) -> list[int]:
         """
         여러 명령을 일괄 실행합니다.
@@ -411,7 +411,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         except Exception:
             return False
 
-    async def analyze(self, table_name: Optional[str] = None) -> bool:
+    async def analyze(self, table_name: str | None = None) -> bool:
         """
         데이터베이스 통계를 분석합니다.
         Args:
@@ -560,7 +560,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             return {"error": "성능 통계를 가져오는 데 실패했습니다"}
 
     @property
-    def connection(self) -> Optional[Connection]:
+    def connection(self) -> Connection | None:
         """
         SQLite 연결을 가져옵니다.
         Returns:
@@ -568,7 +568,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         """
         return self._connection
 
-    def _get_connection(self, transaction_id: Optional[str] = None) -> Optional[Connection]:
+    def _get_connection(self, transaction_id: str | None = None) -> Connection | None:
         """
         트랜잭션에 적합한 연결을 가져옵니다.
         Args:

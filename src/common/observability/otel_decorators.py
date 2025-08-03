@@ -7,7 +7,7 @@ OpenTelemetry 데코레이터 (공식 패턴 기반).
 import functools
 import time
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 try:
     from opentelemetry import metrics, trace
@@ -19,7 +19,7 @@ except ImportError:
 
 
 def traced(
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     attributes: dict[str, Any] | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
@@ -76,7 +76,7 @@ def traced(
 
 
 def measured(
-    metric_name: Optional[str] = None,
+    metric_name: str | None = None,
     track_duration: bool = True,
     track_calls: bool = True,
     unit: str = "1",
@@ -173,8 +173,8 @@ def measured(
 
 
 def observed(
-    operation_name: Optional[str] = None,
-    metric_name: Optional[str] = None,
+    operation_name: str | None = None,
+    metric_name: str | None = None,
     span_attributes: dict[str, Any] | None = None,
     track_duration: bool = True,
     track_calls: bool = True,
@@ -205,7 +205,7 @@ def observed(
 
 
 # 편의 데코레이터들
-def trace_database_operation(table_name: Optional[str] = None):
+def trace_database_operation(table_name: str | None = None):
     """데이터베이스 작업 전용 트레이싱 데코레이터."""
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -218,7 +218,7 @@ def trace_database_operation(table_name: Optional[str] = None):
     return decorator
 
 
-def trace_llm_operation(model_name: Optional[str] = None):
+def trace_llm_operation(model_name: str | None = None):
     """
     LLM 작업 전용 트레이싱 데코레이터.
     """

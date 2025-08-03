@@ -5,7 +5,7 @@ FastMCP 서버 인프라 예외.
 메시지 처리 실패 등을 처리합니다.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import ConnectionException
@@ -24,10 +24,10 @@ class MCPException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        mcp_method: Optional[str] = None,
-        error_code: Optional[str] = None,
+        mcp_method: str | None = None,
+        error_code: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 예외를 초기화합니다.
@@ -67,10 +67,10 @@ class MCPServerException(MCPException):
         server_state: str,
         operation: str,
         message: str,
-        port: Optional[int] = None,
-        host: Optional[str] = None,
+        port: int | None = None,
+        host: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 서버 예외를 초기화합니다.
@@ -114,9 +114,9 @@ class MCPMessageException(DataParsingException):
         message_type: str,
         message_content: str,
         validation_error: str,
-        mcp_method: Optional[str] = None,
+        mcp_method: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 메시지 예외를 초기화합니다.
@@ -160,7 +160,7 @@ class MCPToolException(MCPException):
         message: str,
         tool_args: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 도구 예외를 초기화합니다.
@@ -199,9 +199,9 @@ class MCPResourceException(MCPException):
         resource_uri: str,
         operation: str,
         message: str,
-        resource_type: Optional[str] = None,
+        resource_type: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 리소스 예외를 초기화합니다.
@@ -245,7 +245,7 @@ class MCPPromptException(MCPException):
         message: str,
         prompt_args: dict[str, Any] | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 프롬프트 예외를 초기화합니다.
@@ -285,9 +285,9 @@ class MCPConnectionException(ConnectionException):
         transport_type: str,
         endpoint: str,
         message: str,
-        client_id: Optional[str] = None,
+        client_id: str | None = None,
         context: dict[str, Any] | None = None,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
     ):
         """
         MCP 연결 예외를 초기화합니다.

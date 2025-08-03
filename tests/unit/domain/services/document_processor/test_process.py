@@ -38,7 +38,7 @@ class TestDocumentProcessorProcess(unittest.IsolatedAsyncioTestCase):
             mock_knowledge_extractor,
             mock_document_mapper,
             mock_node_mapper,
-            mock_relationship_mapper
+            mock_relationship_mapper,
         )
 
         document = Document(
@@ -90,7 +90,7 @@ class TestDocumentProcessorProcess(unittest.IsolatedAsyncioTestCase):
             mock_knowledge_extractor,
             mock_document_mapper,
             mock_node_mapper,
-            mock_relationship_mapper
+            mock_relationship_mapper,
         )
 
         document = Document(
@@ -124,7 +124,7 @@ class TestDocumentProcessorProcess(unittest.IsolatedAsyncioTestCase):
             mock_knowledge_extractor,
             mock_document_mapper,
             mock_node_mapper,
-            mock_relationship_mapper
+            mock_relationship_mapper,
         )
 
         document = Document(

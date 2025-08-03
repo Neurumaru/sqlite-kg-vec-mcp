@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -38,7 +38,7 @@ class Node:
     id: NodeId
     name: str
     node_type: NodeType
-    description: Optional[str] = None
+    description: str | None = None
     properties: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
@@ -47,9 +47,9 @@ class Node:
     source_documents: list[DocumentId] = field(default_factory=list)
 
     # 임베딩 정보
-    embedding: Optional[Vector] = None
-    embedding_model: Optional[str] = None
-    embedding_created_at: Optional[datetime] = None
+    embedding: Vector | None = None
+    embedding_model: str | None = None
+    embedding_created_at: datetime | None = None
 
     # 추출 정보 (문서 내 위치, 컨텍스트 등)
     extraction_metadata: dict[str, Any] = field(default_factory=dict)
@@ -58,7 +58,7 @@ class Node:
         if not self.name.strip():
             raise ValueError("Node name cannot be empty")
 
-    def add_source_document(self, document_id: DocumentId, context: Optional[str] = None) -> None:
+    def add_source_document(self, document_id: DocumentId, context: str | None = None) -> None:
         """원본 문서를 추가합니다."""
         if document_id not in self.source_documents:
             self.source_documents.append(document_id)
@@ -84,7 +84,7 @@ class Node:
         }
         self.updated_at = datetime.now()
 
-    def get_extraction_context(self, document_id: DocumentId) -> Optional[str]:
+    def get_extraction_context(self, document_id: DocumentId) -> str | None:
         """특정 문서의 추출 컨텍스트를 조회합니다."""
         context_data = self.extraction_metadata.get(f"context_{document_id}")
         return context_data.get("context") if context_data else None

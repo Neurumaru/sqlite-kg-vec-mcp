@@ -6,7 +6,7 @@ with basic search functionality.
 
 import logging
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 
 class SearchContext:
@@ -74,8 +74,8 @@ class InteractiveSearchEngine:
     async def search(
         self,
         query: str,
-        user_id: Optional[str] = None,
-        session_metadata: Optional[dict] = None,
+        user_id: str | None = None,
+        session_metadata: dict | None = None,
     ) -> dict[str, Any]:
         """
         Simplified interactive 검색을 수행합니다.

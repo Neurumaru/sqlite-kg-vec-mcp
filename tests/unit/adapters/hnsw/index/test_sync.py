@@ -11,7 +11,6 @@ from src.adapters.hnsw.hnsw import HNSWIndex
 
 
 class TestHNSWIndexBuildFromEmbeddings(unittest.TestCase):
-
     """HNSWIndex.build_from_embeddings 메서드의 단위 테스트."""
 
     @patch("src.adapters.hnsw.hnsw.hnswlib.Index")

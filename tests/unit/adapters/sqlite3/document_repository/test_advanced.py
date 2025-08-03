@@ -80,7 +80,7 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
         self.mock_database.execute_command = AsyncMock(side_effect=Exception("Database error"))
 
         # When & Then
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017
             await self.repository.save(sample_data)
 
         # 트랜잭션 컨텍스트가 호출되었는지 확인
@@ -117,6 +117,7 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
         # When
         # 동시 작업 시뮬레이션
         import asyncio  # pylint: disable=import-outside-toplevel
+
         tasks = [self.repository.save(sample_data) for _ in range(5)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 

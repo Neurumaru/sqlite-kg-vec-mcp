@@ -27,7 +27,7 @@ class TestDocumentProcessorReprocessDocument(unittest.IsolatedAsyncioTestCase):
             mock_knowledge_extractor,
             mock_document_mapper,
             mock_node_mapper,
-            mock_relationship_mapper
+            mock_relationship_mapper,
         )
 
         document = Document(

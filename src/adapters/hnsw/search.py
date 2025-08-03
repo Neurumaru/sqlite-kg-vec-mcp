@@ -6,7 +6,7 @@ import sqlite3
 
 # from .relationships import Relationship, RelationshipManager  # TODO: relationships 모듈 구현
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
@@ -22,7 +22,7 @@ class SearchResult:
     entity_type: str
     entity_id: int
     distance: float
-    entity: Optional[Any] = (
+    entity: Any | None = (
         None  # TODO: Entity/Relationship 클래스가 사용 가능할 때 적절하게 타입 지정
     )
 
@@ -55,10 +55,10 @@ class VectorSearch:
     def __init__(
         self,
         connection: sqlite3.Connection,
-        index_dir: Optional[str] = None,
+        index_dir: str | None = None,
         embedding_dim: int = 128,
         space: str = "cosine",
-        text_embedder: Optional[VectorTextEmbedder] = None,
+        text_embedder: VectorTextEmbedder | None = None,
         embedder_type: str = "sentence-transformers",
         embedder_kwargs: dict[str, Any] | None = None,
     ):
@@ -148,7 +148,7 @@ class VectorSearch:
         query_vector: np.ndarray,
         k: int = 10,
         entity_types: list[str] | None = None,
-        ef_search: Optional[int] = None,
+        ef_search: int | None = None,
         include_entities: bool = True,
     ) -> list[SearchResult]:
         """
