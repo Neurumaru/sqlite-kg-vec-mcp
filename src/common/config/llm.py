@@ -4,8 +4,6 @@ LLM (대규모 언어 모델) 구성 설정.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -24,6 +22,8 @@ class OllamaConfig(BaseSettings):
     temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
     max_tokens: int = Field(default=2000, description="응답을 위한 최대 토큰")
+
+    embedding_dimension: int = Field(default=768, description="임베딩 차원")
 
     @field_validator("port")
     @classmethod
@@ -47,11 +47,11 @@ class OllamaConfig(BaseSettings):
 class OpenAIConfig(BaseSettings):
     """OpenAI API 구성."""
 
-    api_key: Optional[str] = Field(default=None, description="OpenAI API 키")
+    api_key: str | None = Field(default=None, description="OpenAI API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+    def validate_api_key(cls, v: str | None) -> str | None:
         """OpenAI API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
@@ -62,13 +62,9 @@ class OpenAIConfig(BaseSettings):
 
     model: str = Field(default="gpt-4o-mini", description="기본 OpenAI 모델")
 
-    embedding_model: str = Field(
-        default="text-embedding-3-small", description="OpenAI 임베딩 모델"
-    )
+    embedding_model: str = Field(default="text-embedding-3-small", description="OpenAI 임베딩 모델")
 
-    embedding_dimension: Optional[int] = Field(
-        default=None, description="임베딩 차원 (모델별)"
-    )
+    embedding_dimension: int | None = Field(default=None, description="임베딩 차원 (모델별)")
 
     temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
@@ -86,7 +82,7 @@ class OpenAIConfig(BaseSettings):
 
     @field_validator("embedding_dimension")
     @classmethod
-    def validate_embedding_dimension(cls, v: Optional[int]) -> Optional[int]:
+    def validate_embedding_dimension(cls, v: int | None) -> int | None:
         """임베딩 차원 유효성 검사."""
         if v is not None and v <= 0:
             raise ValueError("임베딩 차원은 양수여야 합니다")
@@ -98,11 +94,11 @@ class OpenAIConfig(BaseSettings):
 class AnthropicConfig(BaseSettings):
     """Anthropic (Claude) API 구성."""
 
-    api_key: Optional[str] = Field(default=None, description="Anthropic API 키")
+    api_key: str | None = Field(default=None, description="Anthropic API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
+    def validate_api_key(cls, v: str | None) -> str | None:
         """Anthropic API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
@@ -152,9 +148,7 @@ class LLMConfig(BaseSettings):
     )
 
     # 공통 설정
-    retry_attempts: int = Field(
-        default=3, description="실패한 요청에 대한 재시도 횟수"
-    )
+    retry_attempts: int = Field(default=3, description="실패한 요청에 대한 재시도 횟수")
 
     retry_delay: float = Field(default=1.0, description="초 단위 재시도 간 기본 지연")
 

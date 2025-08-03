@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from collections.abc import AsyncGenerator
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, BaseMessage
 
@@ -30,10 +30,10 @@ class OllamaLLMService(LLM):
 
     def __init__(
         self,
-        ollama_client: Optional[OllamaClient] = None,
-        config: Optional[OllamaConfig] = None,
-        default_temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        ollama_client: OllamaClient | None = None,
+        config: OllamaConfig | None = None,
+        default_temperature: float | None = None,
+        max_tokens: int | None = None,
     ):
         """
         Ollama LLM 서비스를 초기화합니다.
@@ -124,7 +124,6 @@ class OllamaLLMService(LLM):
         for i in range(0, len(text), chunk_size):
             chunk = text[i : i + chunk_size]
             yield chunk
-            await asyncio.sleep(0.05)  # 스트리밍 지연 시뮬레이션
 
     async def batch(
         self,
@@ -395,7 +394,7 @@ class OllamaLLMService(LLM):
         self,
         source_entity: dict[str, Any],
         target_entities: list[dict[str, Any]],
-        context: Optional[str] = None,
+        context: str | None = None,
     ) -> list[dict[str, Any]]:
         """엔티티 간의 잠재적인 관계를 제안합니다."""
         system_prompt = """당신은 지식 그래프 관계 전문가입니다. 엔티티 간의 잠재적인 관계를 제안하세요.
@@ -593,7 +592,6 @@ class OllamaLLMService(LLM):
                     yield current_chunk.strip()
                     current_chunk = ""
                     word_count = 0
-                    await asyncio.sleep(0.05)  # 자연스러운 타이핑 지연
 
             # 남은 콘텐츠 생성
             if current_chunk.strip():
@@ -614,7 +612,6 @@ class OllamaLLMService(LLM):
             for i in range(0, len(text), chunk_size):
                 chunk = text[i : i + chunk_size]
                 yield chunk
-                await asyncio.sleep(0.1)
 
     # 설정 및 상태
 

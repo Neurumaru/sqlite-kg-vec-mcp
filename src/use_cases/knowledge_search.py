@@ -3,8 +3,8 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
+from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
@@ -25,7 +25,7 @@ class KnowledgeSearchUseCase(ABC):
         query: str,
         strategy: SearchStrategy = SearchStrategy.HYBRID,
         limit: int = 10,
-        similarity_threshold: float = 0.5,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
@@ -58,9 +58,9 @@ class KnowledgeSearchUseCase(ABC):
     async def search_nodes(
         self,
         query: str,
-        node_types: Optional[list[str]] = None,
+        node_types: list[str] | None = None,
         limit: int = 10,
-        similarity_threshold: float = 0.5,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[Node]:
         """노드 검색을 수행합니다."""
 
@@ -68,9 +68,9 @@ class KnowledgeSearchUseCase(ABC):
     async def search_relationships(
         self,
         query: str,
-        relationship_types: Optional[list[str]] = None,
+        relationship_types: list[str] | None = None,
         limit: int = 10,
-        similarity_threshold: float = 0.5,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[Relationship]:
         """관계 검색을 수행합니다."""
 
