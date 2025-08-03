@@ -5,7 +5,7 @@ SQLite 관련 인프라 예외.
 """
 
 import sqlite3
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import DatabaseConnectionException
@@ -126,7 +126,7 @@ class SQLiteIntegrityException(DataIntegrityException):
 
     @classmethod
     def from_sqlite_error(
-        cls, sqlite_error: Optional[sqlite3.IntegrityError, table: str] = None
+        cls, sqlite_error: Optional[sqlite3.IntegrityError] = None, table: Optional[str] = None
     ) -> "SQLiteIntegrityException":
         """
         SQLite IntegrityError로부터 예외를 생성합니다.
@@ -150,7 +150,7 @@ class SQLiteIntegrityException(DataIntegrityException):
             constraint = "UNKNOWN"
         return cls(
             constraint=constraint,
-            table=table,
+            table=table or "unknown",
             context={"original_message": str(sqlite_error)},
             original_error=sqlite_error,
         )

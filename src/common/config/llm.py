@@ -4,6 +4,8 @@ LLM (대규모 언어 모델) 구성 설정.
 
 from __future__ import annotations
 
+from typing import Optional, Union
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -33,6 +35,16 @@ class OllamaConfig(BaseSettings):
             raise ValueError("포트는 1에서 65535 사이여야 합니다")
         return v
 
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout(cls, v: float) -> float:
+        """타임아웃 범위 유효성 검사."""
+        if v <= 0:
+            raise ValueError("타임아웃은 0보다 커야 합니다")
+        if v > 600:
+            raise ValueError("타임아웃은 10분(600초) 이하여야 합니다")
+        return v
+
     @field_validator("temperature")
     @classmethod
     def validate_temperature(cls, v: float) -> float:
@@ -41,17 +53,37 @@ class OllamaConfig(BaseSettings):
             raise ValueError("온도는 0.0에서 2.0 사이여야 합니다")
         return v
 
+    @field_validator("max_tokens")
+    @classmethod
+    def validate_max_tokens(cls, v: int) -> int:
+        """최대 토큰 수 유효성 검사."""
+        if v <= 0:
+            raise ValueError("최대 토큰 수는 양수여야 합니다")
+        if v > 100000:
+            raise ValueError("최대 토큰 수는 100,000 이하여야 합니다")
+        return v
+
+    @field_validator("embedding_dimension")
+    @classmethod
+    def validate_embedding_dimension(cls, v: int) -> int:
+        """임베딩 차원 유효성 검사."""
+        if v <= 0:
+            raise ValueError("임베딩 차원은 양수여야 합니다")
+        if v > 4096:
+            raise ValueError("임베딩 차원은 4096 이하여야 합니다")
+        return v
+
     model_config = {"env_prefix": "OLLAMA_", "extra": "ignore"}
 
 
 class OpenAIConfig(BaseSettings):
     """OpenAI API 구성."""
 
-    api_key: str] = Field(default=None, description="OpenAI API 키")
+    api_key: Optional[str] = Field(default=None, description="OpenAI API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str]) -> str]:
+    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
         """OpenAI API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
@@ -64,7 +96,7 @@ class OpenAIConfig(BaseSettings):
 
     embedding_model: str = Field(default="text-embedding-3-small", description="OpenAI 임베딩 모델")
 
-    embedding_dimension: int] = Field(default=None, description="임베딩 차원 (모델별)")
+    embedding_dimension: Optional[int] = Field(default=None, description="임베딩 차원 (모델별)")
 
     temperature: float = Field(default=0.7, description="기본 샘플링 온도")
 
@@ -82,7 +114,7 @@ class OpenAIConfig(BaseSettings):
 
     @field_validator("embedding_dimension")
     @classmethod
-    def validate_embedding_dimension(cls, v: int]) -> int]:
+    def validate_embedding_dimension(cls, v: Optional[int]) -> Optional[int]:
         """임베딩 차원 유효성 검사."""
         if v is not None and v <= 0:
             raise ValueError("임베딩 차원은 양수여야 합니다")
@@ -94,11 +126,11 @@ class OpenAIConfig(BaseSettings):
 class AnthropicConfig(BaseSettings):
     """Anthropic (Claude) API 구성."""
 
-    api_key: str] = Field(default=None, description="Anthropic API 키")
+    api_key: Optional[str] = Field(default=None, description="Anthropic API 키")
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: str]) -> str]:
+    def validate_api_key(cls, v: Optional[str]) -> Optional[str]:
         """Anthropic API 키 형식 유효성 검사."""
         if v is not None:
             if not isinstance(v, str) or not v.strip():
@@ -161,6 +193,26 @@ class LLMConfig(BaseSettings):
             raise ValueError(f"제공업체는 {valid_providers} 중 하나여야 합니다")
         return v
 
+    @field_validator("retry_attempts")
+    @classmethod
+    def validate_retry_attempts(cls, v: int) -> int:
+        """재시도 횟수 유효성 검사."""
+        if v < 0:
+            raise ValueError("재시도 횟수는 0 이상이어야 합니다")
+        if v > 10:
+            raise ValueError("재시도 횟수는 10회 이하여야 합니다")
+        return v
+
+    @field_validator("retry_delay")
+    @classmethod
+    def validate_retry_delay(cls, v: float) -> float:
+        """재시도 지연 시간 유효성 검사."""
+        if v < 0:
+            raise ValueError("재시도 지연 시간은 0 이상이어야 합니다")
+        if v > 60:
+            raise ValueError("재시도 지연 시간은 60초 이하여야 합니다")
+        return v
+
     def validate_provider_config(self) -> None:
         """선택된 제공업체가 유효한 구성을 가지고 있는지 확인합니다."""
         if self.default_provider == "openai" and not self.openai.api_key:
@@ -168,7 +220,7 @@ class LLMConfig(BaseSettings):
         if self.default_provider == "anthropic" and not self.anthropic.api_key:
             raise ValueError("Anthropic 제공업체를 사용할 때는 Anthropic API 키가 필요합니다")
 
-    def get_active_provider_config(self) -> OllamaConfig | OpenAIConfig | AnthropicConfig:
+    def get_active_provider_config(self) -> Union[OllamaConfig, OpenAIConfig, AnthropicConfig]:
         """활성 제공업체의 구성을 가져옵니다."""
         if self.default_provider == "openai":
             return self.openai

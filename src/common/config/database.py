@@ -5,9 +5,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
+
+from ..validation.field_validators import (
+    validate_file_path,
+    validate_positive_integer,
+    validate_timeout,
+)
 
 
 class DatabaseConfig(BaseSettings):
@@ -39,31 +46,48 @@ class DatabaseConfig(BaseSettings):
 
     backup_interval: int = Field(default=3600, description="초 단위 백업 간격")
 
-    backup_path: str] = Field(default=None, description="데이터베이스 백업 경로")
+    backup_path: Optional[str] = Field(default=None, description="데이터베이스 백업 경로")
 
     @field_validator("db_path")
     @classmethod
     def validate_db_path(cls, v: str) -> str:
         """데이터베이스 경로 형식 유효성 검사."""
-        # 유효성 검사기에서 디렉토리를 생성하지 않고 형식만 검증
-        if not isinstance(v, str) or not v.strip():
-            raise ValueError("데이터베이스 경로는 비어 있지 않은 문자열이어야 합니다")
-        return v
+        return validate_file_path(v, "데이터베이스 경로")
 
     @field_validator("vector_dimension")
     @classmethod
     def validate_vector_dimension(cls, v: int) -> int:
-        """벡터 차원이 양수인지 유효성 검사."""
-        if v <= 0:
-            raise ValueError("벡터 차원은 양수여야 합니다")
-        return v
+        """벡터 차원이 양수이고 합리적인 범위인지 유효성 검사."""
+        from ..validation.field_validators import validate_dimension
+
+        return validate_dimension(v)
+
+    @field_validator("timeout")
+    @classmethod
+    def validate_timeout_field(cls, v: float) -> float:
+        """타임아웃이 합리적인 범위인지 유효성 검사."""
+        return validate_timeout(v)
+
+    @field_validator("max_connections")
+    @classmethod
+    def validate_max_connections(cls, v: int) -> int:
+        """최대 연결 수가 합리적인 범위인지 유효성 검사."""
+        return validate_positive_integer(v, "최대 연결 수", 1000)
+
+    @field_validator("backup_interval")
+    @classmethod
+    def validate_backup_interval(cls, v: int) -> int:
+        """백업 간격이 합리적한 범위인지 유효성 검사."""
+        if v < 60:
+            raise ValueError("백업 간격은 최소 60초여야 합니다")
+        return validate_positive_integer(v, "백업 간격", 604800)  # 7일
 
     @field_validator("backup_path")
     @classmethod
-    def validate_backup_path(cls, v: str]) -> str]:
+    def validate_backup_path(cls, v: Optional[str]) -> Optional[str]:
         """제공된 경우 백업 경로 형식 유효성 검사."""
-        if v is not None and (not isinstance(v, str) or not v.strip()):
-            raise ValueError("백업 경로는 비어 있지 않은 문자열이어야 합니다")
+        if v is not None:
+            return validate_file_path(v, "백업 경로")
         return v
 
     @property
@@ -74,7 +98,7 @@ class DatabaseConfig(BaseSettings):
         return path.parent
 
     @property
-    def backup_directory(self) -> Path]:
+    def backup_directory(self) -> Optional[Path]:
         """
         필요한 경우 백업 디렉토리 경로를 가져오고 생성합니다.
         """
