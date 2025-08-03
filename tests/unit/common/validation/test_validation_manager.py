@@ -17,7 +17,7 @@ class MockValidConfig(BaseSettings):
     name: str = Field(default="test")
     value: int = Field(default=42)
 
-    @field_validator('value')
+    @field_validator("value")
     @classmethod
     def validate_value(cls, v):
         """값 필드 검증."""
@@ -32,7 +32,7 @@ class MockInvalidConfig(BaseSettings):
     name: str = Field(default="test")
     value: int = Field(default=-1)  # 무효한 기본값
 
-    @field_validator('value')
+    @field_validator("value")
     @classmethod
     def validate_value(cls, v):
         """값 필드 검증."""
@@ -247,6 +247,7 @@ class TestConfigValidationManager:
 
         class ConfigWithSecret(BaseSettings):
             """민감한 데이터가 있는 설정 클래스."""
+
             name: str = "test"
             api_key: str = "secret_key_12345"
             password: str = "secret_password"
@@ -268,6 +269,7 @@ class TestConfigValidationManager:
 
         class NonPydanticConfig:
             """Pydantic이 아닌 설정 클래스."""
+
             def __init__(self):
                 self.name = "non_pydantic"
 
@@ -317,6 +319,7 @@ class TestConfigValidationManager:
 
         class MockMCPConfig:
             """MCP 설정 모의 클래스."""
+
             log_level = "DEBUG"
 
             def model_validate(self, data):
@@ -328,6 +331,7 @@ class TestConfigValidationManager:
 
         class MockObsConfig:
             """관찰가능성 설정 모의 클래스."""
+
             log_level = "INFO"
 
             def model_validate(self, data):

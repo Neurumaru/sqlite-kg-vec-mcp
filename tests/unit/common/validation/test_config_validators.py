@@ -26,7 +26,7 @@ class MockConfig(BaseSettings):
     value: int = Field(default=42)
     api_key: str = Field(default="secret_key")
 
-    @field_validator('value')
+    @field_validator("value")
     @classmethod
     def validate_value(cls, v):
         """값 필드 검증."""
@@ -189,6 +189,7 @@ class TestValidateConfigDependencies:
 
         class MockLLMConfig:
             """OpenAI 제공업체 테스트용 모의 LLM 설정."""
+
             default_provider = "openai"
             openai = type("", (), {"api_key": "sk-test123"})()
 
@@ -202,6 +203,7 @@ class TestValidateConfigDependencies:
 
         class MockLLMConfig:
             """API 키 없는 OpenAI 제공업체 테스트용 모의 LLM 설정."""
+
             default_provider = "openai"
             openai = type("", (), {"api_key": None})()
 
@@ -217,6 +219,7 @@ class TestValidateConfigDependencies:
 
         class MockLLMConfig:
             """API 키 없는 Anthropic 제공업체 테스트용 모의 LLM 설정."""
+
             default_provider = "anthropic"
             anthropic = type("", (), {"api_key": ""})()
 
@@ -232,6 +235,7 @@ class TestValidateConfigDependencies:
 
         class MockDBConfig:
             """백업 경로 없는 테스트용 모의 데이터베이스 설정."""
+
             backup_enabled = True
             backup_path = None
 
@@ -247,6 +251,7 @@ class TestValidateConfigDependencies:
 
         class MockDBConfig:
             """백업 경로 포함 테스트용 모의 데이터베이스 설정."""
+
             backup_enabled = True
             backup_path = "/backup/path"
 
@@ -260,6 +265,7 @@ class TestValidateConfigDependencies:
 
         class MockDBConfig:
             """백업 비활성화 테스트용 모의 데이터베이스 설정."""
+
             backup_enabled = False
             backup_path = None
 
@@ -297,6 +303,7 @@ class TestGetConfigSummary:
 
         class SimpleConfig(BaseSettings):
             """민감한 데이터가 없는 단순 설정 클래스."""
+
             name: str = "test"
             count: int = 10
 
