@@ -3,6 +3,7 @@
 """
 
 import logging
+from typing import Optional
 
 from ollama import AsyncClient
 
@@ -17,7 +18,12 @@ class NomicEmbedder(TextEmbedder):
     Ollama의 Nomic 임베딩 모델을 사용하는 텍스트 임베더 구현체.
     """
 
-    def __init__(self, client: Optional[AsyncClient, model_name: str, config: OllamaConfig] = None):
+    def __init__(
+        self,
+        client: Optional[AsyncClient] = None,
+        model_name: str = "nomic-embed-text",
+        config: Optional[OllamaConfig] = None,
+    ):
         if config is None:
             config = OllamaConfig()
 
@@ -38,6 +44,12 @@ class NomicEmbedder(TextEmbedder):
         예외:
             OllamaException: Ollama 서비스 호출 중 오류가 발생한 경우.
         """
+        if self.client is None:
+            raise OllamaModelException(
+                model_name=self.model_name,
+                operation="embedding",
+                message="Ollama 클라이언트가 초기화되지 않았습니다",
+            )
         try:
             response = await self.client.embed(model=self.model_name, input=text)
             embedding = response["embedding"]
@@ -53,7 +65,7 @@ class NomicEmbedder(TextEmbedder):
                 model_name=self.model_name,
                 dimension=self.dimension,
             )
-        except Exception as exception:
+        except (ConnectionError, TimeoutError, ValueError, KeyError) as exception:
             raise OllamaModelException(
                 model_name=self.model_name,
                 operation="embedding",
@@ -86,10 +98,12 @@ class NomicEmbedder(TextEmbedder):
         Returns:
             사용 가능 여부
         """
+        if self.client is None:
+            return False
         try:
             await self.client.list()
             return True
-        except Exception as exception:
+        except (ConnectionError, TimeoutError) as exception:
             logging.error("Ollama 서비스 가용성 확인 실패: %s", exception)
             return False
 

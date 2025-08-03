@@ -2,7 +2,8 @@
 MCP 작업을 위한 노드 관리 핸들러.
 """
 
-from typing import Any
+import sqlite3
+from typing import Any, Optional
 
 from fastmcp import Context
 
@@ -32,7 +33,7 @@ class NodeHandler(BaseHandler):
         self,
         node_type: str,
         name: Optional[str] = None,
-        properties: dict[str, Any]] = None,
+        properties: Optional[dict[str, Any]] = None,
         node_uuid: Optional[str] = None,
         ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
@@ -69,7 +70,7 @@ class NodeHandler(BaseHandler):
             error_msg = f"잘못된 노드 유형 또는 매개변수: {e}"
             self.logger.error(error_msg)
             return self._create_error_response(error_msg, "INVALID_PARAMETERS")
-        except Exception as e:
+        except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -121,7 +122,7 @@ class NodeHandler(BaseHandler):
             # MCP 응답 형식으로 변환
             return self._node_to_mcp_response(node)
 
-        except Exception as e:
+        except (ValueError, KeyError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -134,7 +135,7 @@ class NodeHandler(BaseHandler):
         self,
         node_id: int,
         name: Optional[str] = None,
-        properties: dict[str, Any]] = None,
+        properties: Optional[dict[str, Any]] = None,
         ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
@@ -164,7 +165,7 @@ class NodeHandler(BaseHandler):
             # MCP 응답 형식으로 변환
             return self._node_to_mcp_response(node)
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 업데이트 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -200,7 +201,7 @@ class NodeHandler(BaseHandler):
                 {"message": f"노드 {node_id}가 성공적으로 삭제되었습니다."}
             )
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 삭제 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -254,7 +255,7 @@ class NodeHandler(BaseHandler):
                 "offset": offset,
             }
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",

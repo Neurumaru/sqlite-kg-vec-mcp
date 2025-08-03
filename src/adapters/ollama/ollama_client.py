@@ -5,7 +5,7 @@ SQLite KG Vec MCP와 LLM 통합을 위한 Ollama 클라이언트.
 import json
 import time
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import requests
 
@@ -57,7 +57,7 @@ class OllamaClient:
         """
         if config is None:
             config = OllamaConfig()
-        
+
         if timeout_config is None:
             timeout_config = TimeoutConfig.from_env()
 
@@ -77,7 +77,9 @@ class OllamaClient:
     def _test_connection(self) -> bool:
         """Ollama 서버에 대한 연결을 테스트합니다."""
         try:
-            response = self.session.get(f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout)
+            response = self.session.get(
+                f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout
+            )
             response.raise_for_status()
             return True
         except requests.ConnectionError as exception:
@@ -351,7 +353,9 @@ class OllamaClient:
     def list_available_models(self) -> list[str]:
         """Ollama에서 사용 가능한 모델 목록을 가져옵니다."""
         try:
-            response = self.session.get(f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout)
+            response = self.session.get(
+                f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout
+            )
             response.raise_for_status()
 
             data = response.json()

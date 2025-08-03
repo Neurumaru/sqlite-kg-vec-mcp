@@ -2,7 +2,8 @@
 MCP 작업을 위한 관계 관리 핸들러.
 """
 
-from typing import Any
+import sqlite3
+from typing import Any, Optional
 
 from fastmcp import Context
 
@@ -35,7 +36,7 @@ class RelationshipHandler(BaseHandler):
         target_node_id: int,
         relation_type: str,
         label: str,
-        properties: dict[str, Any]] = None,
+        properties: Optional[dict[str, Any]] = None,
         weight: Optional[float] = None,
         ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
@@ -84,7 +85,7 @@ class RelationshipHandler(BaseHandler):
             error_msg = f"잘못된 관계 매개변수: {e}"
             self.logger.error(error_msg)
             return self._create_error_response(error_msg, "INVALID_PARAMETERS")
-        except Exception as e:
+        except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -124,7 +125,7 @@ class RelationshipHandler(BaseHandler):
             # MCP 응답 형식으로 변환
             return self._relationship_to_mcp_response(relationship)
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -137,7 +138,7 @@ class RelationshipHandler(BaseHandler):
         self,
         edge_id: int,
         label: Optional[str] = None,
-        properties: dict[str, Any]] = None,
+        properties: Optional[dict[str, Any]] = None,
         weight: Optional[float] = None,
         ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
@@ -170,7 +171,7 @@ class RelationshipHandler(BaseHandler):
             # MCP 응답 형식으로 변환
             return self._relationship_to_mcp_response(relationship)
 
-        except Exception as e:
+        except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 업데이트 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -206,7 +207,7 @@ class RelationshipHandler(BaseHandler):
                 {"message": f"관계 {edge_id}가 성공적으로 삭제되었습니다."}
             )
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 삭제 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -274,7 +275,7 @@ class RelationshipHandler(BaseHandler):
                 "offset": offset,
             }
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",

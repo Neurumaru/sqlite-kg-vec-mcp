@@ -14,8 +14,8 @@ from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
 
 from .connection import DatabaseConnection
-from .transaction_context import TransactionContext, IsolationLevel, transaction_scope
 from .exceptions import SQLiteConnectionException
+from .transaction_context import IsolationLevel, TransactionContext, transaction_scope
 
 
 class SQLiteDatabase(Database, DatabaseMaintenance):
@@ -143,7 +143,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             raise RuntimeError("데이터베이스가 연결되지 않았습니다")
 
         tx_context = TransactionContext(self._connection, isolation_level, auto_commit=False)
-        self._active_transactions[tx_context.transaction_id] = self._connection
+        self._active_transactions[tx_context.transaction_id] = tx_context
 
         # 트랜잭션 시작 (TransactionContext.begin()은 컨텍스트 매니저이므로 여기서는 수동으로)
         if not self._connection.in_transaction:
@@ -592,5 +592,9 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             SQLite 연결 또는 None
         """
         if transaction_id and transaction_id in self._active_transactions:
-            return self._active_transactions[transaction_id]
+            connection = self._active_transactions[transaction_id]
+            # TransactionContext인 경우 내부 connection을 반환
+            if hasattr(connection, 'connection'):
+                return connection.connection
+            return connection
         return self._connection

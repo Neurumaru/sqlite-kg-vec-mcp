@@ -3,7 +3,7 @@
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings

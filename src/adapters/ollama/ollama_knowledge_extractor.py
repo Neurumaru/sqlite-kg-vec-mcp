@@ -10,7 +10,7 @@ import logging
 import sqlite3
 import time
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
@@ -38,7 +38,7 @@ class ExtractionResult:
 
     entities_created: int = 0
     relationships_created: int = 0
-    errors: list[str]] = None
+    errors: Optional[list[str]] = None
     processing_time: float = 0.0
 
     def __post_init__(self):
@@ -127,12 +127,18 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 try:
                     processed_count = self.embedding_manager.process_outbox()
                     logging.info("%s개 엔티티에 대한 임베딩 생성됨", processed_count)
-                except Exception as exception:
+                except (ValueError, RuntimeError, sqlite3.Error) as exception:
                     error_msg = f"임베딩 생성 실패: {exception}"
                     logging.error(error_msg)
                     errors.append(error_msg)
 
-        except Exception as exception:
+        except (
+            ValueError,
+            RuntimeError,
+            sqlite3.Error,
+            ConnectionError,
+            TimeoutError,
+        ) as exception:
             error_msg = f"지식 추출 실패: {exception}"
             logging.error(error_msg)
             errors.append(error_msg)
@@ -158,7 +164,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def _process_entities(
         self,
         entities: list[dict[str, Any]],
-        source_id: str],
+        source_id: str,
         enhance_descriptions: bool,
         errors: list[str],
     ) -> int:
@@ -184,7 +190,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                             entity_data
                         )
                         properties["llm_description"] = enhanced_desc
-                    except Exception as exception:
+                    except (ConnectionError, TimeoutError, ValueError) as exception:
                         logging.warning(
                             "%s에 대한 설명 향상 실패: %s",
                             entity_data["name"],
@@ -206,7 +212,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 created_count += 1
                 logging.debug("생성된 엔티티: %s (%s)", entity.name, entity.type)
 
-            except Exception as exception:
+            except (sqlite3.Error, ValueError, KeyError) as exception:
                 error_msg = f"엔티티 {entity_data.get('name', 'unknown')} 생성 실패: {exception}"
                 logging.error(error_msg)
                 errors.append(error_msg)
@@ -259,7 +265,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                     rel_data["target"],
                 )
 
-            except Exception as exception:
+            except (sqlite3.Error, ValueError, KeyError) as exception:
                 error_msg = f"관계 {rel_data.get('type', 'unknown')} 생성 실패: {exception}"
                 logging.error(error_msg)
                 errors.append(error_msg)
@@ -281,7 +287,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         """
         if batch_size is None:
             batch_size = self.embedding_config.knowledge_extraction_batch_size
-            
+
         results = []
 
         for i in range(0, len(documents), batch_size):
@@ -333,7 +339,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 cursor.execute("SELECT COUNT(*) FROM vector_embeddings")
                 total_embeddings = cursor.fetchone()[0]
                 embedding_stats["total_embeddings"] = total_embeddings
-            except Exception:
+            except sqlite3.Error:
                 embedding_stats["total_embeddings"] = 0
 
         return {
@@ -369,7 +375,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                     properties=entity_data.get("properties", {}),
                 )
                 entities.append(entity)
-            except Exception as exception:
+            except (ValueError, KeyError) as exception:
                 logging.warning("데이터 %s에서 엔티티 생성 실패: %s", entity_data, exception)
 
         return entities
@@ -405,10 +411,10 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                             properties=rel_data.get("properties", {}),
                         )
                         relationships.append(relationship)
-                    except Exception as exception:
+                    except (ValueError, KeyError) as exception:
                         logging.warning("데이터 %s에서 관계 생성 실패: %s", rel_data, exception)
 
-            except Exception as exception:
+            except (ValueError, KeyError) as exception:
                 logging.warning("데이터 %s에서 관계 처리 실패: %s", rel_data, exception)
 
         return relationships
@@ -517,5 +523,5 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
                 self.ollama_client.generate, prompt="Test", max_tokens=5
             )
             return test_response is not None
-        except Exception:
+        except (ConnectionError, TimeoutError):
             return False

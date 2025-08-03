@@ -3,7 +3,7 @@ OpenAI 텍스트 임베딩 어댑터.
 """
 
 import time
-from typing import Any
+from typing import Any, Optional
 
 try:
     import openai

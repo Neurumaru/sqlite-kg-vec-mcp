@@ -2,7 +2,8 @@
 MCP 작업을 위한 검색 및 순회 핸들러.
 """
 
-from typing import Any
+import sqlite3
+from typing import Any, Optional
 
 from fastmcp import Context
 
@@ -119,7 +120,7 @@ class SearchHandler(BaseHandler):
 
             return {"results": result_items, "count": len(result_items)}
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("텍스트 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -224,7 +225,7 @@ class SearchHandler(BaseHandler):
                 "method": "embedding_similarity",
             }
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("유사 노드 검색 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -283,7 +284,7 @@ class SearchHandler(BaseHandler):
                 "depth": depth,
             }
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("이웃 가져오기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -353,7 +354,7 @@ class SearchHandler(BaseHandler):
                 "target_node_id": target_node_id,
             }
 
-        except Exception as e:
+        except (ValueError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("경로 찾기 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",

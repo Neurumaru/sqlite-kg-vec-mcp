@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from collections.abc import AsyncGenerator
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from langchain_core.messages import AIMessage, BaseMessage
 
@@ -219,7 +219,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, dict):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("쿼리 분석 응답 파싱 실패: %s", exception)
             return {
                 "strategy": "SEMANTIC",
@@ -280,7 +280,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, dict):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("탐색 안내 파싱 실패: %s", exception)
             return {
                 "next_action": "stop",
@@ -342,7 +342,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, dict):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("결과 평가 파싱 실패: %s", exception)
             return {
                 "overall_quality": 0.5,
@@ -359,7 +359,7 @@ class OllamaLLMService(LLM):
     async def extract_knowledge_from_text(
         self,
         text: str,
-        extraction_schema: dict[str, Any]] = None,
+        extraction_schema: Optional[dict[str, Any]] = None,
         context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """비정형 텍스트에서 구조화된 지식을 추출합니다."""
@@ -380,7 +380,7 @@ class OllamaLLMService(LLM):
     async def generate_entity_summary(
         self,
         entity_data: dict[str, Any],
-        related_entities: list[dict[str, Any]]] = None,
+        related_entities: Optional[list[dict[str, Any]]] = None,
     ) -> str:
         """데이터와 관계를 기반으로 엔티티에 대한 요약을 생성합니다."""
         # 기존 Ollama 클라이언트 메서드 사용
@@ -429,7 +429,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, list):
                 return result
             return []
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("관계 제안 파싱 실패: %s", exception)
             return []
 
@@ -462,12 +462,12 @@ class OllamaLLMService(LLM):
             if isinstance(result, list):
                 return result
             return [original_query]
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("쿼리 확장 파싱 실패: %s", exception)
             return [original_query]
 
     async def generate_search_suggestions(
-        self, partial_query: str, search_history: list[str]] = None
+        self, partial_query: str, search_history: Optional[list[str]] = None
     ) -> list[str]:
         """부분 쿼리에 대한 검색 제안을 생성합니다."""
         system_prompt = """당신은 검색 제안 생성기입니다. 부분 쿼리를 완성하고 변형을 제안하세요.
@@ -493,7 +493,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, list):
                 return result
             return [partial_query]
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("검색 제안 파싱 실패: %s", exception)
             return [partial_query]
 
@@ -524,7 +524,7 @@ class OllamaLLMService(LLM):
             if isinstance(result, dict):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
-        except Exception as exception:
+        except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("콘텐츠 분류 파싱 실패: %s", exception)
             return {"error": "분류 실패", "confidence": 0.0}
 
@@ -597,7 +597,7 @@ class OllamaLLMService(LLM):
             if current_chunk.strip():
                 yield current_chunk.strip()
 
-        except Exception:
+        except (ConnectionError, TimeoutError, ValueError):
             # 모든 오류에 대해 간단한 청킹으로 대체
             response = await asyncio.to_thread(
                 self.ollama_client.generate,
@@ -643,7 +643,7 @@ class OllamaLLMService(LLM):
                 "response_time": test_response.response_time,
                 "last_check": "now",
             }
-        except Exception as exception:
+        except (ConnectionError, TimeoutError) as exception:
             return {
                 "status": "unhealthy",
                 "error": str(exception),
