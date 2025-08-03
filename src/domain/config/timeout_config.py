@@ -4,7 +4,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -13,13 +12,13 @@ class TimeoutConfig:
 
     # HTTP/API 관련 타임아웃 (초)
     default_request_timeout: float
-    ollama_quick_timeout: float      # 간단한 요청 (모델 목록 등)
-    ollama_standard_timeout: float   # 일반적인 생성 요청
-    ollama_download_timeout: float   # 모델 다운로드
+    ollama_quick_timeout: float  # 간단한 요청 (모델 목록 등)
+    ollama_standard_timeout: float  # 일반적인 생성 요청
+    ollama_download_timeout: float  # 모델 다운로드
 
     # 데이터베이스 관련 타임아웃 (초)
     database_connection_timeout: float
-    database_busy_timeout: float     # SQLite busy_timeout (밀리초로 변환됨)
+    database_busy_timeout: float  # SQLite busy_timeout (밀리초로 변환됨)
 
     # 관찰성/모니터링 관련 타임아웃 (초)
     observability_export_timeout: float
@@ -27,7 +26,7 @@ class TimeoutConfig:
     metrics_collection_interval: float
 
     # 기타 타임아웃
-    event_validation_timeout: float   # 이벤트 타임스탬프 검증
+    event_validation_timeout: float  # 이벤트 타임스탬프 검증
 
     @classmethod
     def from_env(cls) -> "TimeoutConfig":
@@ -38,16 +37,13 @@ class TimeoutConfig:
             ollama_quick_timeout=float(os.getenv("TIMEOUT_OLLAMA_QUICK", "5.0")),
             ollama_standard_timeout=float(os.getenv("TIMEOUT_OLLAMA_STANDARD", "30.0")),
             ollama_download_timeout=float(os.getenv("TIMEOUT_OLLAMA_DOWNLOAD", "300.0")),
-
             # 데이터베이스 타임아웃
             database_connection_timeout=float(os.getenv("TIMEOUT_DATABASE_CONNECTION", "30.0")),
             database_busy_timeout=float(os.getenv("TIMEOUT_DATABASE_BUSY", "5.0")),
-
             # 관찰성 타임아웃
             observability_export_timeout=float(os.getenv("TIMEOUT_OBSERVABILITY_EXPORT", "30.0")),
             observability_flush_timeout=float(os.getenv("TIMEOUT_OBSERVABILITY_FLUSH", "30.0")),
             metrics_collection_interval=float(os.getenv("INTERVAL_METRICS_COLLECTION", "60.0")),
-
             # 기타
             event_validation_timeout=float(os.getenv("TIMEOUT_EVENT_VALIDATION", "60.0")),
         )
@@ -61,16 +57,13 @@ class TimeoutConfig:
             ollama_quick_timeout=5.0,
             ollama_standard_timeout=30.0,
             ollama_download_timeout=300.0,
-
             # 데이터베이스 타임아웃
             database_connection_timeout=30.0,
             database_busy_timeout=5.0,
-
             # 관찰성 타임아웃
             observability_export_timeout=30.0,
             observability_flush_timeout=30.0,
             metrics_collection_interval=60.0,
-
             # 기타
             event_validation_timeout=60.0,
         )

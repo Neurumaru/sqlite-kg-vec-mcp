@@ -3,13 +3,11 @@ Database 포트의 SQLite 구현.
 """
 
 import sqlite3
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from sqlite3 import Connection
 from typing import Any, Optional
 
-from src.adapters.exceptions import DatabaseConnectionException, DatabaseTimeoutException
 from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
 
@@ -111,7 +109,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     # 트랜잭션 관리
     @asynccontextmanager
-    async def transaction(self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE):
+    def transaction(self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE):
         """
         데이터베이스 트랜잭션 컨텍스트를 생성합니다.
 

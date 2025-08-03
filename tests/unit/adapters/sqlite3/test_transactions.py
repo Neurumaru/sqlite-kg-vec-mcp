@@ -2,17 +2,17 @@
 TransactionManager 및 UnitOfWork 단위 테스트.
 """
 
+import importlib.util
 import sqlite3
 import sys
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 # 직접 모듈 임포트 (전체 프로젝트 초기화 우회)
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-import importlib.util
 
 # transaction_context.py 먼저 로드 (의존성)
 spec_context = importlib.util.spec_from_file_location(
@@ -23,7 +23,7 @@ spec_context.loader.exec_module(transaction_context_module)
 
 # transactions.py 소스 코드를 읽어서 수정된 버전으로 실행
 transactions_path = project_root / "src" / "adapters" / "sqlite3" / "transactions.py"
-with open(transactions_path, "r", encoding="utf-8") as f:
+with open(transactions_path, encoding="utf-8") as f:
     transactions_code = f.read()
 
 # 상대 임포트를 절대 임포트로 변경
@@ -45,7 +45,6 @@ exec_globals = {
 }
 
 # contextmanager 데코레이터를 실제로 구현
-from contextlib import contextmanager
 
 exec_globals["contextmanager"] = contextmanager
 

@@ -3,7 +3,7 @@ MCP 작업을 위한 기본 핸들러.
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from ..config import FastMCPConfig
 
@@ -30,7 +30,9 @@ class BaseHandler:
         """표준 성공 응답을 생성합니다."""
         return {"success": True, **data}
 
-    def _create_error_response(self, message: Optional[str, error_code: str] = None) -> dict[str, Any]:
+    def _create_error_response(
+        self, message: Optional[str] = None, error_code: str = "UNKNOWN_ERROR"
+    ) -> dict[str, Any]:
         """표준 오류 응답을 생성합니다."""
         return {
             "success": False,

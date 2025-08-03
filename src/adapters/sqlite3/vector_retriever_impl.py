@@ -2,7 +2,7 @@
 SQLite 벡터 저장소의 검색 작업 구현체.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from src.config.search_config import SearchConfig
 from src.domain.value_objects.document_metadata import DocumentMetadata
@@ -391,7 +391,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
                 query="",
             )
 
-    async def _text_to_vector(self, text: str) -> Vector]:
+    async def _text_to_vector(self, text: str) -> Optional[Vector]:
         """
         텍스트를 벡터로 변환합니다.
 
@@ -401,7 +401,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         # TODO: 임베딩 서비스 인터페이스 추가 필요
         return None
 
-    async def _get_document_vector(self, document_id: str) -> Vector]:
+    async def _get_document_vector(self, document_id: str) -> Optional[Vector]:
         """문서 ID로 해당 벡터를 가져옵니다."""
         try:
             conn = self._ensure_connected()

@@ -3,7 +3,7 @@
 """
 
 import os
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings
@@ -12,7 +12,7 @@ from pydantic_settings import BaseSettings
 class ConfigValidationError(Exception):
     """설정 검증 오류."""
 
-    def __init__(self, config_name: str, errors: List[str]):
+    def __init__(self, config_name: str, errors: list[str]):
         self.config_name = config_name
         self.errors = errors
         super().__init__(f"{config_name} 설정 검증 실패: {', '.join(errors)}")
@@ -24,15 +24,14 @@ def validate_config_instance(config: BaseSettings, config_name: str) -> None:
 
     try:
         # Pydantic 검증 실행
-        config.model_validate(config.model_dump())
+        config.__class__.model_validate(config.model_dump())
 
         # 추가 커스텀 검증 메서드가 있다면 실행
         if hasattr(config, "validate_all"):
             config.validate_all()
-        elif hasattr(config, "validate"):
-            config.validate()
         elif hasattr(config, "validate_provider_config"):
             config.validate_provider_config()
+        # ValidationConfig의 validate 메서드는 value 매개변수가 필요하므로 제외
 
     except ValidationError as e:
         for error in e.errors():
@@ -65,7 +64,7 @@ def validate_all_configs(*configs: tuple[BaseSettings, str]) -> None:
         raise ConfigValidationError("전체 설정", error_messages)
 
 
-def validate_environment_variables(required_vars: Dict[str, str]) -> None:
+def validate_environment_variables(required_vars: dict[str, str]) -> None:
     """필수 환경 변수들을 검증합니다."""
     missing_vars = []
     invalid_vars = []
@@ -87,7 +86,7 @@ def validate_environment_variables(required_vars: Dict[str, str]) -> None:
         raise ConfigValidationError("환경 변수", errors)
 
 
-def validate_config_dependencies(config_map: Dict[str, Any]) -> None:
+def validate_config_dependencies(config_map: dict[str, Any]) -> None:
     """설정 간 의존성을 검증합니다."""
     errors = []
 
@@ -113,7 +112,7 @@ def validate_config_dependencies(config_map: Dict[str, Any]) -> None:
         raise ConfigValidationError("설정 의존성", errors)
 
 
-def get_config_summary(config: BaseSettings) -> Dict[str, Any]:
+def get_config_summary(config: BaseSettings) -> dict[str, Any]:
     """설정의 요약 정보를 반환합니다 (민감한 정보 마스킹)."""
     summary = {}
 
@@ -125,7 +124,7 @@ def get_config_summary(config: BaseSettings) -> Dict[str, Any]:
             if field_value:
                 summary[field_name] = f"{str(field_value)[:4]}****"
             else:
-                summary[field_name] = None
+                summary[field_name] = "****"
         else:
             summary[field_name] = field_value
 

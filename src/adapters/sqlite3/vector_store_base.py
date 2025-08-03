@@ -9,7 +9,7 @@ import struct
 # ABC 제거 - 공통 베이스 클래스로 사용
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Any
+from typing import Any, Optional
 
 from src.domain import Vector
 
@@ -45,7 +45,7 @@ class SQLiteVectorStoreBase:
         self,
         dimension: int,
         metric: str = "cosine",
-        parameters: dict[str, Any]] = None,
+        parameters: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         벡터 저장소를 초기화합니다.

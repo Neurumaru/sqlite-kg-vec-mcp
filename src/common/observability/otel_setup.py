@@ -5,7 +5,7 @@ OpenTelemetry 공식 패턴을 따른 초기화 모듈.
 """
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 try:
     from opentelemetry import metrics, trace

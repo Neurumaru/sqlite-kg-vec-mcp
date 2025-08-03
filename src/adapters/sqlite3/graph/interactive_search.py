@@ -6,7 +6,7 @@ with basic search functionality.
 
 import logging
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 
 class SearchContext:

@@ -8,7 +8,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from src.adapters.sqlite3.transactions import UnitOfWork
 
@@ -19,7 +19,7 @@ class Entity:
 
     id: int
     uuid: str
-    name: str]
+    name: str
     type: str
     properties: dict[str, Any]
     created_at: str
@@ -69,7 +69,7 @@ class EntityManager:
         self,
         entity_type: str,
         name: Optional[str] = None,
-        properties: dict[str, Any]] = None,
+        properties: Optional[dict[str, Any]] = None,
         custom_uuid: Optional[str] = None,
     ) -> Entity:
         """
@@ -110,7 +110,7 @@ class EntityManager:
             )
             return Entity.from_row(cursor.fetchone())
 
-    def get_entity(self, entity_id: int) -> Entity]:
+    def get_entity(self, entity_id: int) -> Optional[Entity]:
         """
         ID로 엔티티를 가져옵니다.
         Args:
@@ -123,7 +123,7 @@ class EntityManager:
         row = cursor.fetchone()
         return Entity.from_row(row) if row else None
 
-    def get_entity_by_uuid(self, entity_uuid: str) -> Entity]:
+    def get_entity_by_uuid(self, entity_uuid: str) -> Optional[Entity]:
         """
         UUID로 엔티티를 가져옵니다.
         Args:
@@ -140,8 +140,8 @@ class EntityManager:
         self,
         entity_id: int,
         name: Optional[str] = None,
-        properties: dict[str, Any]] = None,
-    ) -> Entity]:
+        properties: Optional[dict[str, Any]] = None,
+    ) -> Optional[Entity]:
         """
         엔티티의 속성을 업데이트합니다.
         Args:
@@ -200,13 +200,13 @@ class EntityManager:
             )
             # 엔티티 삭제 (관련 테이블로 전파됨)
             cursor.execute("DELETE FROM entities WHERE id = ?", (entity_id,))
-            return cursor.rowcount > 0
+            return bool(cursor.rowcount > 0)
 
     def find_entities(
         self,
         entity_type: Optional[str] = None,
         name_pattern: Optional[str] = None,
-        property_filters: dict[str, Any]] = None,
+        property_filters: Optional[dict[str, Any]] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> tuple[list[Entity], int]:

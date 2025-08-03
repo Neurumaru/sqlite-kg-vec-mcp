@@ -26,7 +26,7 @@ def validate_positive_number(
     value: float, field_name: str, max_value: Optional[float] = None
 ) -> float:
     """양의 실수 검증."""
-    if not isinstance(value, (int, float)):
+    if not isinstance(value, int | float):
         raise ValueError(f"{field_name}은(는) 숫자여야 합니다")
 
     if value <= 0:
@@ -83,7 +83,7 @@ def validate_url(url: str, field_name: str = "URL") -> str:
         if not all([result.scheme, result.netloc]):
             raise ValueError(f"올바르지 않은 {field_name} 형식입니다")
     except Exception as e:
-        raise ValueError(f"올바르지 않은 {field_name} 형식입니다: {e}")
+        raise ValueError(f"올바르지 않은 {field_name} 형식입니다: {e}") from e
 
     return url
 
@@ -109,7 +109,7 @@ def validate_file_path(
 
 def validate_temperature(temperature: float, min_temp: float = 0.0, max_temp: float = 2.0) -> float:
     """온도 값 검증."""
-    if not isinstance(temperature, (int, float)):
+    if not isinstance(temperature, int | float):
         raise ValueError("온도는 숫자여야 합니다")
 
     if not min_temp <= temperature <= max_temp:

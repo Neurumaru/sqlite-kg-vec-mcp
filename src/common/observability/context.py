@@ -6,7 +6,7 @@ import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -22,7 +22,7 @@ class TraceContext:
     layer: Optional[str] = None
     component: Optional[str] = None
     start_time: Optional[datetime] = None
-    metadata: dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
     def __post_init__(self):
         """기본값을 초기화합니다."""
@@ -52,10 +52,10 @@ class TraceContext:
 
 
 # 트레이스 전파를 위한 컨텍스트 변수
-_trace_context: ContextVar[TraceContext]] = ContextVar("trace_context", default=None)
+_trace_context: ContextVar[Optional[TraceContext]] = ContextVar("trace_context", default=None)
 
 
-def get_current_trace_id() -> str]:
+def get_current_trace_id() -> Optional[str]:
     """
     현재 트레이스 ID를 컨텍스트에서 가져옵니다.
 
@@ -66,7 +66,7 @@ def get_current_trace_id() -> str]:
     return context.trace_id if context else None
 
 
-def get_current_span_id() -> str]:
+def get_current_span_id() -> Optional[str]:
     """
     현재 스팬 ID를 컨텍스트에서 가져옵니다.
 
@@ -77,7 +77,7 @@ def get_current_span_id() -> str]:
     return context.span_id if context else None
 
 
-def get_current_trace_context() -> TraceContext]:
+def get_current_trace_context() -> Optional[TraceContext]:
     """
     현재 트레이스 컨텍스트를 가져옵니다.
 
@@ -92,7 +92,7 @@ def create_trace_context(
     layer: str,
     component: str,
     parent_context: Optional[TraceContext] = None,
-    metadata: dict[str, Any]] = None,
+    metadata: Optional[dict[str, Any]] = None,
 ) -> TraceContext:
     """
     새로운 트레이스 컨텍스트를 생성합니다.
@@ -127,7 +127,7 @@ def create_trace_context(
     )
 
 
-def set_trace_context(context: TraceContext]) -> None:
+def set_trace_context(context: TraceContext) -> None:
     """
     현재 트레이스 컨텍스트를 설정합니다.
 

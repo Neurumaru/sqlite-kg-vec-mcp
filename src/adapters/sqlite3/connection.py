@@ -6,7 +6,7 @@ import datetime
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 from src.common.observability import get_observable_logger
 from src.domain.config.timeout_config import TimeoutConfig
@@ -20,7 +20,7 @@ def adapt_datetime(dt: datetime.datetime) -> str:
     return dt.isoformat()
 
 
-def convert_datetime(s: Union[str, bytes]) -> Union[datetime.datetime, str, bytes]:
+def convert_datetime(s: str | bytes) -> datetime.datetime | str | bytes:
     """SQLite의 문자열을 다시 datetime으로 변환합니다."""
     try:
         if isinstance(s, bytes):
@@ -41,7 +41,12 @@ class DatabaseConnection:
     최적화된 설정으로 SQLite 데이터베이스 연결을 관리합니다.
     """
 
-    def __init__(self, db_path: Union[str, Path], optimize: bool = True, timeout_config: Optional[TimeoutConfig] = None):
+    def __init__(
+        self,
+        db_path: str | Path,
+        optimize: bool = True,
+        timeout_config: Optional[TimeoutConfig] = None,
+    ):
         """
         데이터베이스 연결을 초기화합니다.
         Args:

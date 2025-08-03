@@ -11,6 +11,7 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 from ..validation.field_validators import (
+    validate_dimension,
     validate_file_path,
     validate_positive_integer,
     validate_timeout,
@@ -58,8 +59,6 @@ class DatabaseConfig(BaseSettings):
     @classmethod
     def validate_vector_dimension(cls, v: int) -> int:
         """벡터 차원이 양수이고 합리적인 범위인지 유효성 검사."""
-        from ..validation.field_validators import validate_dimension
-
         return validate_dimension(v)
 
     @field_validator("timeout")

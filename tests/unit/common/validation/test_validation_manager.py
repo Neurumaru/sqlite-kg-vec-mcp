@@ -5,7 +5,6 @@ ValidationManager 테스트.
 import logging
 from unittest.mock import Mock, patch
 
-import pytest
 from pydantic import BaseSettings, Field
 
 from src.common.config.validation_manager import ConfigValidationManager

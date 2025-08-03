@@ -18,7 +18,7 @@ class EmbeddingConfig:
 
     # 임베딩 관련 설정
     max_text_length: int = 8192  # 임베딩할 텍스트 최대 길이
-    min_text_length: int = 1     # 임베딩할 텍스트 최소 길이
+    min_text_length: int = 1  # 임베딩할 텍스트 최소 길이
 
     def __post_init__(self):
         """설정 검증"""

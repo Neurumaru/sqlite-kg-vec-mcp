@@ -3,7 +3,7 @@
 """
 
 import re
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from .base import InfrastructureException
 
@@ -109,7 +109,7 @@ class DataValidationException(DataException):
     def __init__(
         self,
         field: str,
-        value: Union[str, int, float, bool],
+        value: str | int | float | bool,
         expected_format: str,
         message: Optional[str] = None,
         error_code: Optional[str] = None,

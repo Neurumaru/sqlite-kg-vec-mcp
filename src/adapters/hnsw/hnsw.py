@@ -6,7 +6,7 @@
 import pickle
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import hnswlib
 import numpy as np
@@ -358,7 +358,7 @@ class HNSWIndex:
         query_vector: np.ndarray,
         k: int = 10,
         ef_search: Optional[int] = None,
-        filter_entity_types: list[str]] = None,
+        filter_entity_types: Optional[list[str]] = None,
     ) -> list[tuple[str, int, float]]:
         """
         쿼리 벡터에 가장 가까운 벡터를 검색합니다.
@@ -423,7 +423,7 @@ class HNSWIndex:
     def build_from_embeddings(
         self,
         embedding_manager: "EmbeddingManager",
-        entity_types: list[str]] = None,
+        entity_types: Optional[list[str]] = None,
         model_info: Optional[str] = None,
         batch_size: int = 1000,
     ) -> int:

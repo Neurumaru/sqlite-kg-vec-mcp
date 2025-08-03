@@ -3,7 +3,7 @@ SQLite 벡터 저장소의 쓰기 작업 구현체.
 """
 
 import shutil
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_metadata import DocumentMetadata
 from src.domain.value_objects.vector import Vector
@@ -131,7 +131,7 @@ class SQLiteVectorWriter(SQLiteVectorStoreBase, VectorWriter):
         except Exception as e:
             raise RuntimeError(f"벡터 추가 실패: {e}") from e
 
-    async def delete(self, ids: list[str]] = None, **kwargs: Any) -> bool]:
+    async def delete(self, ids: Optional[list[str]] = None, **kwargs: Any) -> bool:
         """
         문서를 삭제합니다.
 

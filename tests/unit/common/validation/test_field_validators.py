@@ -2,8 +2,6 @@
 필드 검증자 테스트.
 """
 
-from pathlib import Path
-
 import pytest
 
 from src.common.validation.field_validators import (

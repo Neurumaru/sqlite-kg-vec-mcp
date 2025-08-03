@@ -132,7 +132,7 @@ class KnowledgeGraphServer:
             error_msg = f"잘못된 노드 유형 또는 매개변수: {e}"
             self.logger.error(error_msg)
             return {"error": error_msg}
-        except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
+        except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("노드 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",
@@ -503,7 +503,7 @@ class KnowledgeGraphServer:
             error_msg = f"잘못된 관계 매개변수: {e}"
             self.logger.error(error_msg)
             return {"error": error_msg}
-        except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
+        except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
             self.logger.error("관계 생성 중 오류 발생: %s", e)
             raise MCPServerException(
                 server_state="running",

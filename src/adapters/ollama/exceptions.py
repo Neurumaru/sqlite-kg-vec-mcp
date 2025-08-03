@@ -5,7 +5,7 @@ Ollama 관련 인프라 예외.
 일반적인 API 실패 시나리오에 대한 의미 있는 추상화를 제공합니다.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -209,7 +209,7 @@ class OllamaGenerationException(InfrastructureException):
         model_name: str,
         prompt: str,
         message: str,
-        generation_params: dict[str, Any]] = None,
+        generation_params: Optional[dict[str, Any]] = None,
         context: Optional[dict[str, Any]] = None,
         original_error: Optional[Exception] = None,
     ):

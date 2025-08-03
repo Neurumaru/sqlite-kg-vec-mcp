@@ -164,7 +164,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
     def _process_entities(
         self,
         entities: list[dict[str, Any]],
-        source_id: str,
+        source_id: Optional[str],
         enhance_descriptions: bool,
         errors: list[str],
     ) -> int:

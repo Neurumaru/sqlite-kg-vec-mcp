@@ -15,6 +15,7 @@ from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExpo
 from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+
 from src.domain.config.timeout_config import TimeoutConfig
 
 from .logger import get_observable_logger
@@ -191,7 +192,7 @@ class ObservabilityIntegration:
         """
         return self._external_service
 
-    def create_trace(self, name: str, **metadata) -> str:
+    def create_trace(self, name: str, **metadata) -> Optional[str]:
         """
         외부 서비스에 트레이스를 생성합니다.
 
@@ -445,7 +446,7 @@ def initialize_observability(
     return ObservabilityIntegration(config)
 
 
-def get_observability_integration() -> ObservabilityIntegration:
+def get_observability_integration() -> Optional[ObservabilityIntegration]:
     """전역 관찰 가능성 통합 인스턴스를 가져옵니다 (deprecated)."""
     # 이 함수는 더 이상 사용되지 않으므로 새 코드에서는 사용하지 마세요
     # 대신 의존성 주입 패턴을 사용하세요

@@ -58,9 +58,11 @@ class Node:
         if not self.name.strip():
             raise ValueError("Node name cannot be empty")
 
-    def add_source_document(self, document_id: Optional[DocumentId, context: Optional[str] = None) -> None:
+    def add_source_document(
+        self, document_id: Optional[DocumentId], context: Optional[str] = None
+    ) -> None:
         """원본 문서를 추가합니다."""
-        if document_id not in self.source_documents:
+        if document_id is not None and document_id not in self.source_documents:
             self.source_documents.append(document_id)
             if context:
                 self.add_extraction_context(document_id, context)

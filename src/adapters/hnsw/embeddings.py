@@ -175,7 +175,7 @@ class EmbeddingManager:
         self.connection.commit()
         return cursor.rowcount > 0
 
-    def get_embedding(self, entity_type: str, entity_id: int) -> Embedding:
+    def get_embedding(self, entity_type: str, entity_id: int) -> Optional[Embedding]:
         """
         특정 엔티티에 대한 임베딩을 가져옵니다.
 

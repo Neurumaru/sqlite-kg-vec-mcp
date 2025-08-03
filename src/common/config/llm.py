@@ -4,7 +4,7 @@ LLM (대규모 언어 모델) 구성 설정.
 
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -220,7 +220,7 @@ class LLMConfig(BaseSettings):
         if self.default_provider == "anthropic" and not self.anthropic.api_key:
             raise ValueError("Anthropic 제공업체를 사용할 때는 Anthropic API 키가 필요합니다")
 
-    def get_active_provider_config(self) -> Union[OllamaConfig, OpenAIConfig, AnthropicConfig]:
+    def get_active_provider_config(self) -> OllamaConfig | OpenAIConfig | AnthropicConfig:
         """활성 제공업체의 구성을 가져옵니다."""
         if self.default_provider == "openai":
             return self.openai

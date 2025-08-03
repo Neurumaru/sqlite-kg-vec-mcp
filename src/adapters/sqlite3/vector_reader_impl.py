@@ -2,7 +2,7 @@
 SQLite 벡터 저장소의 읽기 작업 구현체.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_metadata import DocumentMetadata
 from src.domain.value_objects.search_result import VectorSearchResult, VectorSearchResultCollection
@@ -19,7 +19,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
     벡터와 문서의 조회, 검색 작업을 담당합니다.
     """
 
-    async def get_document(self, document_id: str) -> DocumentMetadata]:
+    async def get_document(self, document_id: str) -> Optional[DocumentMetadata]:
         """
         ID로 문서를 조회합니다.
 
@@ -57,7 +57,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
         except Exception:
             return None
 
-    async def get_vector(self, vector_id: str) -> Vector]:
+    async def get_vector(self, vector_id: str) -> Optional[Vector]:
         """
         ID로 벡터를 조회합니다.
 
@@ -400,7 +400,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
         except Exception:
             return False
 
-    async def get_metadata(self, vector_id: str) -> dict[str, Any]]:
+    async def get_metadata(self, vector_id: str) -> Optional[dict[str, Any]]:
         """
         벡터에 대한 메타데이터를 가져옵니다.
 

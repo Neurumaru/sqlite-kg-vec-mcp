@@ -5,7 +5,7 @@
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Optional
 
 from .context import (
     TraceContextManager,
@@ -112,7 +112,7 @@ def with_trace(
     operation: Optional[str] = None,
     layer: Optional[str] = None,
     component: Optional[str] = None,
-    metadata: dict[str, Any]] = None,
+    metadata: Optional[dict[str, Any]] = None,
 ):
     """
     함수에 추적 컨텍스트를 추가하는 데코레이터.
@@ -148,7 +148,7 @@ def with_trace(
     return decorator
 
 
-def with_metrics(metric_name: Optional[str] = None, tags: dict[str, str]] = None):
+def with_metrics(metric_name: Optional[str] = None, tags: Optional[dict[str, str]] = None):
     """
     자동 메트릭 수집을 추가하는 데코레이터.
 

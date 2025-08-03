@@ -7,7 +7,7 @@ OpenTelemetry 데코레이터 (공식 패턴 기반).
 import functools
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Optional
 
 try:
     from opentelemetry import metrics, trace
@@ -20,7 +20,7 @@ except ImportError:
 
 def traced(
     operation_name: Optional[str] = None,
-    attributes: dict[str, Any]] = None,
+    attributes: Optional[dict[str, Any]] = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     OpenTelemetry 트레이싱 데코레이터 (공식 패턴).
@@ -175,7 +175,7 @@ def measured(
 def observed(
     operation_name: Optional[str] = None,
     metric_name: Optional[str] = None,
-    span_attributes: dict[str, Any]] = None,
+    span_attributes: dict[str, Any] = None,
     track_duration: bool = True,
     track_calls: bool = True,
 ) -> Callable:

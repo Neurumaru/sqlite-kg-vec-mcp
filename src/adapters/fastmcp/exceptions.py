@@ -5,7 +5,7 @@ FastMCP 서버 인프라 예외.
 메시지 처리 실패 등을 처리합니다.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions.base import InfrastructureException
 from ..exceptions.connection import ConnectionException
@@ -158,7 +158,7 @@ class MCPToolException(MCPException):
         tool_name: str,
         operation: str,
         message: str,
-        tool_args: dict[str, Any]] = None,
+        tool_args: Optional[dict[str, Any]] = None,
         context: Optional[dict[str, Any]] = None,
         original_error: Optional[Exception] = None,
     ):
@@ -243,7 +243,7 @@ class MCPPromptException(MCPException):
         prompt_name: str,
         operation: str,
         message: str,
-        prompt_args: dict[str, Any]] = None,
+        prompt_args: Optional[dict[str, Any]] = None,
         context: Optional[dict[str, Any]] = None,
         original_error: Optional[Exception] = None,
     ):

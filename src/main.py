@@ -406,12 +406,12 @@ class ConcreteDocumentManagementUseCase(DocumentManagementUseCase):
         self.document_repository = document_repository
 
     async def create_document(
-        self, title: str, content: str, metadata: Optional[dict] = None
+        self, title: Optional[str], content: str, metadata: Optional[dict] = None
     ) -> Document:
         # 단순화됨
         return Document(
             id=DocumentId("1"),
-            title=title,
+            title=title or "",
             content=content,
             doc_type=DocumentType.TEXT,
             metadata=metadata or {},

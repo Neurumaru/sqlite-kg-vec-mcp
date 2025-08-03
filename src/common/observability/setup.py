@@ -3,7 +3,7 @@
 """
 
 import os
-from typing import Any
+from typing import Any, Optional
 
 from ..logging.config import (
     LoggingConfig,
@@ -15,8 +15,8 @@ from .logger import get_observable_logger
 
 
 def setup_observability(
-    logging_config: dict[str, Any]] = None,
-    observability_config: dict[str, Any]] = None,
+    logging_config: Optional[dict[str, Any]] = None,
+    observability_config: Optional[dict[str, Any]] = None,
     auto_configure: bool = True,
 ) -> None:
     """

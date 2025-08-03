@@ -2,17 +2,16 @@
 TransactionContext 단위 테스트.
 """
 
+import importlib.util
 import sqlite3
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 # 직접 모듈 임포트 (전체 프로젝트 초기화 우회)
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-import importlib.util
 
 spec = importlib.util.spec_from_file_location(
     "transaction_context", project_root / "src" / "adapters" / "sqlite3" / "transaction_context.py"

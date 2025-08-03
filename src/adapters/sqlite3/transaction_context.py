@@ -5,9 +5,10 @@
 import logging
 import sqlite3
 import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, Generator, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -74,11 +75,11 @@ class TransactionContext:
                 self._is_nested = True
                 self._savepoint_name = f"sp_{self.transaction_id[:8]}"
                 self.connection.execute(f"SAVEPOINT {self._savepoint_name}")
-                logger.debug(f"Savepoint 생성: {self._savepoint_name}")
+                logger.debug("Savepoint 생성: %s", self._savepoint_name)
             else:
                 # 새 트랜잭션 시작
                 self.connection.execute(f"BEGIN {self.isolation_level.value}")
-                logger.debug(f"트랜잭션 시작: {self.transaction_id} ({self.isolation_level.value})")
+                logger.debug("트랜잭션 시작: %s (%s)", self.transaction_id, self.isolation_level.value)
 
             yield self
 
@@ -90,7 +91,7 @@ class TransactionContext:
             # 예외 발생 시 롤백
             if self.state == TransactionState.ACTIVE:
                 self.rollback()
-            logger.error(f"트랜잭션 실패: {self.transaction_id}, 오류: {e}")
+            logger.error("트랜잭션 실패: %s, 오류: %s", self.transaction_id, e)
             raise
 
     def commit(self) -> bool:
@@ -101,7 +102,7 @@ class TransactionContext:
             커밋 성공 여부
         """
         if self.state != TransactionState.ACTIVE:
-            logger.warning(f"비활성 트랜잭션 커밋 시도: {self.transaction_id} (상태: {self.state})")
+            logger.warning("비활성 트랜잭션 커밋 시도: %s (상태: %s)", self.transaction_id, self.state)
             return False
 
         try:
@@ -109,17 +110,17 @@ class TransactionContext:
                 # Savepoint 해제
                 if self._savepoint_name:
                     self.connection.execute(f"RELEASE SAVEPOINT {self._savepoint_name}")
-                    logger.debug(f"Savepoint 해제: {self._savepoint_name}")
+                    logger.debug("Savepoint 해제: %s", self._savepoint_name)
             else:
                 # 트랜잭션 커밋
                 self.connection.execute("COMMIT")
-                logger.debug(f"트랜잭션 커밋: {self.transaction_id}")
+                logger.debug("트랜잭션 커밋: %s", self.transaction_id)
 
             self.state = TransactionState.COMMITTED
             return True
 
         except Exception as e:
-            logger.error(f"커밋 실패: {self.transaction_id}, 오류: {e}")
+            logger.error("커밋 실패: %s, 오류: %s", self.transaction_id, e)
             self.state = TransactionState.FAILED
             return False
 
@@ -131,7 +132,7 @@ class TransactionContext:
             롤백 성공 여부
         """
         if self.state not in (TransactionState.ACTIVE, TransactionState.FAILED):
-            logger.warning(f"비활성 트랜잭션 롤백 시도: {self.transaction_id} (상태: {self.state})")
+            logger.warning("비활성 트랜잭션 롤백 시도: %s (상태: %s)", self.transaction_id, self.state)
             return False
 
         try:
@@ -139,17 +140,17 @@ class TransactionContext:
                 # Savepoint로 롤백
                 if self._savepoint_name:
                     self.connection.execute(f"ROLLBACK TO SAVEPOINT {self._savepoint_name}")
-                    logger.debug(f"Savepoint 롤백: {self._savepoint_name}")
+                    logger.debug("Savepoint 롤백: %s", self._savepoint_name)
             else:
                 # 트랜잭션 롤백
                 self.connection.execute("ROLLBACK")
-                logger.debug(f"트랜잭션 롤백: {self.transaction_id}")
+                logger.debug("트랜잭션 롤백: %s", self.transaction_id)
 
             self.state = TransactionState.ROLLED_BACK
             return True
 
         except Exception as e:
-            logger.error(f"롤백 실패: {self.transaction_id}, 오류: {e}")
+            logger.error("롤백 실패: %s, 오류: %s", self.transaction_id, e)
             self.state = TransactionState.FAILED
             return False
 
@@ -170,10 +171,9 @@ class TransactionContext:
         try:
             if parameters is not None:
                 return self.connection.execute(sql, parameters)
-            else:
-                return self.connection.execute(sql)
+            return self.connection.execute(sql)
         except Exception as e:
-            logger.error(f"SQL 실행 실패: {self.transaction_id}, SQL: {sql}, 오류: {e}")
+            logger.error("SQL 실행 실패: %s, SQL: %s, 오류: %s", self.transaction_id, sql, e)
             raise
 
     def executemany(self, sql: str, parameters_list) -> sqlite3.Cursor:
@@ -193,7 +193,7 @@ class TransactionContext:
         try:
             return self.connection.executemany(sql, parameters_list)
         except Exception as e:
-            logger.error(f"배치 SQL 실행 실패: {self.transaction_id}, SQL: {sql}, 오류: {e}")
+            logger.error("배치 SQL 실행 실패: %s, SQL: %s, 오류: %s", self.transaction_id, sql, e)
             raise
 
     @property

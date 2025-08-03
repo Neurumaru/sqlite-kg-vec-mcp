@@ -5,7 +5,7 @@ SQLite 데이터베이스 스키마 정의 및 초기화.
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .connection import DatabaseConnection
 
