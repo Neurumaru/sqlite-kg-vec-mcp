@@ -3,6 +3,7 @@
 """
 
 import logging
+from typing import Optional
 
 from src.domain.entities.document import Document
 from src.ports.mappers import DocumentMapper
@@ -20,7 +21,7 @@ class DocumentPersistenceService:
         self,
         document_repository: DocumentRepository,
         document_mapper: DocumentMapper,
-        logger: logging.Logger | None = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.document_repository = document_repository
         self.document_mapper = document_mapper

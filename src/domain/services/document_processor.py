@@ -3,7 +3,7 @@
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.entities.document import Document, DocumentStatus
 from src.domain.entities.node import Node
@@ -33,11 +33,11 @@ class DocumentProcessor:
         document_mapper: DocumentMapper,
         node_mapper: NodeMapper,
         relationship_mapper: RelationshipMapper,
-        document_validation_service: DocumentValidationService | None = None,
-        document_persistence_service: DocumentPersistenceService | None = None,
-        document_statistics_service: DocumentStatisticsService | None = None,
-        document_repository: DocumentRepository | None = None,
-        logger: logging.Logger | None = None,
+        document_validation_service: Optional[DocumentValidationService] = None,
+        document_persistence_service: Optional[DocumentPersistenceService] = None,
+        document_statistics_service: Optional[DocumentStatisticsService] = None,
+        document_repository: Optional[DocumentRepository] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.knowledge_extractor = knowledge_extractor
         self.document_mapper = document_mapper
@@ -47,7 +47,7 @@ class DocumentProcessor:
             document_validation_service or DocumentValidationService()
         )
         # 영속성 서비스 초기화 (repository가 있는 경우만)
-        self.document_persistence_service: DocumentPersistenceService | None
+        self.document_persistence_service: Optional[DocumentPersistenceService]
         if document_repository and not document_persistence_service:
             self.document_persistence_service = DocumentPersistenceService(
                 document_repository, document_mapper, logger
@@ -206,10 +206,10 @@ class DocumentProcessor:
     def update_document_links(
         self,
         document: Document,
-        added_nodes: list[NodeId] = None,
-        removed_nodes: list[NodeId] = None,
-        added_relationships: list[RelationshipId] = None,
-        removed_relationships: list[RelationshipId] = None,
+        added_nodes: Optional[list[NodeId]] = None,
+        removed_nodes: Optional[list[NodeId]] = None,
+        added_relationships: Optional[list[RelationshipId]] = None,
+        removed_relationships: Optional[list[RelationshipId]] = None,
     ) -> None:
         """문서의 지식 요소 연결을 업데이트합니다."""
 

@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 
 class DocumentStatus(Enum):
@@ -55,7 +55,7 @@ class DocumentData:
     version: int  # 버전 번호
     created_at: datetime  # 생성 시각
     updated_at: datetime  # 업데이트 시각
-    processed_at: datetime | None = None  # 처리 완료 시각
+    processed_at: Optional[datetime] = None  # 처리 완료 시각
     connected_nodes: list[str] = field(default_factory=list)  # 연결된 노드 목록
     connected_relationships: list[str] = field(default_factory=list)  # 연결된 관계 목록
 

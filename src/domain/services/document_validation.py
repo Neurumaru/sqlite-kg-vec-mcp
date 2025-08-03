@@ -4,6 +4,7 @@
 
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
 from src.domain.entities.document import Document, DocumentStatus
 
@@ -22,7 +23,7 @@ class DocumentValidationRules:
     allow_processing_while_processing: bool = False
 
     # 메타데이터 관련 규칙
-    required_metadata_keys: list[str] | None = None
+    required_metadata_keys: Optional[list[str]] = None
     max_metadata_size: int = 10_000
 
     def __post_init__(self) -> None:
@@ -55,7 +56,7 @@ class DocumentValidationResult:
 
     @classmethod
     def invalid(
-        cls, errors: list[str], warnings: list[str] | None = None
+        cls, errors: list[str], warnings: Optional[list[str]] = None
     ) -> "DocumentValidationResult":
         """무효한 결과 생성."""
         return cls(is_valid=False, errors=errors, warnings=warnings or [])

@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
@@ -16,7 +16,7 @@ class DocumentMetadata:
 
     content: str
     metadata: dict[str, Any]
-    source: str | None = None
+    source: Optional[str] = None
 
     def __post_init__(self):
         """유효성 검사."""
@@ -29,7 +29,7 @@ class DocumentMetadata:
 
     @classmethod
     def create(
-        cls, content: str, metadata: dict[str, Any] | None = None, source: str | None = None
+        cls, content: str, metadata: Optional[dict[str, Any]] = None, source: Optional[str] = None
     ) -> "DocumentMetadata":
         """편의 팩토리 메서드."""
         return cls(content=content, metadata=metadata or {}, source=source)

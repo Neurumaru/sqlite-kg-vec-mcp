@@ -7,7 +7,7 @@
 
 from abc import ABC, abstractmethod
 from contextlib import AbstractAsyncContextManager
-from typing import Any
+from typing import Any, Optional
 
 
 class Database(ABC):
@@ -22,8 +22,8 @@ class Database(ABC):
     async def execute_query(
         self,
         query: str,
-        parameters: dict[str, Any] | None = None,
-        transaction_id: str | None = None,
+        parameters: Optional[dict[str, Any]] = None,
+        transaction_id: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         """
         SELECT 쿼리를 실행합니다.
@@ -43,8 +43,8 @@ class Database(ABC):
     async def execute_command(
         self,
         command: str,
-        parameters: dict[str, Any] | None = None,
-        transaction_id: str | None = None,
+        parameters: Optional[dict[str, Any]] = None,
+        transaction_id: Optional[str] = None,
     ) -> int:
         """
         SELECT가 아닌 명령(INSERT, UPDATE, DELETE)을 실행합니다.
@@ -105,7 +105,7 @@ class Database(ABC):
         """
 
     @abstractmethod
-    async def get_table_schema(self, table_name: str) -> dict[str, Any] | None:
+    async def get_table_schema(self, table_name: str) -> Optional[dict[str, Any]]:
         """
         테이블 스키마를 가져옵니다.
 
@@ -130,7 +130,7 @@ class DatabaseMaintenance(ABC):
         """데이터베이스 VACUUM 작업을 수행합니다."""
 
     @abstractmethod
-    async def analyze(self, table_name: str | None = None) -> bool:
+    async def analyze(self, table_name: Optional[str] = None) -> bool:
         """데이터베이스 통계를 분석합니다."""
 
     @abstractmethod

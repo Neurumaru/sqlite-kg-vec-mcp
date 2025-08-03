@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from .document_metadata import DocumentMetadata
 
@@ -18,7 +18,7 @@ class VectorSearchResult:
 
     document: DocumentMetadata
     score: float
-    id: str | None = None
+    id: Optional[str] = None
 
     def __post_init__(self):
         """유효성 검사."""
@@ -36,9 +36,9 @@ class VectorSearchResult:
         cls,
         content: str,
         score: float,
-        metadata: dict[str, Any] | None = None,
-        result_id: str | None = None,
-        source: str | None = None,
+        metadata: Optional[dict[str, Any]] = None,
+        result_id: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> "VectorSearchResult":
         """편의 팩토리 메서드."""
         document = DocumentMetadata.create(content=content, metadata=metadata, source=source)

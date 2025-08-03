@@ -5,7 +5,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -49,7 +49,7 @@ class Document:
     version: int = 1
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    processed_at: datetime | None = None
+    processed_at: Optional[datetime] = None
 
     # 연결된 노드와 관계들
     connected_nodes: list[NodeId] = field(default_factory=list)

@@ -3,6 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD
 from src.domain.entities.document import Document
@@ -58,7 +59,7 @@ class KnowledgeSearchUseCase(ABC):
     async def search_nodes(
         self,
         query: str,
-        node_types: list[str] | None = None,
+        node_types: Optional[list[str]] = None,
         limit: int = 10,
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[Node]:
@@ -68,7 +69,7 @@ class KnowledgeSearchUseCase(ABC):
     async def search_relationships(
         self,
         query: str,
-        relationship_types: list[str] | None = None,
+        relationship_types: Optional[list[str]] = None,
         limit: int = 10,
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[Relationship]:
