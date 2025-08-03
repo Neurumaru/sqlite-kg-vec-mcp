@@ -79,7 +79,9 @@ class TransactionContext:
             else:
                 # 새 트랜잭션 시작
                 self.connection.execute(f"BEGIN {self.isolation_level.value}")
-                logger.debug("트랜잭션 시작: %s (%s)", self.transaction_id, self.isolation_level.value)
+                logger.debug(
+                    "트랜잭션 시작: %s (%s)", self.transaction_id, self.isolation_level.value
+                )
 
             yield self
 
@@ -102,7 +104,9 @@ class TransactionContext:
             커밋 성공 여부
         """
         if self.state != TransactionState.ACTIVE:
-            logger.warning("비활성 트랜잭션 커밋 시도: %s (상태: %s)", self.transaction_id, self.state)
+            logger.warning(
+                "비활성 트랜잭션 커밋 시도: %s (상태: %s)", self.transaction_id, self.state
+            )
             return False
 
         try:
@@ -132,7 +136,9 @@ class TransactionContext:
             롤백 성공 여부
         """
         if self.state not in (TransactionState.ACTIVE, TransactionState.FAILED):
-            logger.warning("비활성 트랜잭션 롤백 시도: %s (상태: %s)", self.transaction_id, self.state)
+            logger.warning(
+                "비활성 트랜잭션 롤백 시도: %s (상태: %s)", self.transaction_id, self.state
+            )
             return False
 
         try:

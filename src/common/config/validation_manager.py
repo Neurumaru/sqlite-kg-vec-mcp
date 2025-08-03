@@ -87,8 +87,9 @@ class ConfigValidationManager:
             return
 
         active_provider = llm_config.get_active_provider_config()
-        if not (hasattr(active_provider, "embedding_dimension")
-                and active_provider.embedding_dimension):
+        if not (
+            hasattr(active_provider, "embedding_dimension") and active_provider.embedding_dimension
+        ):
             return
 
         if not hasattr(db_config, "vector_dimension"):

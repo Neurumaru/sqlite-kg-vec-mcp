@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from src.config.search_config import SearchConfig
 from src.domain.value_objects.document_metadata import DocumentMetadata
+from src.domain.value_objects.search_result import VectorSearchResultCollection
 from src.domain.value_objects.vector import Vector
 from src.ports.vector_store import VectorStore
 
@@ -101,19 +102,18 @@ class SQLiteVectorStore(VectorStore):
     async def similarity_search(
         self,
         query: str,
-        k: int = 5,
-        filter_criteria: Optional[dict[str, Any]] = None,
+        k: int = 4,
         **kwargs: Any,
-    ) -> list[tuple[DocumentMetadata, float]]:
+    ) -> VectorSearchResultCollection:
         """쿼리 텍스트를 기반으로 유사도 검색을 수행합니다."""
-        return await self.reader.similarity_search(query, k, filter_criteria, **kwargs)
+        return await self.reader.similarity_search(query, k, **kwargs)
 
     async def similarity_search_by_vector(
         self,
         vector: Vector,
         k: int = 4,
         **kwargs: Any,
-    ) -> list[tuple[DocumentMetadata, float]]:
+    ) -> VectorSearchResultCollection:
         """임베딩 벡터를 기반으로 유사도 검색을 수행합니다."""
         return await self.reader.similarity_search_by_vector(vector, k, **kwargs)
 
@@ -124,7 +124,7 @@ class SQLiteVectorStore(VectorStore):
         k: int = 4,
         search_type: str = "similarity",
         **kwargs: Any,
-    ) -> list[DocumentMetadata]:
+    ) -> VectorSearchResultCollection:
         """쿼리를 기반으로 관련 문서를 검색합니다."""
         return await self.retriever.retrieve(query, k, search_type, **kwargs)
 
@@ -134,28 +134,25 @@ class SQLiteVectorStore(VectorStore):
         filter_criteria: dict[str, Any],
         k: int = 4,
         **kwargs: Any,
-    ) -> list[DocumentMetadata]:
+    ) -> VectorSearchResultCollection:
         """필터가 적용된 문서 검색을 수행합니다."""
         return await self.retriever.retrieve_with_filter(query, filter_criteria, k, **kwargs)
 
     async def retrieve_mmr(
         self,
         query: str,
-        k: int = 5,
+        k: int = 4,
         fetch_k: int = 20,
         lambda_mult: float = 0.5,
-        filter_criteria: Optional[dict[str, Any]] = None,
         **kwargs: Any,
-    ) -> list[DocumentMetadata]:
+    ) -> VectorSearchResultCollection:
         """MMR을 사용한 다양성 기반 검색을 수행합니다."""
-        return await self.retriever.retrieve_mmr(
-            query, k, fetch_k, lambda_mult, filter_criteria, **kwargs
-        )
+        return await self.retriever.retrieve_mmr(query, k, fetch_k, lambda_mult, **kwargs)
 
     async def get_relevant_documents(
         self,
         query: str,
         **kwargs: Any,
-    ) -> list[DocumentMetadata]:
+    ) -> VectorSearchResultCollection:
         """쿼리와 관련된 문서들을 반환합니다."""
         return await self.retriever.get_relevant_documents(query, **kwargs)
