@@ -75,7 +75,7 @@ class OllamaClient:
         self._test_connection()
 
     def _test_connection(self) -> bool:
-        """Ollama 서버에 대한 연결을 테스트합니다."""
+        """Ollama 서버에 대한 연결을 테스트합니다 (내부 사용, 예외 발생하지 않음)."""
         try:
             response = self.session.get(
                 f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout
@@ -115,6 +115,43 @@ class OllamaClient:
                 error_message=str(exception),
             )
             return False
+
+    def test_connection(self) -> bool:
+        """
+        Ollama 서버에 대한 연결을 테스트합니다 (공개 API, 예외 발생).
+
+        Returns:
+            연결 성공 시 True
+
+        Raises:
+            OllamaConnectionException: 연결 실패 시
+            OllamaTimeoutException: 타임아웃 시
+        """
+        try:
+            response = self.session.get(
+                f"{self.base_url}/api/tags", timeout=self.timeout_config.ollama_quick_timeout
+            )
+            response.raise_for_status()
+            return True
+        except requests.ConnectionError as exception:
+            raise OllamaConnectionException.from_requests_error(
+                self.base_url, exception
+            ) from exception
+        except requests.Timeout as exception:
+            raise OllamaTimeoutException(
+                base_url=self.base_url,
+                operation="connection test",
+                timeout_duration=int(self.timeout_config.ollama_quick_timeout),
+                original_error=exception,
+            ) from exception
+        except requests.HTTPError as exception:
+            status_code = getattr(exception.response, "status_code", None)
+            raise OllamaConnectionException(
+                base_url=self.base_url,
+                message=f"연결 테스트 중 HTTP {status_code} 오류",
+                status_code=status_code,
+                original_error=exception,
+            ) from exception
 
     @with_observability(operation="llm_generate", include_args=True, include_result=True)
     def generate(
