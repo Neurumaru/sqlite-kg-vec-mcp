@@ -9,6 +9,10 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
+from src.adapters.huggingface.exceptions import (
+    HuggingFaceEmbeddingException,
+    HuggingFaceModelLoadException,
+)
 from src.adapters.huggingface.text_embedder import HuggingFaceTextEmbedder
 from src.dto import EmbeddingResult
 
@@ -77,14 +81,23 @@ class TestHuggingFaceTextEmbedder(unittest.IsolatedAsyncioTestCase):
     def test_initialization_model_load_error(self, mock_get_logger, mock_sentence_transformer):
         """Given: SentenceTransformer 로딩 중 오류 발생
         When: HuggingFaceTextEmbedder를 초기화할 때
-        Then: 예외가 전파되어야 함"""
+        Then: HuggingFaceModelLoadException이 발생해야 함"""
         # Given
-        mock_sentence_transformer.side_effect = Exception("Model loading failed")
+        original_error = Exception("Model loading failed")
+        mock_sentence_transformer.side_effect = original_error
         mock_get_logger.return_value = self.mock_logger
 
         # When & Then
-        with self.assertRaises(ValueError):
+        with self.assertRaises(HuggingFaceModelLoadException) as context:
             HuggingFaceTextEmbedder("invalid-model")
+
+        # 예외 내용 검증
+        exception = context.exception
+        self.assertEqual(exception.model_name, "invalid-model")
+        self.assertEqual(exception.operation, "model loading")
+        self.assertEqual(exception.error_code, "HUGGINGFACE_MODEL_LOAD_FAILED")
+        self.assertEqual(exception.original_error, original_error)
+        self.assertIn("모델 로딩 실패", str(exception))
 
         self.mock_logger.error.assert_called_once()
 
@@ -94,7 +107,7 @@ class TestHuggingFaceTextEmbedder(unittest.IsolatedAsyncioTestCase):
     def test_initialization_dimension_none(self, mock_get_logger, mock_sentence_transformer):
         """Given: 모델의 embedding dimension이 None인 경우
         When: HuggingFaceTextEmbedder를 초기화할 때
-        Then: ValueError가 발생해야 함"""
+        Then: HuggingFaceModelLoadException이 발생해야 함"""
         # Given
         mock_model = Mock()
         mock_model.get_sentence_embedding_dimension.return_value = None
@@ -102,10 +115,15 @@ class TestHuggingFaceTextEmbedder(unittest.IsolatedAsyncioTestCase):
         mock_get_logger.return_value = self.mock_logger
 
         # When & Then
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(HuggingFaceModelLoadException) as context:
             HuggingFaceTextEmbedder("test-model")
 
-        self.assertIn("Unable to determine embedding dimension", str(context.exception))
+        # 예외 내용 검증
+        exception = context.exception
+        self.assertEqual(exception.model_name, "test-model")
+        self.assertEqual(exception.operation, "model loading")
+        self.assertEqual(exception.error_code, "HUGGINGFACE_MODEL_LOAD_FAILED")
+        self.assertIn("Unable to determine embedding dimension", str(exception))
 
     @patch("src.adapters.huggingface.text_embedder.SENTENCE_TRANSFORMERS_AVAILABLE", True)
     @patch("src.adapters.huggingface.text_embedder.SentenceTransformer")
@@ -181,19 +199,27 @@ class TestHuggingFaceTextEmbedder(unittest.IsolatedAsyncioTestCase):
     async def test_embed_text_model_error(self, mock_get_logger, mock_sentence_transformer):
         """Given: 모델 인코딩 중 오류 발생
         When: embed_text를 호출할 때
-        Then: RuntimeError가 발생해야 함"""
+        Then: HuggingFaceEmbeddingException이 발생해야 함"""
         # Given
         mock_sentence_transformer.return_value = self.mock_model
         mock_get_logger.return_value = self.mock_logger
         embedder = HuggingFaceTextEmbedder("test-model")
 
-        self.mock_model.encode.side_effect = Exception("Model encoding failed")
+        original_error = Exception("Model encoding failed")
+        self.mock_model.encode.side_effect = original_error
 
         # When & Then
-        with self.assertRaises(RuntimeError) as context:
+        with self.assertRaises(HuggingFaceEmbeddingException) as context:
             await embedder.embed_text("test text")
 
-        self.assertIn("텍스트 임베딩 중 오류가 발생했습니다", str(context.exception))
+        # 예외 내용 검증
+        exception = context.exception
+        self.assertEqual(exception.model_name, "test-model")
+        self.assertEqual(exception.text, "test text")
+        self.assertEqual(exception.error_code, "HUGGINGFACE_EMBEDDING_FAILED")
+        self.assertEqual(exception.original_error, original_error)
+        self.assertIn("텍스트 임베딩 중 오류가 발생했습니다", str(exception))
+
         self.mock_logger.error.assert_called()
 
     @patch("src.adapters.huggingface.text_embedder.SENTENCE_TRANSFORMERS_AVAILABLE", True)
@@ -307,19 +333,28 @@ class TestHuggingFaceTextEmbedder(unittest.IsolatedAsyncioTestCase):
     async def test_embed_texts_model_error(self, mock_get_logger, mock_sentence_transformer):
         """Given: 모델 인코딩 중 오류 발생
         When: embed_texts를 호출할 때
-        Then: RuntimeError가 발생해야 함"""
+        Then: HuggingFaceEmbeddingException이 발생해야 함"""
         # Given
         mock_sentence_transformer.return_value = self.mock_model
         mock_get_logger.return_value = self.mock_logger
         embedder = HuggingFaceTextEmbedder("test-model")
 
-        self.mock_model.encode.side_effect = Exception("Batch encoding failed")
+        original_error = Exception("Batch encoding failed")
+        self.mock_model.encode.side_effect = original_error
 
         # When & Then
-        with self.assertRaises(RuntimeError) as context:
+        with self.assertRaises(HuggingFaceEmbeddingException) as context:
             await embedder.embed_texts(["Hello", "World"])
 
-        self.assertIn("텍스트 일괄 임베딩 중 오류가 발생했습니다", str(context.exception))
+        # 예외 내용 검증
+        exception = context.exception
+        self.assertEqual(exception.model_name, "test-model")
+        self.assertEqual(exception.text, "Hello")  # 첫 번째 텍스트가 대표로 사용됨
+        self.assertEqual(exception.error_code, "HUGGINGFACE_EMBEDDING_FAILED")
+        self.assertEqual(exception.original_error, original_error)
+        self.assertEqual(exception.context["batch_size"], 2)
+        self.assertIn("텍스트 일괄 임베딩 중 오류가 발생했습니다", str(exception))
+
         self.mock_logger.error.assert_called()
 
     @patch("src.adapters.huggingface.text_embedder.SENTENCE_TRANSFORMERS_AVAILABLE", True)

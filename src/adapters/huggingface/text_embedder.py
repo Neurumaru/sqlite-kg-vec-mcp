@@ -17,6 +17,8 @@ from src.common.observability.logger import get_observable_logger
 from src.dto import EmbeddingResult
 from src.ports.text_embedder import TextEmbedder
 
+from .exceptions import HuggingFaceEmbeddingException, HuggingFaceModelLoadException
+
 
 class HuggingFaceTextEmbedder(TextEmbedder):
     """HuggingFace SentenceTransformers를 사용한 텍스트 임베딩 어댑터."""
@@ -63,7 +65,11 @@ class HuggingFaceTextEmbedder(TextEmbedder):
                 model_name=model_name,
                 error=str(exception),
             )
-            raise
+            raise HuggingFaceModelLoadException(
+                model_name=model_name,
+                message=f"모델 로딩 실패: {str(exception)}",
+                original_error=exception,
+            ) from exception
 
     async def embed_text(self, text: str) -> EmbeddingResult:
         """단일 텍스트를 임베딩합니다.
@@ -114,8 +120,11 @@ class HuggingFaceTextEmbedder(TextEmbedder):
                 error=str(exception),
                 processing_time_ms=(time.time() - start_time) * 1000,
             )
-            raise RuntimeError(
-                f"텍스트 임베딩 중 오류가 발생했습니다: {str(exception)}"
+            raise HuggingFaceEmbeddingException(
+                model_name=self.model_name,
+                text=text,
+                message=f"텍스트 임베딩 중 오류가 발생했습니다: {str(exception)}",
+                original_error=exception,
             ) from exception
 
     async def embed_texts(self, texts: list[str]) -> list[EmbeddingResult]:
@@ -191,8 +200,14 @@ class HuggingFaceTextEmbedder(TextEmbedder):
                 error=str(exception),
                 processing_time_ms=(time.time() - start_time) * 1000,
             )
-            raise RuntimeError(
-                f"텍스트 일괄 임베딩 중 오류가 발생했습니다: {str(exception)}"
+            # 첫 번째 텍스트를 대표로 사용
+            representative_text = texts[0] if texts else ""
+            raise HuggingFaceEmbeddingException(
+                model_name=self.model_name,
+                text=representative_text,
+                message=f"텍스트 일괄 임베딩 중 오류가 발생했습니다: {str(exception)}",
+                context={"batch_size": len(texts)},
+                original_error=exception,
             ) from exception
 
     def get_embedding_dimension(self) -> int:

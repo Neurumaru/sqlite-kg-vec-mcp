@@ -16,11 +16,12 @@
 - **해결**: VectorWriter, VectorReader, VectorRetriever로 분리
 - **상태**: ✅ 완료
 
-### 🔄 HuggingFace Adapter 오류
+### ✅ HuggingFace Adapter 오류
 - **파일**: `tests/unit/adapters/huggingface/test_text_embedder.py`
 - **문제**: `test_initialization_model_load_error` - SentenceTransformer 모델 로딩 실패 시 예외 처리 미흡
 - **원인**: Mock 설정 문제로 Exception 대신 적절한 예외 타입이 발생하지 않음
-- **상태**: 🔄 진행 중
+- **해결**: HuggingFaceModelLoadException, HuggingFaceEmbeddingException 예외 클래스 생성 및 적용
+- **상태**: ✅ 완료
 
 ### 📋 Ollama Client 연결 오류
 - **파일**: `tests/unit/adapters/ollama/client/test_connection.py`
