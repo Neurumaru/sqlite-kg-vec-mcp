@@ -14,7 +14,13 @@ from .graph.relationships import Relationship, RelationshipManager
 from .graph.traversal import GraphTraversal, PathNode
 from .schema import SchemaManager
 from .transactions import TransactionManager
+
+# 분리된 벡터 저장소 구현체들 (선택적 사용 가능)
+from .vector_reader_impl import SQLiteVectorReader
+from .vector_retriever_impl import SQLiteVectorRetriever
 from .vector_store import SQLiteVectorStore
+from .vector_store_base import SQLiteVectorStoreBase
+from .vector_writer_impl import SQLiteVectorWriter
 
 __all__ = [
     "DatabaseConnection",
@@ -22,6 +28,11 @@ __all__ = [
     "SQLiteDatabase",
     "SQLiteVectorStore",
     "TransactionManager",
+    # 분리된 벡터 저장소 구현체들
+    "SQLiteVectorStoreBase",
+    "SQLiteVectorWriter",
+    "SQLiteVectorReader",
+    "SQLiteVectorRetriever",
     # 그래프 클래스
     "Entity",
     "EntityManager",

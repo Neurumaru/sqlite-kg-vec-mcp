@@ -333,24 +333,24 @@ class ConcreteKnowledgeSearchUseCase(KnowledgeSearchUseCase):
         query_embedding = query_embedding_result.embedding
 
         # 노드와 관계에 대한 시맨틱 검색 수행
-        similar_nodes_with_scores = await self.vector_store.search_similar(
-            Vector(query_embedding), k=limit, filter_criteria={"entity_type": "node"}
+        similar_nodes_results = await self.vector_store.similarity_search_by_vector(
+            Vector(query_embedding), k=limit, filter={"entity_type": "node"}
         )
-        similar_relationships_with_scores = await self.vector_store.search_similar(
-            Vector(query_embedding), k=limit, filter_criteria={"entity_type": "edge"}
+        similar_relationships_results = await self.vector_store.similarity_search_by_vector(
+            Vector(query_embedding), k=limit, filter={"entity_type": "edge"}
         )
 
         # 결과를 SearchResultCollection 형식으로 변환
         results = []
-        for vector_id, score in similar_nodes_with_scores:
-            node = await self.node_use_case.get_node(NodeId(vector_id))
+        for result in similar_nodes_results.results:
+            node = await self.node_use_case.get_node(NodeId(result.id or ""))
             if node:
-                results.append(SearchResult(score=score, node=node))
+                results.append(SearchResult(score=result.score, node=node))
 
-        for vector_id, score in similar_relationships_with_scores:
-            rel = await self.relationship_use_case.get_relationship(RelationshipId(vector_id))
+        for result in similar_relationships_results.results:
+            rel = await self.relationship_use_case.get_relationship(RelationshipId(result.id or ""))
             if rel:
-                results.append(SearchResult(score=score, relationship=rel))
+                results.append(SearchResult(score=result.score, relationship=rel))
 
         # 점수 기준 내림차순 정렬
         results.sort(key=lambda x: x.score, reverse=True)
