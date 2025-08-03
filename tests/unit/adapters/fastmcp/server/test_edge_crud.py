@@ -32,7 +32,7 @@ class TestKnowledgeGraphServerCreateEdge(unittest.TestCase, BaseServerTestCase):
         # Given
         source_id = "1"
         target_id = "2"
-        relation_type = "KNOWS"
+        relation_type = RelationshipType.RELATES_TO
         properties = {"since": "2023"}
 
         mock_relationship = MockRelationship(
@@ -107,10 +107,10 @@ class TestKnowledgeGraphServerCreateEdge(unittest.TestCase, BaseServerTestCase):
         mock_context = MockContext()
         source_id = 1
         target_id = 2
-        relation_type = "KNOWS"
+        relation_type = RelationshipType.RELATES_TO
 
         mock_relationship = MockRelationship(
-            source_id=source_id, target_id=target_id, relation_type=relation_type
+            source_id=str(source_id), target_id=str(target_id), relation_type=relation_type
         )
         self.relationship_manager.create_relationship.return_value = mock_relationship
 
@@ -129,9 +129,9 @@ class TestKnowledgeGraphServerCreateEdge(unittest.TestCase, BaseServerTestCase):
 
             return {
                 "relationship_id": relationship.id,
-                "source_id": relationship.source_id,
-                "target_id": relationship.target_id,
-                "relation_type": relationship.relation_type,
+                "source_id": relationship.source_node_id,
+                "target_id": relationship.target_node_id,
+                "relation_type": relationship.relationship_type,
                 "properties": relationship.properties,
                 "created_at": relationship.created_at,
             }
@@ -144,7 +144,7 @@ class TestKnowledgeGraphServerCreateEdge(unittest.TestCase, BaseServerTestCase):
         # Then
         self.assertEqual(len(mock_context.info_calls), 1)
         self.assertIn("Creating edge:", mock_context.info_calls[0])
-        self.assertIn("1 -> 2 (KNOWS)", mock_context.info_calls[0])
+        self.assertIn("1 -> 2 (RelationshipType.RELATES_TO)", mock_context.info_calls[0])
         self.assertEqual(result["relationship_id"], mock_relationship.id)
 
     def test_exception_when_creation_fails(self):
@@ -157,7 +157,7 @@ class TestKnowledgeGraphServerCreateEdge(unittest.TestCase, BaseServerTestCase):
         mock_context = MockContext()
         source_id = 1
         target_id = 2
-        relation_type = "KNOWS"
+        relation_type = RelationshipType.RELATES_TO
         error_message = "Source node not found"
 
         self.relationship_manager.create_relationship.side_effect = Exception(error_message)

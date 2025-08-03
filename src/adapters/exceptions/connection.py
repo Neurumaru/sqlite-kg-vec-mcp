@@ -19,9 +19,9 @@ class ConnectionException(InfrastructureException):
         service: str,
         endpoint: str,
         message: str,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         연결 예외를 초기화합니다.
@@ -58,9 +58,9 @@ class DatabaseConnectionException(ConnectionException):
         self,
         db_path: str,
         message: str,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         데이터베이스 연결 예외를 초기화합니다.
@@ -95,10 +95,10 @@ class HTTPConnectionException(ConnectionException):
         self,
         url: str,
         message: str,
-        status_code: int | None = None,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        status_code: Optional[int] = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         HTTP 연결 예외를 초기화합니다.

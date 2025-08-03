@@ -58,10 +58,10 @@ class UnitOfWork:
         """
         self.connection = connection
         self.transaction_manager = TransactionManager(connection)
-        self._correlation_id: str | None = None
+        self._correlation_id: Optional[str] = None
 
     @property
-    def correlation_id(self) -> str | None:
+    def correlation_id(self) -> str]:
         """관련 작업을 추적하기 위한 상관 관계 ID를 가져옵니다."""
         return self._correlation_id
 
@@ -89,7 +89,7 @@ class UnitOfWork:
         entity_type: str,
         entity_id: int,
         operation_type: str,
-        model_info: str | None = None,
+        model_info: Optional[str] = None,
     ) -> int:
         """
         비동기 처리를 위해 아웃박스에 벡터 작업을 등록합니다.

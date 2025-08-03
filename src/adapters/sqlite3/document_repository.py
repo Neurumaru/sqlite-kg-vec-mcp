@@ -33,7 +33,7 @@ class SQLiteDocumentRepository(DocumentRepository):
     문서 지속성의 구체적인 구현을 제공합니다.
     """
 
-    def __init__(self, database: Database, logger: Logger | None = None):
+    def __init__(self, database: Optional[Database, logger: Logger] = None):
         """
         SQLite 문서 리포지토리 어댑터를 초기화합니다.
         Args:
@@ -115,7 +115,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         self.logger.info("문서 저장됨: %s", doc_entity.id)
         return document
 
-    async def find_by_id(self, document_id: str) -> DocumentData | None:
+    async def find_by_id(self, document_id: str) -> DocumentData]:
         """
         ID로 문서를 찾습니다.
         Args:
@@ -431,7 +431,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         return affected_rows
 
     # 비공개 헬퍼 메서드
-    async def _get_document_by_id(self, document_id: DocumentId) -> Document | None:
+    async def _get_document_by_id(self, document_id: DocumentId) -> Document]:
         """문서 ID로 문서를 조회하는 내부 메서드."""
         query = "SELECT * FROM documents WHERE id = ?"
         parameters = {"id": str(document_id)}

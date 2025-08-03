@@ -25,10 +25,10 @@ class OpenAITextEmbedder(TextEmbedder):
 
     def __init__(
         self,
-        config: OpenAIConfig | None = None,
-        api_key: str | None = None,
-        model: str | None = None,
-        dimension: int | None = None,
+        config: Optional[OpenAIConfig] = None,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        dimension: Optional[int] = None,
     ):
         """
         OpenAI 임베딩 어댑터를 초기화합니다.

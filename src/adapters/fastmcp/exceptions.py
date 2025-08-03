@@ -24,10 +24,10 @@ class MCPException(InfrastructureException):
         self,
         operation: str,
         message: str,
-        mcp_method: str | None = None,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        mcp_method: Optional[str] = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 예외를 초기화합니다.
@@ -67,10 +67,10 @@ class MCPServerException(MCPException):
         server_state: str,
         operation: str,
         message: str,
-        port: int | None = None,
-        host: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        port: Optional[int] = None,
+        host: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 서버 예외를 초기화합니다.
@@ -114,9 +114,9 @@ class MCPMessageException(DataParsingException):
         message_type: str,
         message_content: str,
         validation_error: str,
-        mcp_method: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        mcp_method: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 메시지 예외를 초기화합니다.
@@ -158,9 +158,9 @@ class MCPToolException(MCPException):
         tool_name: str,
         operation: str,
         message: str,
-        tool_args: dict[str, Any] | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        tool_args: dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 도구 예외를 초기화합니다.
@@ -199,9 +199,9 @@ class MCPResourceException(MCPException):
         resource_uri: str,
         operation: str,
         message: str,
-        resource_type: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        resource_type: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 리소스 예외를 초기화합니다.
@@ -243,9 +243,9 @@ class MCPPromptException(MCPException):
         prompt_name: str,
         operation: str,
         message: str,
-        prompt_args: dict[str, Any] | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        prompt_args: dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 프롬프트 예외를 초기화합니다.
@@ -285,9 +285,9 @@ class MCPConnectionException(ConnectionException):
         transport_type: str,
         endpoint: str,
         message: str,
-        client_id: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        client_id: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         MCP 연결 예외를 초기화합니다.

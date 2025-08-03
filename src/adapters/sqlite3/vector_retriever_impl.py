@@ -25,7 +25,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         db_path: str,
         table_name: str = "vectors",
         optimize: bool = True,
-        search_config: SearchConfig | None = None,
+        search_config: Optional[SearchConfig] = None,
     ):
         super().__init__(db_path, table_name, optimize)
         self.search_config = search_config or SearchConfig()
@@ -96,7 +96,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         query: str,
         k: int = 4,
         fetch_k: int = 20,
-        lambda_mult: float | None = None,
+        lambda_mult: Optional[float] = None,
         **kwargs: Any,
     ) -> VectorSearchResultCollection:
         """
@@ -391,7 +391,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
                 query="",
             )
 
-    async def _text_to_vector(self, text: str) -> Vector | None:
+    async def _text_to_vector(self, text: str) -> Vector]:
         """
         텍스트를 벡터로 변환합니다.
 
@@ -401,7 +401,7 @@ class SQLiteVectorRetriever(SQLiteVectorStoreBase, VectorRetriever):
         # TODO: 임베딩 서비스 인터페이스 추가 필요
         return None
 
-    async def _get_document_vector(self, document_id: str) -> Vector | None:
+    async def _get_document_vector(self, document_id: str) -> Vector]:
         """문서 ID로 해당 벡터를 가져옵니다."""
         try:
             conn = self._ensure_connected()

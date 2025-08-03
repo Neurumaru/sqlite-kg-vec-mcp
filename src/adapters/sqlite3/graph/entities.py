@@ -19,7 +19,7 @@ class Entity:
 
     id: int
     uuid: str
-    name: str | None
+    name: str]
     type: str
     properties: dict[str, Any]
     created_at: str
@@ -68,9 +68,9 @@ class EntityManager:
     def create_entity(
         self,
         entity_type: str,
-        name: str | None = None,
-        properties: dict[str, Any] | None = None,
-        custom_uuid: str | None = None,
+        name: Optional[str] = None,
+        properties: dict[str, Any]] = None,
+        custom_uuid: Optional[str] = None,
     ) -> Entity:
         """
         지식 그래프에 새 엔티티를 생성합니다.
@@ -110,7 +110,7 @@ class EntityManager:
             )
             return Entity.from_row(cursor.fetchone())
 
-    def get_entity(self, entity_id: int) -> Entity | None:
+    def get_entity(self, entity_id: int) -> Entity]:
         """
         ID로 엔티티를 가져옵니다.
         Args:
@@ -123,7 +123,7 @@ class EntityManager:
         row = cursor.fetchone()
         return Entity.from_row(row) if row else None
 
-    def get_entity_by_uuid(self, entity_uuid: str) -> Entity | None:
+    def get_entity_by_uuid(self, entity_uuid: str) -> Entity]:
         """
         UUID로 엔티티를 가져옵니다.
         Args:
@@ -139,9 +139,9 @@ class EntityManager:
     def update_entity(
         self,
         entity_id: int,
-        name: str | None = None,
-        properties: dict[str, Any] | None = None,
-    ) -> Entity | None:
+        name: Optional[str] = None,
+        properties: dict[str, Any]] = None,
+    ) -> Entity]:
         """
         엔티티의 속성을 업데이트합니다.
         Args:
@@ -204,9 +204,9 @@ class EntityManager:
 
     def find_entities(
         self,
-        entity_type: str | None = None,
-        name_pattern: str | None = None,
-        property_filters: dict[str, Any] | None = None,
+        entity_type: Optional[str] = None,
+        name_pattern: Optional[str] = None,
+        property_filters: dict[str, Any]] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> tuple[list[Entity], int]:

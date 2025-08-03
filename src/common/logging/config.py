@@ -36,7 +36,7 @@ class LoggingConfig:
     level: LogLevel = LogLevel.INFO
     format: str = "json"  # json 또는 text
     output: str = "console"  # console 또는 file
-    file_path: str | None = None
+    file_path: Optional[str] = None
     max_file_size: int = 10 * 1024 * 1024  # 10MB
     backup_count: int = 5
     include_trace: bool = True
@@ -45,8 +45,8 @@ class LoggingConfig:
 
 
 def configure_structured_logging(
-    config: LoggingConfig | None = None,
-    observability_config: LoggingObservabilityConfig | None = None,
+    config: Optional[LoggingConfig] = None,
+    observability_config: Optional[LoggingObservabilityConfig] = None,
 ) -> None:
     """
     애플리케이션을 위한 구조화된 로깅을 구성합니다.

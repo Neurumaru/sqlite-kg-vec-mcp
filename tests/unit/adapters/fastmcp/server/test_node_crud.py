@@ -101,9 +101,9 @@ class TestKnowledgeGraphServerCreateNode(unittest.TestCase, BaseServerTestCase):
 
             return {
                 "node_id": entity.id,
-                "uuid": entity.uuid,
+                "uuid": entity.id,  # NodeData는 id를 사용
                 "name": entity.name,
-                "type": entity.type,
+                "type": entity.node_type.value,  # node_type 사용하고 enum 값 추출
                 "properties": entity.properties,
                 "created_at": entity.created_at,
             }
@@ -184,7 +184,7 @@ class TestKnowledgeGraphServerGetNode(unittest.TestCase, BaseServerTestCase):
         """
         # Given
         node_id = 1
-        mock_entity = MockEntity(entity_id=node_id)
+        mock_entity = MockEntity(entity_id=str(node_id))
         self.entity_manager.get_entity_by_id.return_value = mock_entity
 
         # Simulate method
@@ -196,9 +196,9 @@ class TestKnowledgeGraphServerGetNode(unittest.TestCase, BaseServerTestCase):
 
                 return {
                     "node_id": entity.id,
-                    "uuid": entity.uuid,
+                    "uuid": entity.id,  # NodeData는 id를 사용
                     "name": entity.name,
-                    "type": entity.type,
+                    "type": entity.node_type.value,  # node_type 사용하고 enum 값 추출
                     "properties": entity.properties,
                     "created_at": entity.created_at,
                     "updated_at": entity.updated_at,
@@ -215,9 +215,9 @@ class TestKnowledgeGraphServerGetNode(unittest.TestCase, BaseServerTestCase):
         self.entity_manager.get_entity_by_id.assert_called_once_with(node_id)
         expected_result = {
             "node_id": mock_entity.id,
-            "uuid": mock_entity.uuid,
+            "uuid": mock_entity.id,  # NodeData는 id를 사용
             "name": mock_entity.name,
-            "type": mock_entity.type,
+            "type": mock_entity.node_type.value,  # node_type 사용하고 enum 값 추출
             "properties": mock_entity.properties,
             "created_at": mock_entity.created_at,
             "updated_at": mock_entity.updated_at,

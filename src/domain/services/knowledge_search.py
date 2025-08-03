@@ -101,7 +101,7 @@ class KnowledgeSearchService:
     관련 정보를 연결하여 제공합니다.
     """
 
-    def __init__(self, text_embedder: TextEmbedder, search_config: Optional[SearchConfig] = None):
+    def __init__(self, text_embedder: Optional[TextEmbedder, search_config: Optional[SearchConfig] = None):
         self.text_embedder = text_embedder
         self.search_config = search_config or SearchConfig()
         self.logger = logging.getLogger(self.__class__.__name__)

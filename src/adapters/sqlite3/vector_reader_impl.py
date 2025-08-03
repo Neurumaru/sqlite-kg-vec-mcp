@@ -19,7 +19,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
     벡터와 문서의 조회, 검색 작업을 담당합니다.
     """
 
-    async def get_document(self, document_id: str) -> DocumentMetadata | None:
+    async def get_document(self, document_id: str) -> DocumentMetadata]:
         """
         ID로 문서를 조회합니다.
 
@@ -57,7 +57,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
         except Exception:
             return None
 
-    async def get_vector(self, vector_id: str) -> Vector | None:
+    async def get_vector(self, vector_id: str) -> Vector]:
         """
         ID로 벡터를 조회합니다.
 
@@ -86,7 +86,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
             return None
 
     async def list_documents(
-        self, limit: int | None = None, offset: int | None = None, **kwargs: Any
+        self, limit: Optional[int] = None, offset: Optional[int] = None, **kwargs: Any
     ) -> list[DocumentMetadata]:
         """
         저장된 문서 목록을 조회합니다.
@@ -400,7 +400,7 @@ class SQLiteVectorReader(SQLiteVectorStoreBase, VectorReader):
         except Exception:
             return False
 
-    async def get_metadata(self, vector_id: str) -> dict[str, Any] | None:
+    async def get_metadata(self, vector_id: str) -> dict[str, Any]]:
         """
         벡터에 대한 메타데이터를 가져옵니다.
 

@@ -5,6 +5,7 @@ SQLite 지식 그래프 벡터 MCP 애플리케이션의 메인 진입점.
 import argparse
 import asyncio
 import os
+from typing import Optional
 
 import numpy as np
 
@@ -60,9 +61,9 @@ class ConcreteNodeManagementUseCase(NodeManagementUseCase):
         self,
         name: str,
         node_type: NodeType,
-        description: str | None = None,
-        properties: dict | None = None,
-        source_documents: list[DocumentId] | None = None,
+        description: Optional[str] = None,
+        properties: Optional[dict] = None,
+        source_documents: Optional[list[DocumentId]] = None,
     ) -> Node:
         # 단순화됨: 실제 구현은 노드를 엔티티로 변환하고 임베딩을 처리합니다.
         entity = self.entity_manager.create_entity(
@@ -81,7 +82,7 @@ class ConcreteNodeManagementUseCase(NodeManagementUseCase):
             properties=entity.properties or {},
         )
 
-    async def get_node(self, node_id: NodeId) -> Node | None:
+    async def get_node(self, node_id: NodeId) -> Optional[Node]:
         entity = self.entity_manager.get_entity(int(node_id.value))
         return (
             Node(
@@ -96,9 +97,9 @@ class ConcreteNodeManagementUseCase(NodeManagementUseCase):
 
     async def list_nodes(
         self,
-        node_type: NodeType | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
+        node_type: Optional[NodeType] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> list[Node]:
         entities, _ = self.entity_manager.find_entities(
             entity_type=node_type.value if node_type else None,
@@ -118,9 +119,9 @@ class ConcreteNodeManagementUseCase(NodeManagementUseCase):
     async def update_node(
         self,
         node_id: NodeId,
-        name: str | None = None,
-        description: str | None = None,
-        properties: dict | None = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        properties: Optional[dict] = None,
     ) -> Node:
         entity = self.entity_manager.update_entity(
             int(node_id.value), name=name, properties=properties
@@ -178,7 +179,7 @@ class ConcreteRelationshipManagementUseCase(RelationshipManagementUseCase):
         target_node_id: NodeId,
         relationship_type: RelationshipType,
         label: str,
-        properties: dict | None = None,
+        properties: Optional[dict] = None,
         weight: float = 1.0,
     ) -> Relationship:
         rel = self.relationship_manager.create_relationship(
@@ -202,7 +203,7 @@ class ConcreteRelationshipManagementUseCase(RelationshipManagementUseCase):
             properties=rel.properties or {},
         )
 
-    async def get_relationship(self, relationship_id: RelationshipId) -> Relationship | None:
+    async def get_relationship(self, relationship_id: RelationshipId) -> Optional[Relationship]:
         rel = self.relationship_manager.get_relationship(int(relationship_id.value))
         return (
             Relationship(
@@ -219,11 +220,11 @@ class ConcreteRelationshipManagementUseCase(RelationshipManagementUseCase):
 
     async def list_relationships(
         self,
-        relationship_type: RelationshipType | None = None,
-        source_node_id: NodeId | None = None,
-        target_node_id: NodeId | None = None,
-        limit: int | None = None,
-        offset: int | None = None,
+        relationship_type: Optional[RelationshipType] = None,
+        source_node_id: Optional[NodeId] = None,
+        target_node_id: Optional[NodeId] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> list[Relationship]:
         rels, _ = self.relationship_manager.find_relationships(
             relation_type=relationship_type.value if relationship_type else None,
@@ -247,9 +248,9 @@ class ConcreteRelationshipManagementUseCase(RelationshipManagementUseCase):
     async def update_relationship(
         self,
         relationship_id: RelationshipId,
-        label: str | None = None,
-        properties: dict | None = None,
-        weight: float | None = None,
+        label: Optional[str] = None,
+        properties: Optional[dict] = None,
+        weight: Optional[float] = None,
     ) -> Relationship:
         rel = self.relationship_manager.update_relationship(
             int(relationship_id.value), properties=properties if properties is not None else {}
@@ -321,7 +322,7 @@ class ConcreteKnowledgeSearchUseCase(KnowledgeSearchUseCase):
         query: str,
         strategy: SearchStrategy = SearchStrategy.HYBRID,
         limit: int = 10,
-        similarity_threshold: float | None = None,  # 기본값 제거
+        similarity_threshold: Optional[float] = None,  # 기본값 제거
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
@@ -360,7 +361,7 @@ class ConcreteKnowledgeSearchUseCase(KnowledgeSearchUseCase):
         )
 
     async def search_documents(
-        self, query: str, limit: int = 10, similarity_threshold: float | None = None
+        self, query: str, limit: int = 10, similarity_threshold: Optional[float] = None
     ) -> list[Document]:
         # 단순화됨: 실제 문서 검색 구현
         return []
@@ -368,9 +369,9 @@ class ConcreteKnowledgeSearchUseCase(KnowledgeSearchUseCase):
     async def search_nodes(
         self,
         query: str,
-        node_types: list[str] | None = None,
+        node_types: Optional[list[str]] = None,
         limit: int = 10,
-        similarity_threshold: float | None = None,
+        similarity_threshold: Optional[float] = None,
     ) -> list[Node]:
         # 단순화됨: 실제 노드 검색 구현
         return []
@@ -378,15 +379,15 @@ class ConcreteKnowledgeSearchUseCase(KnowledgeSearchUseCase):
     async def search_relationships(
         self,
         query: str,
-        relationship_types: list[str] | None = None,
+        relationship_types: Optional[list[str]] = None,
         limit: int = 10,
-        similarity_threshold: float | None = None,
+        similarity_threshold: Optional[float] = None,
     ) -> list[Relationship]:
         # 단순화됨: 실제 관계 검색 구현
         return []
 
     async def semantic_search(
-        self, query: str, limit: int = 10, similarity_threshold: float | None = None
+        self, query: str, limit: int = 10, similarity_threshold: Optional[float] = None
     ):
         # 이 메서드는 SEMANTIC 전략으로 search_knowledge에 위임할 수 있습니다.
         return await self.search_knowledge(
@@ -405,7 +406,7 @@ class ConcreteDocumentManagementUseCase(DocumentManagementUseCase):
         self.document_repository = document_repository
 
     async def create_document(
-        self, title: str, content: str, metadata: dict | None = None
+        self, title: str, content: str, metadata: Optional[dict] = None
     ) -> Document:
         # 단순화됨
         return Document(
@@ -416,12 +417,12 @@ class ConcreteDocumentManagementUseCase(DocumentManagementUseCase):
             metadata=metadata or {},
         )
 
-    async def get_document(self, document_id: DocumentId) -> Document | None:
+    async def get_document(self, document_id: DocumentId) -> Optional[Document]:
         # 단순화됨
         return None
 
     async def list_documents(
-        self, limit: int | None = None, offset: int | None = None
+        self, limit: Optional[int] = None, offset: Optional[int] = None
     ) -> list[Document]:
         # 단순화됨
         return []
@@ -429,9 +430,9 @@ class ConcreteDocumentManagementUseCase(DocumentManagementUseCase):
     async def update_document(
         self,
         document_id: DocumentId,
-        title: str | None = None,
-        content: str | None = None,
-        metadata: dict | None = None,
+        title: Optional[str] = None,
+        content: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> Document:
         # 단순화됨
         return Document(

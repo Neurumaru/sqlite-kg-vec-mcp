@@ -16,9 +16,9 @@ from .logger import get_observable_logger
 
 
 def with_observability(
-    operation: str | None = None,
-    layer: str | None = None,
-    component: str | None = None,
+    operation: Optional[str] = None,
+    layer: Optional[str] = None,
+    component: Optional[str] = None,
     include_args: bool = False,
     include_result: bool = False,
 ):
@@ -109,10 +109,10 @@ def with_observability(
 
 
 def with_trace(
-    operation: str | None = None,
-    layer: str | None = None,
-    component: str | None = None,
-    metadata: dict[str, Any] | None = None,
+    operation: Optional[str] = None,
+    layer: Optional[str] = None,
+    component: Optional[str] = None,
+    metadata: dict[str, Any]] = None,
 ):
     """
     함수에 추적 컨텍스트를 추가하는 데코레이터.
@@ -148,7 +148,7 @@ def with_trace(
     return decorator
 
 
-def with_metrics(metric_name: str | None = None, tags: dict[str, str] | None = None):
+def with_metrics(metric_name: Optional[str] = None, tags: dict[str, str]] = None):
     """
     자동 메트릭 수집을 추가하는 데코레이터.
 

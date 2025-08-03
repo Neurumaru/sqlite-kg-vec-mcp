@@ -93,10 +93,10 @@ class KnowledgeGraphServer:
     async def create_node(
         self,
         node_type: str,
-        name: str | None = None,
-        properties: dict[str, Any] | None = None,
-        node_uuid: str | None = None,
-        ctx: Context | None = None,
+        name: Optional[str] = None,
+        properties: dict[str, Any]] = None,
+        node_uuid: Optional[str] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에 새 노드를 생성합니다.
@@ -142,9 +142,9 @@ class KnowledgeGraphServer:
 
     async def get_node(
         self,
-        node_id: int | None = None,
-        node_uuid: str | None = None,
-        ctx: Context | None = None,
+        node_id: Optional[int] = None,
+        node_uuid: Optional[str] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 가져옵니다.
@@ -196,9 +196,9 @@ class KnowledgeGraphServer:
     async def update_node(
         self,
         node_id: int,
-        name: str | None = None,
-        properties: dict[str, Any] | None = None,
-        ctx: Context | None = None,
+        name: Optional[str] = None,
+        properties: dict[str, Any]] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프의 노드를 업데이트합니다.
@@ -239,7 +239,7 @@ class KnowledgeGraphServer:
     async def delete_node(
         self,
         node_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 삭제합니다.
@@ -272,10 +272,10 @@ class KnowledgeGraphServer:
 
     async def find_nodes(
         self,
-        node_type: str | None = None,
+        node_type: Optional[str] = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 노드를 찾습니다.
@@ -334,7 +334,7 @@ class KnowledgeGraphServer:
         include_documents: bool = True,
         include_nodes: bool = True,
         include_relationships: bool = True,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         텍스트 쿼리로 지식 그래프를 검색합니다.
@@ -453,9 +453,9 @@ class KnowledgeGraphServer:
         target_node_id: int,
         relation_type: str,
         label: str,
-        properties: dict[str, Any] | None = None,
-        weight: float | None = None,
-        ctx: Context | None = None,
+        properties: dict[str, Any]] = None,
+        weight: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         노드 간에 새 관계를 생성합니다.
@@ -514,7 +514,7 @@ class KnowledgeGraphServer:
     async def get_edge(
         self,
         edge_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 가져옵니다.
@@ -555,10 +555,10 @@ class KnowledgeGraphServer:
     async def update_edge(
         self,
         edge_id: int,
-        label: str | None = None,
-        properties: dict[str, Any] | None = None,
-        weight: float | None = None,
-        ctx: Context | None = None,
+        label: Optional[str] = None,
+        properties: dict[str, Any]] = None,
+        weight: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프의 관계를 업데이트합니다.
@@ -601,7 +601,7 @@ class KnowledgeGraphServer:
     async def delete_edge(
         self,
         edge_id: int,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 삭제합니다.
@@ -634,12 +634,12 @@ class KnowledgeGraphServer:
 
     async def find_edges(
         self,
-        relation_type: str | None = None,
-        source_node_id: int | None = None,
-        target_node_id: int | None = None,
+        relation_type: Optional[str] = None,
+        source_node_id: Optional[int] = None,
+        target_node_id: Optional[int] = None,
         limit: int = 100,
         offset: int = 0,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 관계를 찾습니다.
@@ -705,7 +705,7 @@ class KnowledgeGraphServer:
         self,
         node_id: int,
         depth: int = 1,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 이웃 노드를 가져옵니다.
@@ -766,7 +766,7 @@ class KnowledgeGraphServer:
         source_node_id: int,
         target_node_id: int,
         max_depth: int = 5,
-        ctx: Context | None = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         지식 그래프에서 두 노드 간의 경로를 찾습니다.
@@ -837,8 +837,8 @@ class KnowledgeGraphServer:
         self,
         node_id: int,
         limit: int = 10,
-        threshold: float | None = None,
-        ctx: Context | None = None,
+        threshold: Optional[float] = None,
+        ctx: Optional[Context] = None,
     ) -> dict[str, Any]:
         """
         주어진 노드와 유사한 노드를 검색합니다.
@@ -942,8 +942,8 @@ class KnowledgeGraphServer:
 
     def start(
         self,
-        host: str | None = None,
-        port: int | None = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
     ) -> None:
         """
         MCP 서버를 시작합니다.

@@ -3,7 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_metadata import DocumentMetadata
 from src.domain.value_objects.search_result import VectorSearchResultCollection
@@ -18,7 +18,7 @@ class VectorReader(ABC):
     """
 
     @abstractmethod
-    async def get_document(self, document_id: str) -> DocumentMetadata | None:
+    async def get_document(self, document_id: str) -> Optional[DocumentMetadata]:
         """
         ID로 문서를 조회합니다.
 
@@ -30,7 +30,7 @@ class VectorReader(ABC):
         """
 
     @abstractmethod
-    async def get_vector(self, vector_id: str) -> Vector | None:
+    async def get_vector(self, vector_id: str) -> Optional[Vector]:
         """
         ID로 벡터를 조회합니다.
 
@@ -43,7 +43,7 @@ class VectorReader(ABC):
 
     @abstractmethod
     async def list_documents(
-        self, limit: int | None = None, offset: int | None = None, **kwargs: Any
+        self, limit: Optional[int] = None, offset: Optional[int] = None, **kwargs: Any
     ) -> list[DocumentMetadata]:
         """
         저장된 문서 목록을 조회합니다.

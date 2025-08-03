@@ -39,11 +39,11 @@ class OllamaClient:
 
     def __init__(
         self,
-        config: Optional[Optional[OllamaConfig] = None,
-        timeout_config: Optional[Optional[TimeoutConfig] = None,
-        base_url: Optional[Optional[str] = None,
-        model: Optional[Optional[str] = None,
-        timeout: Optional[Optional[int] = None,
+        config: Optional[OllamaConfig] = None,
+        timeout_config: Optional[TimeoutConfig] = None,
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        timeout: Optional[int] = None,
     ):
         """
         Ollama 클라이언트를 초기화합니다.
@@ -118,9 +118,9 @@ class OllamaClient:
     def generate(
         self,
         prompt: str,
-        system_prompt: Optional[Optional[str] = None,
+        system_prompt: Optional[str] = None,
         temperature: float = 0.7,
-        max_tokens: Optional[Optional[int] = None,
+        max_tokens: Optional[int] = None,
         stream: bool = False,
     ) -> LLMResponse:
         """

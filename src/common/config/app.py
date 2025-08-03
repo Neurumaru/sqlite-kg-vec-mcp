@@ -77,7 +77,7 @@ class AppConfig(BaseSettings):
             self.mcp.vector_index_dir = str(self.data_directory / "vector_index")
 
     @classmethod
-    def from_env(cls, env_file: str | None = None) -> "AppConfig":
+    def from_env(cls, env_file: Optional[str] = None) -> "AppConfig":
         """
         환경 변수 및 .env 파일로부터 구성을 생성합니다.
 

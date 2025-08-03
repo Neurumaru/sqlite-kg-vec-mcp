@@ -30,7 +30,7 @@ class BaseHandler:
         """표준 성공 응답을 생성합니다."""
         return {"success": True, **data}
 
-    def _create_error_response(self, message: str, error_code: str | None = None) -> dict[str, Any]:
+    def _create_error_response(self, message: Optional[str, error_code: str] = None) -> dict[str, Any]:
         """표준 오류 응답을 생성합니다."""
         return {
             "success": False,

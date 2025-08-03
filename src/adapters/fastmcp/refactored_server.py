@@ -90,8 +90,8 @@ class KnowledgeGraphServer:
 
     def start(
         self,
-        host: str | None = None,
-        port: int | None = None,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
     ) -> None:
         """
         MCP 서버를 시작합니다.

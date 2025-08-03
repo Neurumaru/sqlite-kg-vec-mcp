@@ -18,7 +18,7 @@ class PathNode:
     """그래프 순회 중 경로의 노드를 나타냅니다."""
 
     entity: Entity
-    relationship: Relationship | None = None
+    relationship: Optional[Relationship] = None
     parent: Optional["PathNode"] = None
     depth: int = 0
 
@@ -50,8 +50,8 @@ class GraphTraversal:
         self,
         entity_id: int,
         direction: str = "both",
-        relation_types: list[str] | None = None,
-        entity_types: list[str] | None = None,
+        relation_types: list[str]] = None,
+        entity_types: list[str]] = None,
         limit: int = 100,
     ) -> list[tuple[Entity, Relationship]]:
         """
@@ -155,8 +155,8 @@ class GraphTraversal:
         self,
         start_id: int,
         max_depth: int = 5,
-        relation_types: list[str] | None = None,
-        entity_types: list[str] | None = None,
+        relation_types: list[str]] = None,
+        entity_types: list[str]] = None,
     ) -> list[PathNode]:
         """너비 우선 탐색(BFS)을 사용하여 start_id에서 max_depth 내에서 도달 가능한 모든 노드를 찾습니다."""
         if max_depth < 0:
@@ -223,9 +223,9 @@ class GraphTraversal:
         start_id: int,
         end_id: int,
         max_depth: int = 5,
-        relation_types: list[str] | None = None,
-        entity_types: list[str] | None = None,
-    ) -> list[PathNode] | None:
+        relation_types: list[str]] = None,
+        entity_types: list[str]] = None,
+    ) -> list[PathNode]]:
         """너비 우선 탐색(BFS)을 사용하여 두 엔티티 간의 최단 경로를 찾습니다."""
         if start_id == end_id:
             cursor = self.connection.cursor()
@@ -265,8 +265,8 @@ class GraphTraversal:
         self,
         start_id: int,
         direction: str = "outgoing",
-        relation_types: list[str] | None = None,
-        entity_types: list[str] | None = None,
+        relation_types: list[str]] = None,
+        entity_types: list[str]] = None,
         max_depth: int = 3,
         limit: int = 100,
     ) -> list[dict]:
@@ -437,8 +437,8 @@ class GraphTraversal:
         self,
         start_id: int,
         max_depth: int = 5,
-        relation_types: list[str] | None = None,
-        entity_types: list[str] | None = None,
+        relation_types: list[str]] = None,
+        entity_types: list[str]] = None,
     ) -> list[PathNode]:
         """깊이 우선 탐색(DFS)을 사용하여 start_id에서 max_depth 내에서 도달 가능한 모든 노드를 찾습니다."""
         if max_depth < 0:

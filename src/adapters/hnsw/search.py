@@ -22,7 +22,7 @@ class SearchResult:
     entity_type: str
     entity_id: int
     distance: float
-    entity: Any | None = (
+    entity: Any] = (
         None  # TODO: Entity/Relationship 클래스가 사용 가능할 때 적절하게 타입 지정
     )
 
@@ -55,12 +55,12 @@ class VectorSearch:
     def __init__(
         self,
         connection: sqlite3.Connection,
-        index_dir: str | None = None,
+        index_dir: Optional[str] = None,
         embedding_dim: int = 128,
         space: str = "cosine",
-        text_embedder: VectorTextEmbedder | None = None,
+        text_embedder: Optional[VectorTextEmbedder] = None,
         embedder_type: str = "sentence-transformers",
-        embedder_kwargs: dict[str, Any] | None = None,
+        embedder_kwargs: dict[str, Any]] = None,
     ):
         """
         벡터 검색 기능을 초기화합니다.
@@ -147,8 +147,8 @@ class VectorSearch:
         self,
         query_vector: np.ndarray,
         k: int = 10,
-        entity_types: list[str] | None = None,
-        ef_search: int | None = None,
+        entity_types: list[str]] = None,
+        ef_search: Optional[int] = None,
         include_entities: bool = True,
     ) -> list[SearchResult]:
         """
@@ -200,7 +200,7 @@ class VectorSearch:
         entity_type: str,
         entity_id: int,
         k: int = 10,
-        result_entity_types: list[str] | None = None,
+        result_entity_types: list[str]] = None,
         include_entities: bool = True,
     ) -> list[SearchResult]:
         """
@@ -249,7 +249,7 @@ class VectorSearch:
         self,
         query_text: str,
         k: int = 10,
-        entity_types: list[str] | None = None,
+        entity_types: list[str]] = None,
         include_entities: bool = True,
     ) -> list[SearchResult]:
         """

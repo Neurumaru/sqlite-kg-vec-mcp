@@ -48,7 +48,7 @@ class HuggingFaceTextEmbedder(TextEmbedder):
         try:
             self.model = SentenceTransformer(model_name)
             self.model_name = model_name
-            dimension: int | None = self.model.get_sentence_embedding_dimension()
+            dimension: int] = self.model.get_sentence_embedding_dimension()
             if dimension is None:
                 raise ValueError(f"Unable to determine embedding dimension for model {model_name}")
             self._dimension: int = dimension

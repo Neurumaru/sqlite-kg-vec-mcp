@@ -27,7 +27,7 @@ class SQLiteVectorStore(SQLiteVectorWriter, SQLiteVectorReader, SQLiteVectorRetr
         db_path: str,
         table_name: str = "vectors",
         optimize: bool = True,
-        search_config: SearchConfig | None = None,
+        search_config: Optional[SearchConfig] = None,
     ):
         """
         SQLite 벡터 저장소 어댑터를 초기화합니다.

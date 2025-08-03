@@ -25,8 +25,8 @@ class Relationship:
     created_at: str
     updated_at: str
     # 이 필드들은 상세 정보를 로드할 때 채워집니다.
-    source: Entity | None = None
-    target: Entity | None = None
+    source: Optional[Entity] = None
+    target: Optional[Entity] = None
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> Relationship:
@@ -73,7 +73,7 @@ class RelationshipManager:
         source_id: int,
         target_id: int,
         relation_type: str,
-        properties: dict[str, Any] | None = None,
+        properties: dict[str, Any]] = None,
     ) -> Relationship:
         """
         두 엔티티 사이에 새로운 관계(엣지)를 생성합니다.
@@ -121,7 +121,7 @@ class RelationshipManager:
 
     def get_relationship(
         self, relationship_id: int, include_entities: bool = False
-    ) -> Relationship | None:
+    ) -> Relationship]:
         """
         ID로 관계를 가져옵니다.
         Args:
@@ -158,7 +158,7 @@ class RelationshipManager:
 
     def update_relationship(
         self, relationship_id: int, properties: dict[str, Any]
-    ) -> Relationship | None:
+    ) -> Relationship]:
         """
         관계의 속성을 업데이트합니다.
         Args:
@@ -211,10 +211,10 @@ class RelationshipManager:
 
     def find_relationships(
         self,
-        source_id: int | None = None,
-        target_id: int | None = None,
-        relation_type: str | None = None,
-        property_filters: dict[str, Any] | None = None,
+        source_id: Optional[int] = None,
+        target_id: Optional[int] = None,
+        relation_type: Optional[str] = None,
+        property_filters: dict[str, Any]] = None,
         include_entities: bool = False,
         limit: int = 100,
         offset: int = 0,
@@ -276,7 +276,7 @@ class RelationshipManager:
         return relationships, total_count
 
     def bulk_create_relationships(
-        self, relationships_data: list[tuple[int, int, str, dict[str, Any] | None]]
+        self, relationships_data: list[tuple[int, int, str, dict[str, Any]]]]
     ) -> list[int]:
         """
         관계를 대량으로 생성합니다.
@@ -337,7 +337,7 @@ class RelationshipManager:
         self,
         entity_id: int,
         direction: str = "both",
-        relation_types: list[str] | None = None,
+        relation_types: list[str]] = None,
         include_entities: bool = True,
         limit: int = 100,
         offset: int = 0,

@@ -15,7 +15,7 @@ class DocumentManagementUseCase(ABC):
 
     @abstractmethod
     async def create_document(
-        self, title: str, content: str, metadata: Optional[dict] = None
+        self, title: Optional[str, content: str, metadata: Optional[dict] = None
     ) -> Document:
         """새 문서를 생성합니다.
 

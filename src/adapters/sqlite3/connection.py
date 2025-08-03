@@ -41,7 +41,7 @@ class DatabaseConnection:
     최적화된 설정으로 SQLite 데이터베이스 연결을 관리합니다.
     """
 
-    def __init__(self, db_path: Union[str, Path], optimize: Optional[bool = True, timeout_config: Optional[TimeoutConfig] = None):
+    def __init__(self, db_path: Union[str, Path], optimize: bool = True, timeout_config: Optional[TimeoutConfig] = None):
         """
         데이터베이스 연결을 초기화합니다.
         Args:

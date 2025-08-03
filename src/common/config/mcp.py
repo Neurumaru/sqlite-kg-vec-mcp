@@ -32,7 +32,7 @@ class MCPConfig(BaseSettings):
     port: int = Field(default=8000, description="서버 포트 번호")
 
     # 벡터 설정
-    vector_index_dir: str | None = Field(
+    vector_index_dir: str] = Field(
         default=None, description="벡터 인덱스 파일을 저장할 디렉토리"
     )
 
@@ -116,14 +116,14 @@ class MCPConfig(BaseSettings):
 
     @field_validator("vector_index_dir")
     @classmethod
-    def validate_vector_index_dir(cls, v: str | None) -> str | None:
+    def validate_vector_index_dir(cls, v: str]) -> str]:
         """벡터 인덱스 디렉토리 형식 유효성 검사."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
             raise ValueError("벡터 인덱스 디렉토리는 비어 있지 않은 문자열이어야 합니다")
         return v
 
     @property
-    def vector_index_directory(self) -> Path | None:
+    def vector_index_directory(self) -> Path]:
         """필요한 경우 벡터 인덱스 디렉토리 경로를 가져오고 생성합니다."""
         if self.vector_index_dir is None:
             return None

@@ -30,10 +30,10 @@ class OllamaLLMService(LLM):
 
     def __init__(
         self,
-        ollama_client: OllamaClient | None = None,
-        config: OllamaConfig | None = None,
-        default_temperature: float | None = None,
-        max_tokens: int | None = None,
+        ollama_client: Optional[OllamaClient] = None,
+        config: Optional[OllamaConfig] = None,
+        default_temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
     ):
         """
         Ollama LLM 서비스를 초기화합니다.
@@ -183,7 +183,7 @@ class OllamaLLMService(LLM):
     # 대화형 검색 안내
 
     async def analyze_query(
-        self, query: str, context: dict[str, Any] | None = None
+        self, query: str, context: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """검색 쿼리를 분석하여 최적의 검색 전략을 결정합니다."""
         system_prompt = """당신은 전문 검색 분석가입니다. 주어진 쿼리를 분석하고 최상의 검색 전략을 추천하세요.
@@ -359,8 +359,8 @@ class OllamaLLMService(LLM):
     async def extract_knowledge_from_text(
         self,
         text: str,
-        extraction_schema: dict[str, Any] | None = None,
-        context: dict[str, Any] | None = None,
+        extraction_schema: dict[str, Any]] = None,
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """비정형 텍스트에서 구조화된 지식을 추출합니다."""
         # 기존 Ollama 클라이언트 메서드 사용
@@ -380,7 +380,7 @@ class OllamaLLMService(LLM):
     async def generate_entity_summary(
         self,
         entity_data: dict[str, Any],
-        related_entities: list[dict[str, Any]] | None = None,
+        related_entities: list[dict[str, Any]]] = None,
     ) -> str:
         """데이터와 관계를 기반으로 엔티티에 대한 요약을 생성합니다."""
         # 기존 Ollama 클라이언트 메서드 사용
@@ -394,7 +394,7 @@ class OllamaLLMService(LLM):
         self,
         source_entity: dict[str, Any],
         target_entities: list[dict[str, Any]],
-        context: str | None = None,
+        context: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         """엔티티 간의 잠재적인 관계를 제안합니다."""
         system_prompt = """당신은 지식 그래프 관계 전문가입니다. 엔티티 간의 잠재적인 관계를 제안하세요.
@@ -436,7 +436,7 @@ class OllamaLLMService(LLM):
     # 쿼리 향상
 
     async def expand_query(
-        self, original_query: str, search_context: dict[str, Any] | None = None
+        self, original_query: str, search_context: Optional[dict[str, Any]] = None
     ) -> list[str]:
         """관련 용어 및 개념으로 쿼리를 확장합니다."""
         system_prompt = """당신은 쿼리 확장 전문가입니다. 주어진 쿼리에 대한 관련 용어 및 개념을 생성하세요.
@@ -467,7 +467,7 @@ class OllamaLLMService(LLM):
             return [original_query]
 
     async def generate_search_suggestions(
-        self, partial_query: str, search_history: list[str] | None = None
+        self, partial_query: str, search_history: list[str]] = None
     ) -> list[str]:
         """부분 쿼리에 대한 검색 제안을 생성합니다."""
         system_prompt = """당신은 검색 제안 생성기입니다. 부분 쿼리를 완성하고 변형을 제안하세요.
@@ -552,7 +552,7 @@ class OllamaLLMService(LLM):
     # 스트리밍 응답
 
     async def stream_analysis(
-        self, prompt: str, context: dict[str, Any] | None = None
+        self, prompt: str, context: Optional[dict[str, Any]] = None
     ) -> AsyncGenerator[str, None]:
         """실시간 처리를 위해 분석 결과를 스트리밍합니다."""
         context_str = f"컨텍스트: {json.dumps(context)}\n" if context else ""

@@ -36,8 +36,8 @@ class SQLiteVectorStoreBase:
         self.table_name = table_name
         self.optimize = optimize
         self._connection_manager = DatabaseConnection(db_path, optimize)
-        self._connection: Connection | None = None
-        self._dimension: int | None = None
+        self._connection: Optional[Connection] = None
+        self._dimension: Optional[int] = None
         self._metric: str = "cosine"
 
     # 저장소 관리
@@ -45,7 +45,7 @@ class SQLiteVectorStoreBase:
         self,
         dimension: int,
         metric: str = "cosine",
-        parameters: dict[str, Any] | None = None,
+        parameters: dict[str, Any]] = None,
     ) -> bool:
         """
         벡터 저장소를 초기화합니다.

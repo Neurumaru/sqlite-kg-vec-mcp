@@ -4,7 +4,7 @@
 
 import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -26,7 +26,7 @@ class EmbeddingResult:
     model_name: str  # 사용된 임베딩 모델명
     dimension: int  # 임베딩 벡터의 차원 수
     metadata: dict[str, Any] = field(default_factory=dict)
-    processing_time_ms: float | None = None  # 처리 시간 (밀리초)
+    processing_time_ms: Optional[float] = None  # 처리 시간 (밀리초)
 
     def __post_init__(self) -> None:
         """

@@ -2,7 +2,7 @@
 기본 인프라 예외 클래스.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 
 class InfrastructureException(Exception):
@@ -16,9 +16,9 @@ class InfrastructureException(Exception):
     def __init__(
         self,
         message: str,
-        error_code: str | None = None,
-        context: dict[str, Any] | None = None,
-        original_error: Exception | None = None,
+        error_code: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None,
+        original_error: Optional[Exception] = None,
     ):
         """
         인프라 예외를 초기화합니다.

@@ -15,8 +15,8 @@ from .logger import get_observable_logger
 
 
 def setup_observability(
-    logging_config: dict[str, Any] | None = None,
-    observability_config: dict[str, Any] | None = None,
+    logging_config: dict[str, Any]] = None,
+    observability_config: dict[str, Any]] = None,
     auto_configure: bool = True,
 ) -> None:
     """

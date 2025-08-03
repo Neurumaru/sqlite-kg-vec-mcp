@@ -30,7 +30,7 @@ class ObservableLogger:
     일관된 구조화된 로깅을 제공합니다.
     """
 
-    def __init__(self, component: str, layer: str, observability_service: Any | None = None):
+    def __init__(self, component: Optional[str, layer: str, observability_service: Any] = None):
         """
         관찰 가능한 로거를 초기화합니다.
 
@@ -227,7 +227,7 @@ _logger_registry: dict[str, ObservableLogger] = {}
 
 
 def get_observable_logger(
-    component: str, layer: str, observability_service: Any | None = None
+    component: Optional[str, layer: str, observability_service: Any] = None
 ) -> ObservableLogger:
     """
     컴포넌트에 대한 관찰 가능한 로거를 가져오거나 생성합니다.

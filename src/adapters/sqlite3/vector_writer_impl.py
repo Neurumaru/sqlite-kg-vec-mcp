@@ -2,6 +2,7 @@
 SQLite 벡터 저장소의 쓰기 작업 구현체.
 """
 
+import shutil
 from typing import Any
 
 from src.domain.value_objects.document_metadata import DocumentMetadata
@@ -130,7 +131,7 @@ class SQLiteVectorWriter(SQLiteVectorStoreBase, VectorWriter):
         except Exception as e:
             raise RuntimeError(f"벡터 추가 실패: {e}") from e
 
-    async def delete(self, ids: list[str] | None = None, **kwargs: Any) -> bool | None:
+    async def delete(self, ids: list[str]] = None, **kwargs: Any) -> bool]:
         """
         문서를 삭제합니다.
 
@@ -168,7 +169,7 @@ class SQLiteVectorWriter(SQLiteVectorStoreBase, VectorWriter):
         self,
         document_id: str,
         document: DocumentMetadata,
-        vector: Vector | None = None,
+        vector: Optional[Vector] = None,
         **kwargs: Any,
     ) -> bool:
         """
@@ -246,8 +247,6 @@ class SQLiteVectorWriter(SQLiteVectorStoreBase, VectorWriter):
             백업 성공 여부
         """
         try:
-            import shutil
-
             shutil.copy2(self.db_path, backup_path)
             return True
         except Exception:
@@ -264,8 +263,6 @@ class SQLiteVectorWriter(SQLiteVectorStoreBase, VectorWriter):
             복원 성공 여부
         """
         try:
-            import shutil
-
             # 기존 연결 닫기
             await self.disconnect()
             # 백업에서 복원

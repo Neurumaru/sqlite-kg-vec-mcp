@@ -6,6 +6,7 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from src.dto import NodeData
 
@@ -31,7 +32,7 @@ class NodeRepository(ABC):
         """
 
     @abstractmethod
-    async def find_by_id(self, node_id: str) -> NodeData | None:
+    async def find_by_id(self, node_id: str) -> Optional[NodeData]:
         """
         ID로 노드를 찾습니다.
 

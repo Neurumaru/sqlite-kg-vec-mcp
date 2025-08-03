@@ -3,7 +3,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from src.domain.value_objects.document_metadata import DocumentMetadata
 from src.domain.value_objects.vector import Vector
@@ -46,7 +46,7 @@ class VectorWriter(ABC):
         """
 
     @abstractmethod
-    async def delete(self, ids: list[str] | None = None, **kwargs: Any) -> bool | None:
+    async def delete(self, ids: Optional[list[str]] = None, **kwargs: Any) -> Optional[bool]:
         """
         문서를 삭제합니다.
 
@@ -63,7 +63,7 @@ class VectorWriter(ABC):
         self,
         document_id: str,
         document: DocumentMetadata,
-        vector: Vector | None = None,
+        vector: Optional[Vector] = None,
         **kwargs: Any,
     ) -> bool:
         """

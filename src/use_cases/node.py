@@ -78,7 +78,7 @@ class NodeEmbeddingUseCase(ABC):
 
     @abstractmethod
     async def find_similar_nodes(
-        self, node_id: NodeId, limit: int = 10, threshold: Optional[float] = None
+        self, node_id: Optional[NodeId, limit: int = 10, threshold: Optional[float] = None
     ) -> list[tuple[Node, float]]:
         """유사한 노드들을 찾습니다."""
 

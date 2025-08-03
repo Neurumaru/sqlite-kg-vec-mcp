@@ -17,7 +17,7 @@ class NomicEmbedder(TextEmbedder):
     Ollama의 Nomic 임베딩 모델을 사용하는 텍스트 임베더 구현체.
     """
 
-    def __init__(self, client: AsyncClient, model_name: str, config: OllamaConfig | None = None):
+    def __init__(self, client: Optional[AsyncClient, model_name: str, config: OllamaConfig] = None):
         if config is None:
             config = OllamaConfig()
 
@@ -96,7 +96,7 @@ class NomicEmbedder(TextEmbedder):
     def get_embedding_dimension(self) -> int:
         """
         임베딩 벡터의 차원을 반환합니다.
-        
+
         Returns:
             벡터 차원
         """

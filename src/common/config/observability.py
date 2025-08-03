@@ -13,13 +13,13 @@ class LangfuseConfig(BaseSettings):
 
     enabled: bool = Field(default=False, description="Langfuse 통합 활성화")
 
-    host: str | None = Field(default=None, description="Langfuse 서버 호스트")
+    host: str] = Field(default=None, description="Langfuse 서버 호스트")
 
-    public_key: str | None = Field(default=None, description="Langfuse 공개 키")
+    public_key: str] = Field(default=None, description="Langfuse 공개 키")
 
-    secret_key: str | None = Field(default=None, description="Langfuse 비밀 키")
+    secret_key: str] = Field(default=None, description="Langfuse 비밀 키")
 
-    project_name: str | None = Field(default=None, description="Langfuse 프로젝트 이름")
+    project_name: str] = Field(default=None, description="Langfuse 프로젝트 이름")
 
     flush_interval: float = Field(default=5.0, description="배치된 이벤트의 플러시 간격")
 
@@ -65,7 +65,7 @@ class OpenTelemetryConfig(BaseSettings):
 
     service_version: str = Field(default="0.2.0", description="트레이싱을 위한 서비스 버전")
 
-    endpoint: str | None = Field(default=None, description="OpenTelemetry 컬렉터 엔드포인트")
+    endpoint: str] = Field(default=None, description="OpenTelemetry 컬렉터 엔드포인트")
 
     headers: dict[str, str] = Field(
         default_factory=dict, description="트레이싱 익스포트를 위한 추가 헤더"
@@ -89,7 +89,7 @@ class LoggingObservabilityConfig(BaseSettings):
 
     output: str = Field(default="console", description="로그 출력 (console, file)")
 
-    file_path: str | None = Field(default=None, description="로그 파일 경로")
+    file_path: str] = Field(default=None, description="로그 파일 경로")
 
     include_trace: bool = Field(default=True, description="로그에 트레이스 정보 포함 여부")
 
