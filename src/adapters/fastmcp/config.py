@@ -4,6 +4,8 @@ FastMCP 어댑터 설정.
 
 from dataclasses import dataclass
 
+from src.config.search_config import SearchConfig
+
 
 @dataclass
 class FastMCPConfig:
@@ -16,7 +18,7 @@ class FastMCPConfig:
 
     # API 기본 설정
     max_results: int = 100
-    similarity_threshold: float = 0.7
+    similarity_threshold: float = SearchConfig().node_similarity_threshold
 
     # 응답 포맷 설정
     content_summary_length: int = 200

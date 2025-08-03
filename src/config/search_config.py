@@ -38,6 +38,10 @@ class SearchConfig:
     # 노드 유사도 임계값
     node_similarity_threshold: float = 0.7
 
+    # 신뢰도 계산 가중치 (지식 추출기)
+    confidence_length_weight: float = 0.3
+    confidence_structure_weight: float = 0.7
+
     def __post_init__(self):
         """설정 검증"""
         # 기본 설정 검증
@@ -80,6 +84,16 @@ class SearchConfig:
             raise ValueError("score_threshold는 0.0과 1.0 사이여야 합니다")
         if not 0.0 <= self.node_similarity_threshold <= 1.0:
             raise ValueError("node_similarity_threshold는 0.0과 1.0 사이여야 합니다")
+
+        # 신뢰도 계산 가중치 검증
+        if not 0.0 <= self.confidence_length_weight <= 1.0:
+            raise ValueError("confidence_length_weight는 0.0과 1.0 사이여야 합니다")
+        if not 0.0 <= self.confidence_structure_weight <= 1.0:
+            raise ValueError("confidence_structure_weight는 0.0과 1.0 사이여야 합니다")
+        if abs(self.confidence_length_weight + self.confidence_structure_weight - 1.0) > 1e-6:
+            raise ValueError(
+                "confidence_length_weight + confidence_structure_weight는 1.0이어야 합니다"
+            )
 
 
 # 향후 다른 검색 관련 설정들이 추가될 수 있습니다.

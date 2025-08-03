@@ -5,7 +5,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD
+from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD, SearchConfig
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
@@ -51,7 +51,10 @@ class KnowledgeSearchUseCase(ABC):
 
     @abstractmethod
     async def search_documents(
-        self, query: str, limit: int = 10, similarity_threshold: float = 0.5
+        self,
+        query: str,
+        limit: int = 10,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
     ) -> list[Document]:
         """문서 검색을 수행합니다."""
 
@@ -77,7 +80,10 @@ class KnowledgeSearchUseCase(ABC):
 
     @abstractmethod
     async def semantic_search(
-        self, query: str, limit: int = 10, similarity_threshold: float = 0.7
+        self,
+        query: str,
+        limit: int = 10,
+        similarity_threshold: float = SearchConfig().node_similarity_threshold,
     ) -> SearchResultCollection:
         """임베딩 기반 의미적 검색을 수행합니다."""
 

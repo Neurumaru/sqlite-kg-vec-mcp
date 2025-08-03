@@ -109,14 +109,16 @@ class RelationshipEmbeddingUseCase(ABC):
 
     @abstractmethod
     async def find_similar_relationships(
-        self, relationship_id: RelationshipId, limit: int = 10, threshold: float = 0.7
+        self, relationship_id: RelationshipId, limit: int = 10, threshold: Optional[float] = None
     ) -> list[tuple[Relationship, float]]:
-        """유사한 관계들을 찾습니다."""
+        """유사한 관계들을 찾습니다. threshold가 None이면 기본 설정값 사용."""
 
     @abstractmethod
     async def batch_create_relationships(
         self,
-        relationship_data: list[tuple[NodeId, NodeId, RelationshipType, str, Optional[dict], float]],
+        relationship_data: list[
+            tuple[NodeId, NodeId, RelationshipType, str, Optional[dict], float]
+        ],
     ) -> list[Relationship]:
         """여러 관계를 일괄 생성합니다.
 

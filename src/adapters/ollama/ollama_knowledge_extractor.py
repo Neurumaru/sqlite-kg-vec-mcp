@@ -15,6 +15,7 @@ from typing import Any, cast
 from src.adapters.hnsw.embeddings import EmbeddingManager
 from src.adapters.sqlite3.graph.entities import EntityManager
 from src.adapters.sqlite3.graph.relationships import RelationshipManager
+from src.config.search_config import SearchConfig
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship, RelationshipType
 from src.domain.value_objects.node_id import NodeId
@@ -52,6 +53,7 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         connection: sqlite3.Connection,
         ollama_client: OllamaClient,
         auto_embed: bool = True,
+        search_config: SearchConfig | None = None,
     ):
         """
         지식 추출기를 초기화합니다.
@@ -60,10 +62,12 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
             connection: SQLite 데이터베이스 연결
             ollama_client: LLM 작업을 위한 Ollama 클라이언트
             auto_embed: 임베딩을 자동으로 생성할지 여부
+            search_config: 검색 설정 (없으면 기본값 사용)
         """
         self.connection = connection
         self.ollama_client = ollama_client
         self.auto_embed = auto_embed
+        self.search_config = search_config or SearchConfig()
 
         # 관리자 초기화
         self.entity_manager = EntityManager(connection)
@@ -443,7 +447,10 @@ class OllamaKnowledgeExtractor(KnowledgeExtractor):
         ) / len(structure_indicators)
 
         # 점수 결합
-        confidence = length_score * 0.3 + structure_score * 0.7
+        confidence = (
+            length_score * self.search_config.confidence_length_weight
+            + structure_score * self.search_config.confidence_structure_weight
+        )
         return min(confidence, 1.0)
 
     # KnowledgeExtractor 추상 메서드 구현

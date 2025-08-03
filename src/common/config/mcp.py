@@ -9,6 +9,8 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
+from src.config.search_config import SearchConfig
+
 
 class MCPConfig(BaseSettings):
     """
@@ -55,7 +57,10 @@ class MCPConfig(BaseSettings):
     # 검색 설정
     max_search_results: int = Field(default=50, description="반환할 최대 검색 결과 수")
 
-    search_threshold: float = Field(default=0.7, description="검색 결과의 최소 유사도 임계값")
+    search_threshold: float = Field(
+        default_factory=lambda: SearchConfig().node_similarity_threshold,
+        description="검색 결과의 최소 유사도 임계값",
+    )
 
     # 로깅
     log_level: str = Field(default="INFO", description="MCP 서버의 로깅 레벨")
