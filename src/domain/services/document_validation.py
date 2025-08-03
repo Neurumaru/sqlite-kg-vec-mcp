@@ -6,39 +6,8 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
+from src.domain.config.validation_config import ValidationConfig
 from src.domain.entities.document import Document, DocumentStatus
-
-
-@dataclass(frozen=True)
-class DocumentValidationRules:
-    """문서 검증 규칙 설정."""
-
-    # 컨텐츠 관련 규칙
-    min_content_length: int = 1
-    max_content_length: int = 1_000_000
-    allow_empty_title: bool = False
-
-    # 상태 관련 규칙
-    allow_reprocessing: bool = True
-    allow_processing_while_processing: bool = False
-
-    # 메타데이터 관련 규칙
-    required_metadata_keys: Optional[list[str]] = None
-    max_metadata_size: int = 10_000
-
-    def __post_init__(self) -> None:
-        """검증 규칙 자체를 검증."""
-        if self.min_content_length < 0:
-            raise ValueError("min_content_length는 0 이상이어야 합니다")
-
-        if self.max_content_length <= 0:
-            raise ValueError("max_content_length는 0보다 커야 합니다")
-
-        if self.min_content_length > self.max_content_length:
-            raise ValueError("min_content_length는 max_content_length보다 작아야 합니다")
-
-        if self.max_metadata_size <= 0:
-            raise ValueError("max_metadata_size는 0보다 커야 합니다")
 
 
 @dataclass(frozen=True)
@@ -83,10 +52,11 @@ class DocumentValidationService:
 
     def __init__(
         self,
-        rules: DocumentValidationRules | None = None,
-        logger: logging.Logger | None = None,
+        config: Optional[ValidationConfig] = None,
+        logger: Optional[logging.Logger] = None,
     ):
-        self.rules = rules or DocumentValidationRules()
+        self.config = config or ValidationConfig.from_env()
+        self.config.validate()  # 설정 검증
         self.logger = logger or logging.getLogger(__name__)
 
     def validate_for_processing(self, document: Document) -> DocumentValidationResult:
@@ -138,12 +108,12 @@ class DocumentValidationService:
     ) -> DocumentValidationResult:
         """처리를 위한 상태 검증."""
         if document.status == DocumentStatus.PROCESSING:
-            if not self.rules.allow_processing_while_processing:
+            if not self.config.allow_processing_while_processing:
                 return result.add_error("문서가 이미 처리 중입니다")
             return result.add_warning("문서가 이미 처리 중이지만 중복 처리를 허용합니다")
 
         if document.status == DocumentStatus.PROCESSED:
-            if not self.rules.allow_reprocessing:
+            if not self.config.allow_reprocessing:
                 return result.add_error("문서가 이미 처리되었습니다")
             return result.add_warning("문서가 이미 처리되었지만 재처리를 진행합니다")
 
@@ -155,14 +125,14 @@ class DocumentValidationService:
         """컨텐츠 검증."""
         content = document.content.strip()
 
-        if len(content) < self.rules.min_content_length:
+        if len(content) < self.config.min_content_length:
             return result.add_error(
-                f"문서 내용이 너무 짧습니다 (최소 {self.rules.min_content_length}자 필요)"
+                f"문서 내용이 너무 짧습니다 (최소 {self.config.min_content_length}자 필요)"
             )
 
-        if len(content) > self.rules.max_content_length:
+        if len(content) > self.config.max_content_length:
             return result.add_error(
-                f"문서 내용이 너무 깁니다 (최대 {self.rules.max_content_length}자 허용)"
+                f"문서 내용이 너무 깁니다 (최대 {self.config.max_content_length}자 허용)"
             )
 
         return result
@@ -171,7 +141,7 @@ class DocumentValidationService:
         self, document: Document, result: DocumentValidationResult
     ) -> DocumentValidationResult:
         """제목 검증."""
-        if not self.rules.allow_empty_title and not document.title.strip():
+        if not self.config.allow_empty_title and not document.title.strip():
             return result.add_error("문서 제목이 비어있습니다")
 
         return result
@@ -181,16 +151,16 @@ class DocumentValidationService:
     ) -> DocumentValidationResult:
         """메타데이터 검증."""
         # 필수 메타데이터 키 확인
-        if self.rules.required_metadata_keys:
-            for key in self.rules.required_metadata_keys:
+        if self.config.required_metadata_keys:
+            for key in self.config.required_metadata_keys:
                 if key not in document.metadata:
                     result = result.add_error(f"필수 메타데이터 키 '{key}'가 누락되었습니다")
 
         # 메타데이터 크기 확인
         metadata_str = str(document.metadata)
-        if len(metadata_str) > self.rules.max_metadata_size:
+        if len(metadata_str) > self.config.max_metadata_size:
             result = result.add_error(
-                f"메타데이터 크기가 너무 큽니다 (최대 {self.rules.max_metadata_size}자 허용)"
+                f"메타데이터 크기가 너무 큽니다 (최대 {self.config.max_metadata_size}자 허용)"
             )
 
         return result
