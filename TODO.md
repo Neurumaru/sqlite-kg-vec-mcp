@@ -30,11 +30,11 @@
 - **상태**: 🔄 진행 중
 - **예상 시간**: 60분
 
-### 🔄 4. 검색 가중치 하드코딩 제거
+### ✅ 4. 검색 가중치 하드코딩 제거
 - **위치**: `src/domain/services/knowledge_search.py`
 - **문제**: 0.7, 0.3, 0.6 등 가중치 하드코딩
 - **해결**: SearchConfig 클래스 생성
-- **상태**: 🔄 진행 중
+- **상태**: ✅ 완료
 - **예상 시간**: 30분
 
 ## ⚡ Medium Priority (기능 강화)
@@ -134,10 +134,10 @@
 ## 📊 예상 총 작업 시간
 
 - **Critical Issues**: ✅ 완료 (2.5시간)
-- **High Priority**: 1.5시간  
+- **High Priority**: 1시간  
 - **Medium Priority**: 7시간
 - **Low Priority**: 4.5시간
-- **총합**: 약 15.5시간 (완료된 작업 제외)
+- **총합**: 약 15시간 (완료된 작업 제외)
 
 ## 📋 권장 작업 순서
 
@@ -145,9 +145,9 @@
 1. ✅ VectorStore LangChain 의존성 제거 (45분)
 2. ✅ VectorStore Fat Interface 분리 (60분)
 
-### **Phase 2 (High Priority - 1.5시간)**
+### **Phase 2 (High Priority - 1시간)**
 3. 🔄 타입 힌트 및 None 기본값 개선 (60분)
-4. 📋 검색 가중치 하드코딩 제거 (30분)
+4. ✅ 검색 가중치 하드코딩 제거 (30분)
 
 ### **Phase 3 (Medium Priority - 7시간)**
 5. 📋 예외 처리 표준화 (120분)
