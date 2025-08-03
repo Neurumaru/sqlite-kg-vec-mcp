@@ -5,7 +5,8 @@ ValidationManager 테스트.
 import logging
 from unittest.mock import Mock, patch
 
-from pydantic import BaseSettings, Field
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 from src.common.config.validation_manager import ConfigValidationManager
 
@@ -16,10 +17,13 @@ class MockValidConfig(BaseSettings):
     name: str = Field(default="test")
     value: int = Field(default=42)
 
-    def validate(self):
-        """커스텀 검증 메서드."""
-        if self.value < 0:
+    @field_validator('value')
+    @classmethod
+    def validate_value(cls, v):
+        """값 필드 검증."""
+        if v < 0:
             raise ValueError("값은 0 이상이어야 합니다")
+        return v
 
 
 class MockInvalidConfig(BaseSettings):
@@ -28,10 +32,13 @@ class MockInvalidConfig(BaseSettings):
     name: str = Field(default="test")
     value: int = Field(default=-1)  # 무효한 기본값
 
-    def validate(self):
-        """커스텀 검증 메서드."""
-        if self.value < 0:
+    @field_validator('value')
+    @classmethod
+    def validate_value(cls, v):
+        """값 필드 검증."""
+        if v < 0:
             raise ValueError("값은 0 이상이어야 합니다")
+        return v
 
 
 class MockConfigWithoutValidation(BaseSettings):
@@ -48,12 +55,14 @@ class MockLLMConfig:
         self.embedding_dimension = embedding_dimension
 
     def get_active_provider_config(self):
+        """활성 제공업체 설정을 반환합니다."""
         return self
 
     def model_validate(self, data):
-        pass
+        """데이터를 검증합니다."""
 
     def model_dump(self):
+        """설정을 딕셔너리로 반환합니다."""
         return {"embedding_dimension": self.embedding_dimension}
 
 
@@ -66,9 +75,10 @@ class MockDBConfig:
         self.backup_path = backup_path
 
     def model_validate(self, data):
-        pass
+        """데이터를 검증합니다."""
 
     def model_dump(self):
+        """설정을 딕셔너리로 반환합니다."""
         return {
             "vector_dimension": self.vector_dimension,
             "backup_enabled": self.backup_enabled,
@@ -83,8 +93,8 @@ class TestConfigValidationManager:
         """초기화 테스트."""
         manager = ConfigValidationManager()
 
-        assert manager._configs == {}
-        assert manager._validation_errors == []
+        assert not manager._configs
+        assert not manager._validation_errors
         assert isinstance(manager.logger, logging.Logger)
 
     def test_initialization_with_custom_logger(self):
@@ -116,7 +126,7 @@ class TestConfigValidationManager:
         success, errors = manager.validate_all()
 
         assert success is True
-        assert errors == []
+        assert not errors
 
     def test_validate_all_with_validation_errors(self):
         """검증 오류가 있는 설정 테스트."""
@@ -191,7 +201,7 @@ class TestConfigValidationManager:
         success, errors = manager.validate_all()
 
         assert success is True
-        assert errors == []
+        assert not errors
 
     def test_validate_config_dependencies_backup_enabled_without_path(self):
         """백업 활성화되었지만 경로가 없는 경우 테스트."""
@@ -216,7 +226,7 @@ class TestConfigValidationManager:
         success, errors = manager.validate_all()
 
         assert success is True
-        assert errors == []
+        assert not errors
 
     def test_get_config_summary(self):
         """설정 요약 테스트."""
@@ -236,6 +246,7 @@ class TestConfigValidationManager:
         manager = ConfigValidationManager()
 
         class ConfigWithSecret(BaseSettings):
+            """민감한 데이터가 있는 설정 클래스."""
             name: str = "test"
             api_key: str = "secret_key_12345"
             password: str = "secret_password"
@@ -256,6 +267,7 @@ class TestConfigValidationManager:
         manager = ConfigValidationManager()
 
         class NonPydanticConfig:
+            """Pydantic이 아닌 설정 클래스."""
             def __init__(self):
                 self.name = "non_pydantic"
 
@@ -304,21 +316,25 @@ class TestConfigValidationManager:
         manager = ConfigValidationManager()
 
         class MockMCPConfig:
+            """MCP 설정 모의 클래스."""
             log_level = "DEBUG"
 
             def model_validate(self, data):
-                pass
+                """데이터를 검증합니다."""
 
             def model_dump(self):
+                """설정을 딕셔너리로 반환합니다."""
                 return {"log_level": self.log_level}
 
         class MockObsConfig:
+            """관찰가능성 설정 모의 클래스."""
             log_level = "INFO"
 
             def model_validate(self, data):
-                pass
+                """데이터를 검증합니다."""
 
             def model_dump(self):
+                """설정을 딕셔너리로 반환합니다."""
                 return {"log_level": self.log_level}
 
         mcp_config = MockMCPConfig()
@@ -332,7 +348,7 @@ class TestConfigValidationManager:
 
             # 경고는 발생하지만 검증은 성공해야 함
             assert success is True
-            assert errors == []
+            assert not errors
             mock_warning.assert_called_once()
 
             warning_call = mock_warning.call_args[0][0]
@@ -351,6 +367,7 @@ class TestCreateDefaultValidationManager:
         self, mock_obs, mock_mcp, mock_llm, mock_db, mock_app
     ):
         """기본 검증 관리자 생성 성공 테스트."""
+        # pylint: disable=import-outside-toplevel
         from src.common.config.validation_manager import create_default_validation_manager
 
         # Mock 설정 인스턴스들
@@ -374,6 +391,7 @@ class TestCreateDefaultValidationManager:
     @patch("logging.getLogger")
     def test_create_default_validation_manager_with_error(self, mock_logger, mock_app_config):
         """기본 검증 관리자 생성 오류 테스트."""
+        # pylint: disable=import-outside-toplevel
         from src.common.config.validation_manager import create_default_validation_manager
 
         # AppConfig 생성 시 오류 발생 시뮬레이션

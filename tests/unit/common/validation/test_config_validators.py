@@ -6,7 +6,8 @@ import os
 from unittest.mock import patch
 
 import pytest
-from pydantic import BaseSettings, Field
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 
 from src.common.validation.config_validators import (
     ConfigValidationError,
@@ -25,10 +26,13 @@ class MockConfig(BaseSettings):
     value: int = Field(default=42)
     api_key: str = Field(default="secret_key")
 
-    def validate(self):
-        """커스텀 검증 메서드."""
-        if self.value < 0:
+    @field_validator('value')
+    @classmethod
+    def validate_value(cls, v):
+        """값 필드 검증."""
+        if v < 0:
             raise ValueError("값은 음수일 수 없습니다")
+        return v
 
 
 class InvalidConfig(BaseSettings):
@@ -80,8 +84,8 @@ class TestValidateConfigInstance:
         """예상치 못한 오류 테스트."""
         config = MockConfig()
 
-        # validate 메서드에서 예상치 못한 오류 발생 시뮬레이션
-        with patch.object(config, "validate", side_effect=RuntimeError("Unexpected error")):
+        # 모델 검증에서 예상치 못한 오류 발생 시뮬레이션
+        with patch.object(config, "model_validate", side_effect=RuntimeError("Unexpected error")):
             with pytest.raises(ConfigValidationError) as exc_info:
                 validate_config_instance(config, "MockConfig")
 
@@ -184,6 +188,7 @@ class TestValidateConfigDependencies:
         """OpenAI 제공업체와 API 키가 있는 경우 테스트."""
 
         class MockLLMConfig:
+            """OpenAI 제공업체 테스트용 모의 LLM 설정."""
             default_provider = "openai"
             openai = type("", (), {"api_key": "sk-test123"})()
 
@@ -196,6 +201,7 @@ class TestValidateConfigDependencies:
         """OpenAI 제공업체이지만 API 키가 없는 경우 테스트."""
 
         class MockLLMConfig:
+            """API 키 없는 OpenAI 제공업체 테스트용 모의 LLM 설정."""
             default_provider = "openai"
             openai = type("", (), {"api_key": None})()
 
@@ -210,6 +216,7 @@ class TestValidateConfigDependencies:
         """Anthropic 제공업체이지만 API 키가 없는 경우 테스트."""
 
         class MockLLMConfig:
+            """API 키 없는 Anthropic 제공업체 테스트용 모의 LLM 설정."""
             default_provider = "anthropic"
             anthropic = type("", (), {"api_key": ""})()
 
@@ -224,6 +231,7 @@ class TestValidateConfigDependencies:
         """백업이 활성화되었지만 경로가 없는 경우 테스트."""
 
         class MockDBConfig:
+            """백업 경로 없는 테스트용 모의 데이터베이스 설정."""
             backup_enabled = True
             backup_path = None
 
@@ -238,6 +246,7 @@ class TestValidateConfigDependencies:
         """백업이 활성화되고 경로가 있는 경우 테스트."""
 
         class MockDBConfig:
+            """백업 경로 포함 테스트용 모의 데이터베이스 설정."""
             backup_enabled = True
             backup_path = "/backup/path"
 
@@ -250,6 +259,7 @@ class TestValidateConfigDependencies:
         """백업이 비활성화된 경우 테스트."""
 
         class MockDBConfig:
+            """백업 비활성화 테스트용 모의 데이터베이스 설정."""
             backup_enabled = False
             backup_path = None
 
@@ -286,6 +296,7 @@ class TestGetConfigSummary:
         """민감한 데이터가 없는 설정 요약 테스트."""
 
         class SimpleConfig(BaseSettings):
+            """민감한 데이터가 없는 단순 설정 클래스."""
             name: str = "test"
             count: int = 10
 

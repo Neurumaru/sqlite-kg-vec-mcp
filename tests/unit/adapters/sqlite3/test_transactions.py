@@ -48,7 +48,7 @@ exec_globals = {
 
 exec_globals["contextmanager"] = contextmanager
 
-exec(transactions_code, exec_globals)
+exec(transactions_code, exec_globals)  # pylint: disable=exec-used
 
 TransactionManager = exec_globals["TransactionManager"]
 UnitOfWork = exec_globals["UnitOfWork"]
