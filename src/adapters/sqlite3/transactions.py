@@ -5,6 +5,9 @@ SQLite 데이터베이스 작업에 대한 트랜잭션 관리.
 import sqlite3
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Optional
+
+from .transaction_context import TransactionContext, IsolationLevel, transaction_scope
 
 
 class TransactionManager:
@@ -22,27 +25,22 @@ class TransactionManager:
 
     @contextmanager
     def transaction(
-        self, isolation_level: str = "IMMEDIATE"
-    ) -> Generator[sqlite3.Connection, None, None]:
+        self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE
+    ) -> Generator[TransactionContext, None, None]:
         """
         데이터베이스 트랜잭션을 위한 컨텍스트 관리자.
+
         Args:
-            isolation_level: SQLite 격리 수준 ('DEFERRED', 'IMMEDIATE' 또는 'EXCLUSIVE')
-                            'IMMEDIATE'는 동시 작업에 더 안전합니다.
+            isolation_level: SQLite 격리 수준
+
         Yields:
-            트랜잭션 내에서 문을 실행하기 위한 SQLite 연결
+            트랜잭션 컨텍스트
+
         Raises:
             트랜잭션 컨텍스트의 모든 예외
         """
-        # 연결을 생성할 때 자동 트랜잭션 관리를 비활성화했기 때문에
-        # 여기서 'execute'를 사용해야 합니다.
-        self.connection.execute(f"BEGIN {isolation_level} TRANSACTION")
-        try:
-            yield self.connection
-            self.connection.execute("COMMIT")
-        except Exception as exception:
-            self.connection.execute("ROLLBACK")
-            raise exception
+        with transaction_scope(self.connection, isolation_level) as tx_context:
+            yield tx_context
 
 
 class UnitOfWork:
@@ -61,7 +59,7 @@ class UnitOfWork:
         self._correlation_id: Optional[str] = None
 
     @property
-    def correlation_id(self) -> str]:
+    def correlation_id(self) -> Optional[str]:
         """관련 작업을 추적하기 위한 상관 관계 ID를 가져옵니다."""
         return self._correlation_id
 
@@ -72,17 +70,19 @@ class UnitOfWork:
 
     @contextmanager
     def begin(
-        self, isolation_level: str = "IMMEDIATE"
-    ) -> Generator[sqlite3.Connection, None, None]:
+        self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE
+    ) -> Generator[TransactionContext, None, None]:
         """
         작업 단위(트랜잭션)를 시작합니다.
+
         Args:
             isolation_level: SQLite 격리 수준
+
         Yields:
-            문을 실행하기 위한 SQLite 연결
+            트랜잭션 컨텍스트
         """
-        with self.transaction_manager.transaction(isolation_level) as conn:
-            yield conn
+        with self.transaction_manager.transaction(isolation_level) as tx_context:
+            yield tx_context
 
     def register_vector_operation(
         self,

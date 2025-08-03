@@ -7,12 +7,15 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from sqlite3 import Connection
-from typing import Any
+from typing import Any, Optional
 
+from src.adapters.exceptions import DatabaseConnectionException, DatabaseTimeoutException
 from src.common.config.database import DatabaseConfig
 from src.ports.database import Database, DatabaseMaintenance
 
 from .connection import DatabaseConnection
+from .transaction_context import TransactionContext, IsolationLevel, transaction_scope
+from .exceptions import SQLiteConnectionException
 
 
 class SQLiteDatabase(Database, DatabaseMaintenance):
@@ -56,7 +59,11 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         try:
             self._connection = self._connection_manager.connect()
             return True
-        except Exception:
+        except SQLiteConnectionException:
+            return False
+        except sqlite3.OperationalError:
+            return False
+        except PermissionError:
             return False
 
     async def disconnect(self) -> bool:
@@ -70,13 +77,14 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 try:
                     transaction_conn.rollback()
                     transaction_conn.close()
-                except Exception:
+                except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                    # 연결이 이미 닫혔거나 손상된 경우 무시
                     pass
             self._active_transactions.clear()
             self._connection_manager.close()
             self._connection = None
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def is_connected(self) -> bool:
@@ -90,7 +98,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         try:
             self._connection.execute("SELECT 1").fetchone()
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def ping(self) -> bool:
@@ -103,68 +111,75 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
 
     # 트랜잭션 관리
     @asynccontextmanager
-    async def transaction(self):  # pylint: disable=invalid-overridden-method
+    async def transaction(self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE):
         """
         데이터베이스 트랜잭션 컨텍스트를 생성합니다.
-        Yields:
-            트랜잭션 컨텍스트
-        """
-        transaction_id = await self.begin_transaction()
-        try:
-            yield
-            await self.commit_transaction(transaction_id)
-        except Exception:
-            await self.rollback_transaction(transaction_id)
-            raise
 
-    async def begin_transaction(self) -> str:
-        """
-        새 트랜잭션을 시작합니다.
-        Returns:
-            트랜잭션 ID
+        Args:
+            isolation_level: 트랜잭션 격리 수준
+
+        Yields:
+            TransactionContext 인스턴스
         """
         if not self._connection:
             raise RuntimeError("데이터베이스가 연결되지 않았습니다")
-        transaction_id = str(uuid.uuid4())
-        self._active_transactions[transaction_id] = self._connection
-        self._connection.execute("BEGIN")
-        return transaction_id
 
-    async def commit_transaction(self, transaction_id: str) -> bool:
+        with transaction_scope(self._connection, isolation_level) as tx_context:
+            yield tx_context
+
+    async def begin_transaction(
+        self, isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE
+    ) -> TransactionContext:
+        """
+        새 트랜잭션을 시작합니다.
+
+        Args:
+            isolation_level: 트랜잭션 격리 수준
+
+        Returns:
+            TransactionContext 인스턴스
+        """
+        if not self._connection:
+            raise RuntimeError("데이터베이스가 연결되지 않았습니다")
+
+        tx_context = TransactionContext(self._connection, isolation_level, auto_commit=False)
+        self._active_transactions[tx_context.transaction_id] = self._connection
+
+        # 트랜잭션 시작 (TransactionContext.begin()은 컨텍스트 매니저이므로 여기서는 수동으로)
+        if not self._connection.in_transaction:
+            self._connection.execute(f"BEGIN {isolation_level.value}")
+
+        return tx_context
+
+    async def commit_transaction(self, tx_context: TransactionContext) -> bool:
         """
         트랜잭션을 커밋합니다.
+
         Args:
-            transaction_id: 커밋할 트랜잭션 ID
+            tx_context: 커밋할 트랜잭션 컨텍스트
+
         Returns:
             커밋 성공 시 True
         """
-        if transaction_id not in self._active_transactions:
-            return False
-        try:
-            connection = self._active_transactions[transaction_id]
-            connection.commit()
-            del self._active_transactions[transaction_id]
-            return True
-        except Exception:
-            return False
+        success = tx_context.commit()
+        if tx_context.transaction_id in self._active_transactions:
+            del self._active_transactions[tx_context.transaction_id]
+        return success
 
-    async def rollback_transaction(self, transaction_id: str) -> bool:
+    async def rollback_transaction(self, tx_context: TransactionContext) -> bool:
         """
         트랜잭션을 롤백합니다.
+
         Args:
-            transaction_id: 롤백할 트랜잭션 ID
+            tx_context: 롤백할 트랜잭션 컨텍스트
+
         Returns:
             롤백 성공 시 True
         """
-        if transaction_id not in self._active_transactions:
-            return False
-        try:
-            connection = self._active_transactions[transaction_id]
-            connection.rollback()
-            del self._active_transactions[transaction_id]
-            return True
-        except Exception:
-            return False
+        success = tx_context.rollback()
+        if tx_context.transaction_id in self._active_transactions:
+            del self._active_transactions[tx_context.transaction_id]
+        return success
 
     # 쿼리 실행
     async def execute_query(
@@ -291,7 +306,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             sql = f"CREATE TABLE {if_not_exists_clause}{table_name} ({', '.join(columns)})"
             await self.execute_command(sql)
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def drop_table(self, table_name: str, if_exists: bool = True) -> bool:
@@ -308,7 +323,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             sql = f"DROP TABLE {if_exists_clause}{table_name}"
             await self.execute_command(sql)
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def table_exists(self, table_name: str) -> bool:
@@ -325,7 +340,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 {"name": table_name},
             )
             return len(result) > 0
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def get_table_schema(self, table_name: str) -> Optional[dict[str, Any]]:
@@ -349,7 +364,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                     "primary_key": bool(row["pk"]),
                 }
             return schema
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return None
 
     async def create_index(
@@ -378,7 +393,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             sql = f"CREATE {unique_clause}INDEX {if_not_exists_clause}{index_name} ON {table_name} ({columns_str})"
             await self.execute_command(sql)
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def drop_index(self, index_name: str, if_exists: bool = True) -> bool:
@@ -395,7 +410,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             sql = f"DROP INDEX {if_exists_clause}{index_name}"
             await self.execute_command(sql)
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     # 데이터베이스 유지보수
@@ -408,7 +423,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         try:
             await self.execute_command("VACUUM")
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def analyze(self, table_name: Optional[str] = None) -> bool:
@@ -425,7 +440,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             else:
                 await self.execute_command("ANALYZE")
             return True
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return False
 
     async def get_database_info(self) -> dict[str, Any]:
@@ -456,10 +471,10 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                     if result:
                         key = pragma.split()[-1]
                         info[key] = result[0][pragma.replace("PRAGMA ", "")]
-                except Exception:
+                except (sqlite3.OperationalError, sqlite3.DatabaseError):
                     continue
             return info
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
             return {"error": "데이터베이스 정보를 가져오는 데 실패했습니다"}
 
     async def get_table_info(self, table_name: str) -> Optional[dict[str, Any]]:
@@ -484,7 +499,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             if schema:
                 info["schema"] = schema
             return info
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError):
             return None
 
     # 상태 및 진단
@@ -509,7 +524,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                 await self.execute_command("CREATE TEMP TABLE health_check_temp (id INTEGER)")
                 await self.execute_command("DROP TABLE health_check_temp")
                 health["writable"] = True
-            except Exception as exception:
+            except (sqlite3.OperationalError, sqlite3.DatabaseError) as exception:
                 health["error"] = str(exception)
         health["status"] = (
             "healthy"
@@ -556,7 +571,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
                     tables_dict[table_name] = {"row_count": table_info.get("row_count", 0)}
             stats["tables"] = tables_dict
             return stats
-        except Exception:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, OSError):
             return {"error": "성능 통계를 가져오는 데 실패했습니다"}
 
     @property

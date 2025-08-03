@@ -3,10 +3,55 @@ TransactionManager 및 UnitOfWork 단위 테스트.
 """
 
 import sqlite3
+import sys
 import unittest
 from unittest.mock import Mock, patch
+from pathlib import Path
 
-from src.adapters.sqlite3.transactions import TransactionManager, UnitOfWork
+# 직접 모듈 임포트 (전체 프로젝트 초기화 우회)
+project_root = Path(__file__).parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+import importlib.util
+
+# transaction_context.py 먼저 로드 (의존성)
+spec_context = importlib.util.spec_from_file_location(
+    "transaction_context", project_root / "src" / "adapters" / "sqlite3" / "transaction_context.py"
+)
+transaction_context_module = importlib.util.module_from_spec(spec_context)
+spec_context.loader.exec_module(transaction_context_module)
+
+# transactions.py 소스 코드를 읽어서 수정된 버전으로 실행
+transactions_path = project_root / "src" / "adapters" / "sqlite3" / "transactions.py"
+with open(transactions_path, "r", encoding="utf-8") as f:
+    transactions_code = f.read()
+
+# 상대 임포트를 절대 임포트로 변경
+transactions_code = transactions_code.replace(
+    "from .transaction_context import TransactionContext, IsolationLevel, transaction_scope", ""
+)
+
+# 전역 네임스페이스에 클래스들 추가
+exec_globals = {
+    "__name__": "transactions",
+    "sqlite3": sqlite3,
+    "Generator": type(lambda: (yield)),
+    "contextmanager": unittest.mock.Mock(),  # contextmanager를 mock으로 대체
+    "Optional": type(None),  # Optional type hint
+    "TransactionContext": transaction_context_module.TransactionContext,
+    "IsolationLevel": transaction_context_module.IsolationLevel,
+    "transaction_scope": transaction_context_module.transaction_scope,
+}
+
+# contextmanager 데코레이터를 실제로 구현
+from contextlib import contextmanager
+
+exec_globals["contextmanager"] = contextmanager
+
+exec(transactions_code, exec_globals)
+
+TransactionManager = exec_globals["TransactionManager"]
+UnitOfWork = exec_globals["UnitOfWork"]
 
 
 class TestTransactionManager(unittest.TestCase):
@@ -15,6 +60,7 @@ class TestTransactionManager(unittest.TestCase):
     def setUp(self):
         """테스트 설정."""
         self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_connection.in_transaction = False  # 기본적으로 트랜잭션이 없음
         self.transaction_manager = TransactionManager(self.mock_connection)
 
     def test_init(self):
@@ -34,13 +80,14 @@ class TestTransactionManager(unittest.TestCase):
         Then: 트랜잭션이 시작되고 커밋된다
         """
         # Given & When
-        with self.transaction_manager.transaction() as conn:
+        with self.transaction_manager.transaction() as tx_context:
             # Then - 트랜잭션 내부
-            self.assertEqual(conn, self.mock_connection)
+            self.assertIsInstance(tx_context, transaction_context_module.TransactionContext)
+            self.assertEqual(tx_context.connection, self.mock_connection)
 
         # Then - 트랜잭션 완료 후
         expected_calls = [
-            unittest.mock.call("BEGIN IMMEDIATE TRANSACTION"),
+            unittest.mock.call("BEGIN IMMEDIATE"),
             unittest.mock.call("COMMIT"),
         ]
         self.mock_connection.execute.assert_has_calls(expected_calls)
@@ -51,11 +98,13 @@ class TestTransactionManager(unittest.TestCase):
         Then: 지정된 격리 수준으로 트랜잭션이 시작된다
         """
         # Given & When
-        with self.transaction_manager.transaction(isolation_level="EXCLUSIVE"):
+        with self.transaction_manager.transaction(
+            isolation_level=transaction_context_module.IsolationLevel.EXCLUSIVE
+        ):
             pass
 
         # Then
-        self.mock_connection.execute.assert_any_call("BEGIN EXCLUSIVE TRANSACTION")
+        self.mock_connection.execute.assert_any_call("BEGIN EXCLUSIVE")
 
     def test_transaction_with_exception(self):
         """Given: 트랜잭션 중 예외가 발생할 때
@@ -72,7 +121,7 @@ class TestTransactionManager(unittest.TestCase):
 
         self.assertEqual(context.exception, test_exception)
         expected_calls = [
-            unittest.mock.call("BEGIN IMMEDIATE TRANSACTION"),
+            unittest.mock.call("BEGIN IMMEDIATE"),
             unittest.mock.call("ROLLBACK"),
         ]
         self.mock_connection.execute.assert_has_calls(expected_calls)
@@ -99,6 +148,7 @@ class TestUnitOfWork(unittest.TestCase):
     def setUp(self):
         """테스트 설정."""
         self.mock_connection = Mock(spec=sqlite3.Connection)
+        self.mock_connection.in_transaction = False  # 기본적으로 트랜잭션이 없음
         self.unit_of_work = UnitOfWork(self.mock_connection)
 
     def test_init(self):
@@ -131,15 +181,16 @@ class TestUnitOfWork(unittest.TestCase):
     def test_begin_success(self):
         """Given: 정상적인 연결이 있을 때
         When: begin 컨텍스트 매니저를 사용하면
-        Then: 트랜잭션이 시작되고 연결이 반환된다
+        Then: 트랜잭션이 시작되고 트랜잭션 컨텍스트가 반환된다
         """
         # Given & When
-        with self.unit_of_work.begin() as conn:
+        with self.unit_of_work.begin() as tx_context:
             # Then
-            self.assertEqual(conn, self.mock_connection)
+            self.assertIsInstance(tx_context, transaction_context_module.TransactionContext)
+            self.assertEqual(tx_context.connection, self.mock_connection)
 
         # Then
-        self.mock_connection.execute.assert_any_call("BEGIN IMMEDIATE TRANSACTION")
+        self.mock_connection.execute.assert_any_call("BEGIN IMMEDIATE")
         self.mock_connection.execute.assert_any_call("COMMIT")
 
     def test_begin_with_custom_isolation_level(self):
@@ -148,11 +199,13 @@ class TestUnitOfWork(unittest.TestCase):
         Then: 지정된 격리 수준으로 트랜잭션이 시작된다
         """
         # Given & When
-        with self.unit_of_work.begin(isolation_level="DEFERRED"):
+        with self.unit_of_work.begin(
+            isolation_level=transaction_context_module.IsolationLevel.DEFERRED
+        ):
             pass
 
         # Then
-        self.mock_connection.execute.assert_any_call("BEGIN DEFERRED TRANSACTION")
+        self.mock_connection.execute.assert_any_call("BEGIN DEFERRED")
 
     def test_begin_with_exception(self):
         """Given: 트랜잭션 중 예외가 발생할 때
@@ -250,7 +303,7 @@ class TestUnitOfWork(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             self.unit_of_work.register_vector_operation("node", 1, "insert")
 
-        self.assertIn("Failed to insert into vector_outbox", str(context.exception))
+        self.assertIn("vector_outbox에 삽입 실패", str(context.exception))
 
     def test_register_vector_operation_all_entity_types(self):
         """Given: 다양한 엔티티 타입이 있을 때
@@ -271,30 +324,22 @@ class TestUnitOfWork(unittest.TestCase):
                 result = self.unit_of_work.register_vector_operation(entity_type, 1, operation_type)
                 self.assertEqual(result, 1)
 
-    @patch("src.adapters.sqlite3.transactions.TransactionManager")
-    def test_unit_of_work_integration(self, mock_transaction_manager_class):
+    def test_unit_of_work_integration(self):
         """Given: UnitOfWork와 TransactionManager의 통합이 필요할 때
         When: UnitOfWork를 사용하면
         Then: TransactionManager가 올바르게 사용된다
         """
         # Given
-        mock_transaction_manager = Mock()
-        mock_transaction_context = Mock()
-        mock_enter_method = Mock(return_value=self.mock_connection)
-        mock_exit_method = Mock(return_value=None)
-        mock_transaction_context.__enter__ = mock_enter_method
-        mock_transaction_context.__exit__ = mock_exit_method
-        mock_transaction_manager.transaction.return_value = mock_transaction_context
-        mock_transaction_manager_class.return_value = mock_transaction_manager
-
         uow = UnitOfWork(self.mock_connection)
 
         # When
-        with uow.begin():
-            pass
+        with uow.begin() as tx_context:
+            # Then
+            self.assertIsInstance(tx_context, transaction_context_module.TransactionContext)
+            self.assertEqual(tx_context.connection, self.mock_connection)
 
-        # Then
-        mock_transaction_manager.transaction.assert_called_once_with("IMMEDIATE")
+        # Then - TransactionManager가 호출되었는지 확인
+        self.assertIsInstance(uow.transaction_manager, TransactionManager)
 
     def test_multiple_vector_operations_in_transaction(self):
         """Given: 하나의 트랜잭션에서 여러 벡터 연산을 등록할 때

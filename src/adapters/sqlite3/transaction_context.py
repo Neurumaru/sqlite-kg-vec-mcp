@@ -1,0 +1,233 @@
+"""
+표준화된 트랜잭션 컨텍스트 관리.
+"""
+
+import sqlite3
+import uuid
+from contextlib import contextmanager
+from enum import Enum
+from typing import Any, Dict, Optional, Generator
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class IsolationLevel(Enum):
+    """SQLite 트랜잭션 격리 수준."""
+
+    DEFERRED = "DEFERRED"
+    IMMEDIATE = "IMMEDIATE"
+    EXCLUSIVE = "EXCLUSIVE"
+
+
+class TransactionState(Enum):
+    """트랜잭션 상태."""
+
+    ACTIVE = "active"
+    COMMITTED = "committed"
+    ROLLED_BACK = "rolled_back"
+    FAILED = "failed"
+
+
+class TransactionContext:
+    """
+    표준화된 트랜잭션 컨텍스트.
+    모든 데이터베이스 작업에서 일관된 트랜잭션 관리를 제공합니다.
+    """
+
+    def __init__(
+        self,
+        connection: sqlite3.Connection,
+        isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE,
+        auto_commit: bool = True,
+    ):
+        """
+        트랜잭션 컨텍스트를 초기화합니다.
+
+        Args:
+            connection: SQLite 데이터베이스 연결
+            isolation_level: 트랜잭션 격리 수준
+            auto_commit: 컨텍스트 종료 시 자동 커밋 여부
+        """
+        self.connection = connection
+        self.isolation_level = isolation_level
+        self.auto_commit = auto_commit
+        self.transaction_id = str(uuid.uuid4())
+        self.state = TransactionState.ACTIVE
+        self._is_nested = False
+        self._savepoint_name: Optional[str] = None
+
+    @contextmanager
+    def begin(self) -> Generator["TransactionContext", None, None]:
+        """
+        트랜잭션을 시작합니다.
+
+        Yields:
+            활성 트랜잭션 컨텍스트
+        """
+        # 이미 트랜잭션이 활성화되어 있는지 확인
+        in_transaction = self.connection.in_transaction
+
+        try:
+            if in_transaction:
+                # 중첩 트랜잭션의 경우 savepoint 사용
+                self._is_nested = True
+                self._savepoint_name = f"sp_{self.transaction_id[:8]}"
+                self.connection.execute(f"SAVEPOINT {self._savepoint_name}")
+                logger.debug(f"Savepoint 생성: {self._savepoint_name}")
+            else:
+                # 새 트랜잭션 시작
+                self.connection.execute(f"BEGIN {self.isolation_level.value}")
+                logger.debug(f"트랜잭션 시작: {self.transaction_id} ({self.isolation_level.value})")
+
+            yield self
+
+            # 성공적으로 완료된 경우 커밋
+            if self.auto_commit and self.state == TransactionState.ACTIVE:
+                self.commit()
+
+        except Exception as e:
+            # 예외 발생 시 롤백
+            if self.state == TransactionState.ACTIVE:
+                self.rollback()
+            logger.error(f"트랜잭션 실패: {self.transaction_id}, 오류: {e}")
+            raise
+
+    def commit(self) -> bool:
+        """
+        트랜잭션을 커밋합니다.
+
+        Returns:
+            커밋 성공 여부
+        """
+        if self.state != TransactionState.ACTIVE:
+            logger.warning(f"비활성 트랜잭션 커밋 시도: {self.transaction_id} (상태: {self.state})")
+            return False
+
+        try:
+            if self._is_nested:
+                # Savepoint 해제
+                if self._savepoint_name:
+                    self.connection.execute(f"RELEASE SAVEPOINT {self._savepoint_name}")
+                    logger.debug(f"Savepoint 해제: {self._savepoint_name}")
+            else:
+                # 트랜잭션 커밋
+                self.connection.execute("COMMIT")
+                logger.debug(f"트랜잭션 커밋: {self.transaction_id}")
+
+            self.state = TransactionState.COMMITTED
+            return True
+
+        except Exception as e:
+            logger.error(f"커밋 실패: {self.transaction_id}, 오류: {e}")
+            self.state = TransactionState.FAILED
+            return False
+
+    def rollback(self) -> bool:
+        """
+        트랜잭션을 롤백합니다.
+
+        Returns:
+            롤백 성공 여부
+        """
+        if self.state not in (TransactionState.ACTIVE, TransactionState.FAILED):
+            logger.warning(f"비활성 트랜잭션 롤백 시도: {self.transaction_id} (상태: {self.state})")
+            return False
+
+        try:
+            if self._is_nested:
+                # Savepoint로 롤백
+                if self._savepoint_name:
+                    self.connection.execute(f"ROLLBACK TO SAVEPOINT {self._savepoint_name}")
+                    logger.debug(f"Savepoint 롤백: {self._savepoint_name}")
+            else:
+                # 트랜잭션 롤백
+                self.connection.execute("ROLLBACK")
+                logger.debug(f"트랜잭션 롤백: {self.transaction_id}")
+
+            self.state = TransactionState.ROLLED_BACK
+            return True
+
+        except Exception as e:
+            logger.error(f"롤백 실패: {self.transaction_id}, 오류: {e}")
+            self.state = TransactionState.FAILED
+            return False
+
+    def execute(self, sql: str, parameters: Optional[Dict[str, Any]] = None) -> sqlite3.Cursor:
+        """
+        트랜잭션 컨텍스트에서 SQL을 실행합니다.
+
+        Args:
+            sql: 실행할 SQL 문
+            parameters: SQL 매개변수
+
+        Returns:
+            SQLite 커서
+        """
+        if self.state != TransactionState.ACTIVE:
+            raise RuntimeError(f"비활성 트랜잭션에서 SQL 실행 시도: {self.transaction_id}")
+
+        try:
+            if parameters:
+                return self.connection.execute(sql, parameters)
+            else:
+                return self.connection.execute(sql)
+        except Exception as e:
+            logger.error(f"SQL 실행 실패: {self.transaction_id}, SQL: {sql}, 오류: {e}")
+            raise
+
+    def executemany(self, sql: str, parameters_list: list[Dict[str, Any]]) -> sqlite3.Cursor:
+        """
+        트랜잭션 컨텍스트에서 여러 SQL을 실행합니다.
+
+        Args:
+            sql: 실행할 SQL 문
+            parameters_list: SQL 매개변수 목록
+
+        Returns:
+            SQLite 커서
+        """
+        if self.state != TransactionState.ACTIVE:
+            raise RuntimeError(f"비활성 트랜잭션에서 SQL 실행 시도: {self.transaction_id}")
+
+        try:
+            return self.connection.executemany(sql, parameters_list)
+        except Exception as e:
+            logger.error(f"배치 SQL 실행 실패: {self.transaction_id}, SQL: {sql}, 오류: {e}")
+            raise
+
+    @property
+    def is_active(self) -> bool:
+        """트랜잭션이 활성 상태인지 확인합니다."""
+        return self.state == TransactionState.ACTIVE
+
+    @property
+    def is_nested(self) -> bool:
+        """중첩 트랜잭션인지 확인합니다."""
+        return self._is_nested
+
+    def __str__(self) -> str:
+        """트랜잭션 컨텍스트의 문자열 표현."""
+        return f"TransactionContext(id={self.transaction_id[:8]}, state={self.state.value}, nested={self._is_nested})"
+
+
+@contextmanager
+def transaction_scope(
+    connection: sqlite3.Connection,
+    isolation_level: IsolationLevel = IsolationLevel.IMMEDIATE,
+    auto_commit: bool = True,
+) -> Generator[TransactionContext, None, None]:
+    """
+    트랜잭션 스코프를 위한 편의 함수.
+
+    Args:
+        connection: SQLite 데이터베이스 연결
+        isolation_level: 트랜잭션 격리 수준
+        auto_commit: 자동 커밋 여부
+
+    Yields:
+        트랜잭션 컨텍스트
+    """
+    tx_context = TransactionContext(connection, isolation_level, auto_commit)
+    with tx_context.begin():
+        yield tx_context
