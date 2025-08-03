@@ -7,7 +7,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Optional
 
-from .transaction_context import TransactionContext, IsolationLevel, transaction_scope
+from .transaction_context import IsolationLevel, TransactionContext, transaction_scope
 
 
 class TransactionManager:

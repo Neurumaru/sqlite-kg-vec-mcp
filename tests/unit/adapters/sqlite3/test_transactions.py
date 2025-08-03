@@ -5,8 +5,8 @@ TransactionManager 및 UnitOfWork 단위 테스트.
 import sqlite3
 import sys
 import unittest
-from unittest.mock import Mock, patch
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 # 직접 모듈 임포트 (전체 프로젝트 초기화 우회)
 project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -28,7 +28,8 @@ with open(transactions_path, "r", encoding="utf-8") as f:
 
 # 상대 임포트를 절대 임포트로 변경
 transactions_code = transactions_code.replace(
-    "from .transaction_context import TransactionContext, IsolationLevel, transaction_scope", ""
+    "from .transaction_context import TransactionContext, IsolationLevel, transaction_scope",
+    "# 임포트는 exec_globals에서 처리됨",
 )
 
 # 전역 네임스페이스에 클래스들 추가

@@ -47,7 +47,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
         self.max_connections = config.max_connections
         self._connection_manager = DatabaseConnection(str(self.db_path), self.optimize)
         self._connection: Optional[Connection] = None
-        self._active_transactions: dict[str, sqlite3.Connection] = {}
+        self._active_transactions: dict[str, TransactionContext] = {}
 
     # 연결 관리
     async def connect(self) -> bool:
@@ -592,9 +592,7 @@ class SQLiteDatabase(Database, DatabaseMaintenance):
             SQLite 연결 또는 None
         """
         if transaction_id and transaction_id in self._active_transactions:
-            connection = self._active_transactions[transaction_id]
-            # TransactionContext인 경우 내부 connection을 반환
-            if hasattr(connection, 'connection'):
-                return connection.connection
-            return connection
+            tx_context = self._active_transactions[transaction_id]
+            # TransactionContext에서 내부 connection을 반환
+            return tx_context.connection
         return self._connection

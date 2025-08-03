@@ -6,6 +6,7 @@ MCP 서버 인터페이스를 위한 리팩토링된 API 엔드포인트 및 핸
 """
 
 import logging
+from typing import Optional
 
 from fastmcp import FastMCP
 

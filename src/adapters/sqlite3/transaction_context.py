@@ -2,12 +2,12 @@
 표준화된 트랜잭션 컨텍스트 관리.
 """
 
+import logging
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, Optional, Generator
-import logging
+from typing import Any, Dict, Generator, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +153,7 @@ class TransactionContext:
             self.state = TransactionState.FAILED
             return False
 
-    def execute(self, sql: str, parameters: Optional[Dict[str, Any]] = None) -> sqlite3.Cursor:
+    def execute(self, sql: str, parameters=None) -> sqlite3.Cursor:
         """
         트랜잭션 컨텍스트에서 SQL을 실행합니다.
 
@@ -168,7 +168,7 @@ class TransactionContext:
             raise RuntimeError(f"비활성 트랜잭션에서 SQL 실행 시도: {self.transaction_id}")
 
         try:
-            if parameters:
+            if parameters is not None:
                 return self.connection.execute(sql, parameters)
             else:
                 return self.connection.execute(sql)
@@ -176,7 +176,7 @@ class TransactionContext:
             logger.error(f"SQL 실행 실패: {self.transaction_id}, SQL: {sql}, 오류: {e}")
             raise
 
-    def executemany(self, sql: str, parameters_list: list[Dict[str, Any]]) -> sqlite3.Cursor:
+    def executemany(self, sql: str, parameters_list) -> sqlite3.Cursor:
         """
         트랜잭션 컨텍스트에서 여러 SQL을 실행합니다.
 
@@ -209,6 +209,66 @@ class TransactionContext:
     def __str__(self) -> str:
         """트랜잭션 컨텍스트의 문자열 표현."""
         return f"TransactionContext(id={self.transaction_id[:8]}, state={self.state.value}, nested={self._is_nested})"
+
+    # Connection 인터페이스 위임 메서드들
+    def cursor(self):
+        """Connection의 cursor 메서드를 위임합니다."""
+        return self.connection.cursor()
+
+    def executescript(self, sql_script: str):
+        """Connection의 executescript 메서드를 위임합니다."""
+        return self.connection.executescript(sql_script)
+
+    @property
+    def row_factory(self):
+        """Connection의 row_factory 속성을 위임합니다."""
+        return self.connection.row_factory
+
+    @row_factory.setter
+    def row_factory(self, value):
+        """Connection의 row_factory 속성을 위임합니다."""
+        self.connection.row_factory = value
+
+    @property
+    def in_transaction(self):
+        """Connection의 in_transaction 속성을 위임합니다."""
+        return self.connection.in_transaction
+
+    def close(self):
+        """Connection의 close 메서드를 위임합니다."""
+        return self.connection.close()
+
+    def create_function(self, name, num_params, func):
+        """Connection의 create_function 메서드를 위임합니다."""
+        return self.connection.create_function(name, num_params, func)
+
+    def create_aggregate(self, name, num_params, aggregate_class):
+        """Connection의 create_aggregate 메서드를 위임합니다."""
+        return self.connection.create_aggregate(name, num_params, aggregate_class)
+
+    def isolation_level_property(self):
+        """Connection의 isolation_level 속성을 위임합니다."""
+        return self.connection.isolation_level
+
+    def total_changes(self):
+        """Connection의 total_changes 속성을 위임합니다."""
+        return self.connection.total_changes
+
+    def interrupt(self):
+        """Connection의 interrupt 메서드를 위임합니다."""
+        return self.connection.interrupt()
+
+    def set_authorizer(self, authorizer):
+        """Connection의 set_authorizer 메서드를 위임합니다."""
+        return self.connection.set_authorizer(authorizer)
+
+    def set_progress_handler(self, handler, n):
+        """Connection의 set_progress_handler 메서드를 위임합니다."""
+        return self.connection.set_progress_handler(handler, n)
+
+    def set_trace_callback(self, trace_callback):
+        """Connection의 set_trace_callback 메서드를 위임합니다."""
+        return self.connection.set_trace_callback(trace_callback)
 
 
 @contextmanager
