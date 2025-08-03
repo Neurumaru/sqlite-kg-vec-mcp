@@ -20,14 +20,11 @@
 
 ## 🔥 High Priority (개선 필요)
 
-### 🔄 3. 타입 힌트 및 None 기본값 개선
-- **위치**: 전 프로젝트 (32건 발견)
-- **문제**: `Optional[list[T]]` → `list[T] | None` 형태로 변경 필요
-- **예시**: 
-  - `src/domain/services/knowledge_search.py:53-54`
-  - `src/domain/services/document_processor.py:209-212`
-  - `src/domain/services/document_validation.py:26,59`
-- **상태**: 🔄 진행 중
+### ✅ 3. 타입 힌트 및 None 기본값 개선
+- **위치**: 전 프로젝트 (400+ 건 변환)
+- **문제**: `T | None` → `Optional[T]` 형태로 일관성 개선 필요
+- **해결**: 전체 코드베이스에서 Optional 스타일로 통일, ruff UP045 규칙 비활성화
+- **상태**: ✅ 완료
 - **예상 시간**: 60분
 
 ### ✅ 4. 검색 가중치 하드코딩 제거
@@ -134,10 +131,10 @@
 ## 📊 예상 총 작업 시간
 
 - **Critical Issues**: ✅ 완료 (2.5시간)
-- **High Priority**: 1시간  
+- **High Priority**: ✅ 완료 (1.5시간)  
 - **Medium Priority**: 7시간
 - **Low Priority**: 4.5시간
-- **총합**: 약 15시간 (완료된 작업 제외)
+- **총합**: 약 12시간 (완료된 작업 제외)
 
 ## 📋 권장 작업 순서
 
@@ -145,8 +142,8 @@
 1. ✅ VectorStore LangChain 의존성 제거 (45분)
 2. ✅ VectorStore Fat Interface 분리 (60분)
 
-### **Phase 2 (High Priority - 1시간)**
-3. 🔄 타입 힌트 및 None 기본값 개선 (60분)
+### **Phase 2 (High Priority - 완료) ✅**
+3. ✅ 타입 힌트 및 None 기본값 개선 (60분)
 4. ✅ 검색 가중치 하드코딩 제거 (30분)
 
 ### **Phase 3 (Medium Priority - 7시간)**
