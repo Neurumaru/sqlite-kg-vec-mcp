@@ -105,3 +105,7 @@ make check    # lint + test 전체 실행
 - flake8 + ruff + pylint로 린팅
 - mypy로 타입 검사 (strict=false 설정)
 - 모든 변경사항은 `make check` 통과 필요
+
+## Task Master AI Instructions
+**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
+@./.taskmaster/CLAUDE.md
