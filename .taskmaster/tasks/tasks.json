@@ -110,6 +110,61 @@
         "details": "여러 DTO 파일에서 중복되는 검증 로직을 공통 검증 유틸리티 클래스로 통합",
         "testStrategy": "리팩터링 후 모든 검증 테스트 통과 확인",
         "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Fix Ollama Test Failures",
+        "description": "Fix remaining Ollama adapter test failures",
+        "details": "- test_embed_texts_partial_failure: Configure mock side_effect for partial failure\n- test_is_available_failure: Use correct exception types (ConnectionError, TimeoutError)",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Fix Graph Traversal StopIteration Error",
+        "description": "Resolve BFS algorithm StopIteration error in graph traversal",
+        "details": "- Error: neighbor_query_failed_bfs entity_id=2 error_type=StopIteration\n- Location: src/adapters/sqlite3/graph/traversal.py\n- Add proper exception handling for empty results in BFS",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Fix LLM Query Processing JSON Parsing",
+        "description": "Resolve JSON parsing failures in query analysis and expansion",
+        "details": "- Errors: 'Invalid JSON response', 'Invalid JSON' in query processing\n- Add fallback handling for non-JSON LLM responses\n- Improve error handling in domain services",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Improve Transaction Context Error Handling",
+        "description": "Fix SQLite transaction state management issues",
+        "details": "- Errors: 엣지 삽입 실패, 비활성 트랜잭션 커밋/롤백 시도\n- Strengthen transaction state validation logic\n- Improve error handling in transaction_context.py",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Clean Up Integration Warnings",
+        "description": "Remove or suppress integration-related warning messages",
+        "details": "- Warning: 'Langfuse integration has been removed'\n- Clean up deprecated integration references\n- Improve logging configuration",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -118,7 +173,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-07T04:23:06.511Z"
+      "updated": "2025-08-07T17:53:50.304Z"
     }
   }
 }
