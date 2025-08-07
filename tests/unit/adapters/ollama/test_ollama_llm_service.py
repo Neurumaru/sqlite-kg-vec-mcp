@@ -4,7 +4,6 @@ Ollama LLM Service 어댑터 단위 테스트.
 
 # pylint: disable=protected-access
 import asyncio
-import logging
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -464,7 +463,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = mock_response
-            
+
             # Suppress expected warning during this test
             with self.assertLogs(level="WARNING") as cm:
                 # When: Analyze query
@@ -473,7 +472,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                 # Then: Should return fallback result
                 self.assertEqual(result["strategy"], "SEMANTIC")
                 self.assertEqual(result["confidence"], 0.5)
-                
+
                 # Verify warning was logged
                 self.assertIn("쿼리 분석 응답 파싱 실패", cm.output[0])
             self.assertIn("대체", result["reasoning"])
@@ -642,7 +641,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
                 # Then: Should return original query as fallback
                 self.assertEqual(result, ["original query"])
-                
+
                 # Verify warning was logged
                 self.assertIn("쿼리 확장 파싱 실패", cm.output[0])
 
