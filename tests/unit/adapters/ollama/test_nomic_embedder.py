@@ -81,7 +81,7 @@ class TestNomicEmbedder(unittest.TestCase):
     def test_embed_text_api_error(self):
         """API 오류 시 예외 발생 테스트."""
         # Given: API 호출에서 예외 발생
-        self.mock_client.embed.side_effect = Exception("API Error")
+        self.mock_client.embed.side_effect = ConnectionError("API Error")
 
         # When & Then: OllamaModelException이 발생해야 함
         with self.assertRaises(OllamaModelException) as context:
