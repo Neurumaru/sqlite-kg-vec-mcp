@@ -171,7 +171,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
             # Then: Should handle exceptions gracefully
             self.assertEqual(len(results), 2)
             self.assertEqual(results[0].content, "Success")
-            self.assertIn("Batch item 1 failed", results[1].content)
+            self.assertIn("일괄 처리 항목 1 실패", results[1].content)
 
     # === 비동기 예외 처리 일관성 테스트 추가 ===
 
@@ -217,14 +217,18 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                             result = await self.llm_service.batch([[HumanMessage(content="test")]])
                             # Then: Should return error message in result
                             self.assertEqual(len(result), 1)
-                            self.assertIn("failed", result[0].content.lower())
+                            self.assertIn("실패", result[0].content)
 
                         elif scenario["expected_behavior"] == "fallback_response":
-                            # Fallback behavior for analyze_query
-                            result = await self.llm_service.analyze_query("test query")
-                            # Then: Should return fallback result
-                            self.assertEqual(result["strategy"], "SEMANTIC")
-                            self.assertEqual(result["confidence"], 0.5)
+                            # Fallback behavior for analyze_query - mock response with invalid JSON
+                            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                                mock_response = Mock()
+                                mock_response.text = "Invalid JSON response"
+                                mock_to_thread.return_value = mock_response
+                                result = await self.llm_service.analyze_query("test query")
+                                # Then: Should return fallback result
+                                self.assertEqual(result["strategy"], "SEMANTIC")
+                                self.assertEqual(result["confidence"], 0.5)
 
     async def test_batch_partial_failure_behavior_consistency(self):
         """배치 처리에서 부분 실패 동작 일관성 테스트."""
@@ -278,8 +282,8 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                     # Then: Verify consistent behavior
                     self.assertEqual(len(results), len(inputs))
 
-                    success_count = sum(1 for r in results if "failed" not in r.content.lower())
-                    error_count = sum(1 for r in results if "failed" in r.content.lower())
+                    success_count = sum(1 for r in results if "실패" not in r.content)
+                    error_count = sum(1 for r in results if "실패" in r.content)
 
                     self.assertEqual(success_count, test_case["expected_success_count"])
                     self.assertEqual(error_count, test_case["expected_error_count"])
@@ -317,7 +321,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
             # Verify error context is preserved in response
             self.assertIn("Processing failed", error_result.content)
-            self.assertIn("Batch item 0 failed", error_result.content)
+            self.assertIn("일괄 처리 항목 0 실패", error_result.content)
 
     async def test_concurrent_async_exception_isolation(self):
         """동시 비동기 작업에서 예외 격리 테스트."""
@@ -795,7 +799,7 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         """헬스 체크 비정상 상태 테스트."""
         # Given: Health check failure
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
-            mock_to_thread.side_effect = Exception("Connection failed")
+            mock_to_thread.side_effect = ConnectionError("Connection failed")
 
             # When: Perform health check
             result = await self.llm_service.health_check()
