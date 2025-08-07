@@ -117,7 +117,7 @@
         "description": "Fix remaining Ollama adapter test failures",
         "details": "- test_embed_texts_partial_failure: Configure mock side_effect for partial failure\n- test_is_available_failure: Use correct exception types (ConnectionError, TimeoutError)",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": []
@@ -128,7 +128,7 @@
         "description": "Resolve BFS algorithm StopIteration error in graph traversal",
         "details": "- Error: neighbor_query_failed_bfs entity_id=2 error_type=StopIteration\n- Location: src/adapters/sqlite3/graph/traversal.py\n- Add proper exception handling for empty results in BFS",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": []
@@ -139,7 +139,7 @@
         "description": "Resolve JSON parsing failures in query analysis and expansion",
         "details": "- Errors: 'Invalid JSON response', 'Invalid JSON' in query processing\n- Add fallback handling for non-JSON LLM responses\n- Improve error handling in domain services",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
@@ -150,7 +150,7 @@
         "description": "Fix SQLite transaction state management issues",
         "details": "- Errors: 엣지 삽입 실패, 비활성 트랜잭션 커밋/롤백 시도\n- Strengthen transaction state validation logic\n- Improve error handling in transaction_context.py",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
@@ -161,7 +161,7 @@
         "description": "Remove or suppress integration-related warning messages",
         "details": "- Warning: 'Langfuse integration has been removed'\n- Clean up deprecated integration references\n- Improve logging configuration",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "low",
         "subtasks": []
@@ -173,7 +173,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-07T17:53:50.304Z"
+      "updated": "2025-08-07T18:06:49.590Z"
     }
   }
 }
