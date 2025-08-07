@@ -207,6 +207,9 @@ class GraphTraversal:
                         )
                         queue.append(new_node)
                         visited[neighbor_entity.id] = new_node
+            except StopIteration:
+                # Empty iteration - this is normal and should not be logged as an error
+                continue
             except Exception as exception:
                 logger = get_observable_logger("graph_traversal", "adapter")
                 logger.error(
