@@ -159,13 +159,14 @@ class TestInteractiveSearchEngine(unittest.IsolatedAsyncioTestCase):
         When: InteractiveSearchEngine을 초기화하면
         Then: 속성이 올바르게 설정된다
         """
-        # Given & When
-        engine = InteractiveSearchEngine(
-            knowledge_graph=self.mock_knowledge_graph,
-            llm_client=self.mock_llm_client,
-            max_steps=5,
-            enable_langfuse=True,  # deprecated parameter
-        )
+        # Given & When - suppress expected deprecation warning
+        with self.assertLogs(level="WARNING"):
+            engine = InteractiveSearchEngine(
+                knowledge_graph=self.mock_knowledge_graph,
+                llm_client=self.mock_llm_client,
+                max_steps=5,
+                enable_langfuse=True,  # deprecated parameter
+            )
 
         # Then
         self.assertEqual(engine.kg, self.mock_knowledge_graph)
