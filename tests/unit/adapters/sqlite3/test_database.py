@@ -91,7 +91,7 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         # Given
         mock_connection_instance = Mock()
         mock_connection_class.return_value = mock_connection_instance
-        mock_connection_instance.connect.side_effect = Exception("Connection failed")
+        mock_connection_instance.connect.side_effect = sqlite3.OperationalError("Connection failed")
 
         db = SQLiteDatabase(config=self.config)
 
@@ -163,7 +163,7 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         # Given
         db = SQLiteDatabase(config=self.config)
         mock_connection = Mock(spec=sqlite3.Connection)
-        mock_connection.execute.side_effect = Exception("Connection lost")
+        mock_connection.execute.side_effect = sqlite3.OperationalError("Connection lost")
         db._connection = mock_connection
 
         # When
@@ -228,30 +228,36 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         db = SQLiteDatabase(config=self.config)
         mock_connection = Mock(spec=sqlite3.Connection)
         db._connection = mock_connection
-        tx_id = "test-tx-id"
-        db._active_transactions[tx_id] = mock_connection
+        mock_tx_context = Mock()
+        mock_tx_context.transaction_id = "test-tx-id"
+        mock_tx_context.commit.return_value = True
+        db._active_transactions["test-tx-id"] = mock_tx_context
 
         # When
-        result = await db.commit_transaction(tx_id)
+        result = await db.commit_transaction(mock_tx_context)
 
         # Then
         self.assertTrue(result)
-        self.assertNotIn(tx_id, db._active_transactions)
-        mock_connection.commit.assert_called_once()
+        self.assertNotIn("test-tx-id", db._active_transactions)
+        mock_tx_context.commit.assert_called_once()
 
     async def test_commit_transaction_not_found(self):
-        """Given: 존재하지 않는 트랜잭션 ID일 때
+        """Given: 존재하지 않는 트랜잭션 컨텍스트가 있을 때
         When: commit_transaction을 호출하면
-        Then: False를 반환한다
+        Then: 트랜잭션이 커밋되고 True를 반환한다 (내부 정리는 하지 않음)
         """
         # Given
         db = SQLiteDatabase(config=self.config)
+        mock_tx_context = Mock()
+        mock_tx_context.transaction_id = "nonexistent-tx"
+        mock_tx_context.commit.return_value = True
 
         # When
-        result = await db.commit_transaction("nonexistent-tx")
+        result = await db.commit_transaction(mock_tx_context)
 
         # Then
-        self.assertFalse(result)
+        self.assertTrue(result)
+        mock_tx_context.commit.assert_called_once()
 
     async def test_rollback_transaction_success(self):
         """Given: 활성 트랜잭션이 있을 때
@@ -262,16 +268,18 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         db = SQLiteDatabase(config=self.config)
         mock_connection = Mock(spec=sqlite3.Connection)
         db._connection = mock_connection
-        tx_id = "test-tx-id"
-        db._active_transactions[tx_id] = mock_connection
+        mock_tx_context = Mock()
+        mock_tx_context.transaction_id = "test-tx-id"
+        mock_tx_context.rollback.return_value = True
+        db._active_transactions["test-tx-id"] = mock_tx_context
 
         # When
-        result = await db.rollback_transaction(tx_id)
+        result = await db.rollback_transaction(mock_tx_context)
 
         # Then
         self.assertTrue(result)
-        self.assertNotIn(tx_id, db._active_transactions)
-        mock_connection.rollback.assert_called_once()
+        self.assertNotIn("test-tx-id", db._active_transactions)
+        mock_tx_context.rollback.assert_called_once()
 
     async def test_execute_query_success(self):
         """Given: 정상적인 연결과 쿼리가 있을 때
