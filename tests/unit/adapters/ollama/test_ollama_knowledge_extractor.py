@@ -308,7 +308,7 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
 
         self.extractor.entity_id_mapping = {"person_1": 123, "company_1": 456}
 
-        self.mock_relationship_manager.create_relationship.side_effect = Exception("DB Error")
+        self.mock_relationship_manager.create_relationship.side_effect = ValueError("DB Error")
 
         # When: Process relationships
         errors = []
@@ -317,7 +317,8 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
         # Then: Should handle error gracefully
         self.assertEqual(count, 0)
         self.assertEqual(len(errors), 1)
-        self.assertIn("Failed to create relationship", errors[0])
+        self.assertIn("관계", errors[0])
+        self.assertIn("생성 실패", errors[0])
 
     def test_extract_from_documents_batch_processing(self):
         """문서 배치 처리 테스트."""
