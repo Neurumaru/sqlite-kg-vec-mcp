@@ -4,6 +4,7 @@ Ollama LLM Service 어댑터 단위 테스트.
 
 # pylint: disable=protected-access
 import asyncio
+import logging
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -463,14 +464,19 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = mock_response
+            
+            # Suppress expected warning during this test
+            with self.assertLogs(level="WARNING") as cm:
+                # When: Analyze query
+                result = await self.llm_service.analyze_query("Test query")
 
-            # When: Analyze query
-            result = await self.llm_service.analyze_query("Test query")
-
-            # Then: Should return fallback result
-            self.assertEqual(result["strategy"], "SEMANTIC")
-            self.assertEqual(result["confidence"], 0.5)
-            self.assertIn("fallback", result["reasoning"].lower())
+                # Then: Should return fallback result
+                self.assertEqual(result["strategy"], "SEMANTIC")
+                self.assertEqual(result["confidence"], 0.5)
+                
+                # Verify warning was logged
+                self.assertIn("쿼리 분석 응답 파싱 실패", cm.output[0])
+            self.assertIn("대체", result["reasoning"])
 
     async def test_guide_search_navigation(self):
         """검색 내비게이션 가이드 테스트."""
@@ -629,11 +635,16 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = mock_response
 
-            # When: Expand query
-            result = await self.llm_service.expand_query("original query")
+            # Suppress expected warning during this test
+            with self.assertLogs(level="WARNING") as cm:
+                # When: Expand query
+                result = await self.llm_service.expand_query("original query")
 
-            # Then: Should return original query as fallback
-            self.assertEqual(result, ["original query"])
+                # Then: Should return original query as fallback
+                self.assertEqual(result, ["original query"])
+                
+                # Verify warning was logged
+                self.assertIn("쿼리 확장 파싱 실패", cm.output[0])
 
     async def test_generate_search_suggestions(self):
         """검색 제안 생성 테스트."""
