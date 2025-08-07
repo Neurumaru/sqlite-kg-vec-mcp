@@ -145,7 +145,7 @@ class TestNomicEmbedder(unittest.TestCase):
     def test_is_available_failure(self):
         """서비스 가용성 확인 실패 테스트."""
         # Given: list 호출에서 예외 발생
-        self.mock_client.list.side_effect = Exception("Connection error")
+        self.mock_client.list.side_effect = ConnectionError("Connection error")
 
         # When: 가용성 확인
         result = asyncio.run(self.embedder.is_available())
@@ -159,7 +159,7 @@ class TestNomicEmbedder(unittest.TestCase):
         # Given: 두 번째 호출에서 예외 발생
         self.mock_client.embed.side_effect = [
             {"embedding": [0.1] * 768},  # 성공
-            Exception("API Error"),  # 실패
+            ConnectionError("API Error"),  # 실패
             {"embedding": [0.3] * 768},  # 성공
         ]
 
