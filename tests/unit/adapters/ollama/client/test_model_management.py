@@ -65,6 +65,8 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"status": "success"}
+        # Mock iter_lines to return success status
+        mock_response.iter_lines.return_value = [b'{"status": "success"}']
         self.mock_session.post.return_value = mock_response
 
         client = OllamaClient()
@@ -74,9 +76,9 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
 
         # Then: Should return success status
         self.assertTrue(result)
-        expected_data = {"name": "llama3.2", "stream": False}
+        expected_data = {"name": "llama3.2"}
         self.mock_session.post.assert_called_with(
-            "http://localhost:11434/api/pull", json=expected_data, timeout=600
+            "http://localhost:11434/api/pull", json=expected_data, timeout=300.0
         )
 
     def test_pull_model_failure(self):
@@ -85,6 +87,8 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
         mock_response = Mock()
         mock_response.status_code = 400
         mock_response.json.return_value = {"error": "Model not found"}
+        # Mock iter_lines to return failure status
+        mock_response.iter_lines.return_value = [b'{"status": "error", "error": "Model not found"}']
         self.mock_session.post.return_value = mock_response
 
         client = OllamaClient()
