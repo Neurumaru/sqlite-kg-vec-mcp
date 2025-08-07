@@ -192,7 +192,7 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
     def test_extract_from_text_llm_extraction_error(self):
         """LLM 추출 오류 테스트."""
         # Given: LLM extraction fails
-        self.mock_ollama_client.extract_entities_and_relationships.side_effect = Exception(
+        self.mock_ollama_client.extract_entities_and_relationships.side_effect = ValueError(
             "LLM Error"
         )
 
@@ -203,7 +203,7 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
         self.assertEqual(result.entities_created, 0)
         self.assertEqual(result.relationships_created, 0)
         self.assertEqual(len(result.errors), 1)
-        self.assertIn("Knowledge extraction failed", result.errors[0])
+        self.assertIn("지식 추출 실패", result.errors[0])
 
     def test_process_entities_success(self):
         """엔티티 처리 성공 테스트."""
@@ -247,7 +247,7 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
         # Given: Entity creation fails
         entities = [{"name": "John Doe", "type": "Person"}]
 
-        self.mock_entity_manager.create_entity.side_effect = Exception("DB Error")
+        self.mock_entity_manager.create_entity.side_effect = ValueError("DB Error")
 
         # When: Process entities
         errors = []
@@ -256,7 +256,7 @@ class TestOllamaKnowledgeExtractor(unittest.TestCase):
         # Then: Should handle error gracefully
         self.assertEqual(count, 0)
         self.assertEqual(len(errors), 1)
-        self.assertIn("Failed to create entity", errors[0])
+        self.assertIn("생성 실패", errors[0])
 
     def test_process_relationships_success(self):
         """관계 처리 성공 테스트."""
