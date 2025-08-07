@@ -467,24 +467,20 @@ class TestGraphTraversal(unittest.TestCase):
         start_entity_row = self._create_mock_entity_row(1, "start-1", "Start", "Person")
         self.mock_cursor.fetchone.return_value = start_entity_row
 
-        # 첫 번째 레벨 이웃
-        first_level_relationships = [
-            self._create_mock_relationship_row(1, 1, 2, "CONNECTED_TO"),
-        ]
-        first_level_entities = [
-            self._create_mock_entity_row(2, "level1-1", "Level 1", "Person"),
-        ]
+        # Setup mock data for traversal
 
-        # 두 번째 레벨 이웃 (빈 결과로 설정)
-        second_level_relationships = []
-        second_level_entities = []
+        # Create combined entity+relationship rows as expected by get_neighbors
+        first_level_combined = [
+            self._create_combined_neighbor_row(
+                2, "level1-1", "Level 1", "Person", 1, 1, 2, "CONNECTED_TO"
+            )
+        ]
+        second_level_combined = []  # Empty for second level
 
         # Mock fetchall calls for get_neighbors within DFS
         self.mock_cursor.fetchall.side_effect = [
-            first_level_relationships,  # Neighbors of start_entity
-            first_level_entities,  # Entities for neighbors of start_entity
-            second_level_relationships,  # Neighbors of level1-1 (empty)
-            second_level_entities,  # Entities for neighbors of level1-1 (empty)
+            first_level_combined,  # Combined neighbors of start_entity (id=1)
+            second_level_combined,  # Combined neighbors of level1-1 (id=2) - empty
         ]
 
         # When
@@ -511,17 +507,18 @@ class TestGraphTraversal(unittest.TestCase):
 
         # Setup for breadth_first_search calls within find_shortest_path
         start_entity_row = self._create_mock_entity_row(1, "start-1", "Start", "Person")
-        target_entity_row = self._create_mock_entity_row(2, "target-1", "Target", "Person")
 
-        direct_relationship = [
-            self._create_mock_relationship_row(1, 1, 2, "CONNECTED_TO"),
+        # Create combined row for the direct connection
+        direct_connection = [
+            self._create_combined_neighbor_row(
+                2, "target-1", "Target", "Person", 1, 1, 2, "CONNECTED_TO"
+            )
         ]
 
-        # Side effect for fetchone (start_entity) then fetchall (neighbors of start_entity)
-        self.mock_cursor.fetchone.side_effect = [start_entity_row, target_entity_row]
+        # Side effect for fetchone (start_entity for BFS) then fetchall (neighbors of start_entity)
+        self.mock_cursor.fetchone.side_effect = [start_entity_row]  # Only for BFS start
         self.mock_cursor.fetchall.side_effect = [
-            direct_relationship,  # Relationships from start_entity
-            [target_entity_row],  # Entities for neighbors (i.e., target_entity)
+            direct_connection,  # Combined neighbors of start_entity (includes target_entity)
         ]
 
         # When
@@ -563,42 +560,27 @@ class TestGraphTraversal(unittest.TestCase):
         Then: 단일 연결 성분이 반환된다
         """
         # Given
-        # 모든 엔티티
-        all_entities = [
-            self._create_mock_entity_row(1, "entity-1", "Person"),
-            self._create_mock_entity_row(2, "entity-2", "Person"),
-            self._create_mock_entity_row(3, "entity-3", "Organization"),
-        ]
+        # Setup test data for connected components
 
-        # 연결 관계들
-        all_relationships = [
-            self._create_mock_relationship_row(1, 1, 2, "CONNECTED_TO"),
-            self._create_mock_relationship_row(2, 2, 3, "INFLUENCES"),
+        # Create combined neighbor rows for the connected graph
+        neighbors_of_1 = [
+            self._create_combined_neighbor_row(
+                2, "entity-2", "Entity 2", "Person", 1, 1, 2, "CONNECTED_TO"
+            )
         ]
+        neighbors_of_2 = [
+            self._create_combined_neighbor_row(
+                3, "entity-3", "Entity 3", "Organization", 2, 2, 3, "INFLUENCES"
+            )
+        ]
+        neighbors_of_3 = []  # Entity 3 has no additional neighbors
 
         # Setup mock_cursor.fetchall.side_effect for get_connected_components and its internal get_neighbors calls
-        # The order of these side_effects is critical
         self.mock_cursor.fetchall.side_effect = [
-            all_entities,  # 1. All entities for get_connected_components initial loop
-            all_relationships,  # 2. Neighbors of entity 1 (for BFS)
-            [
-                self._create_mock_entity_row(2, "entity-2", "Person")
-            ],  # 3. Entities for neighbors of entity 1
-            all_relationships,  # 4. Neighbors of entity 2 (for BFS)
-            [
-                self._create_mock_entity_row(3, "entity-3", "Organization")
-            ],  # 5. Entities for neighbors of entity 2
-            [],  # 6. Neighbors of entity 3 (empty)
-            [],  # 7. Entities for neighbors of entity 3 (empty)
-            [],  # 8. Fallback if more get_neighbors calls occur unexpectedly
-        ]
-        self.mock_cursor.fetchone.side_effect = [
-            self._create_mock_entity_row(1, "entity-1", "Person"),  # For get_neighbors of entity 1
-            self._create_mock_entity_row(2, "entity-2", "Person"),  # For get_neighbors of entity 2
-            self._create_mock_entity_row(
-                3, "entity-3", "Organization"
-            ),  # For get_neighbors of entity 3
-            None,  # End of entities
+            [(1,), (2,), (3,)],  # 1. All entity IDs for get_connected_components initial query
+            neighbors_of_1,  # 2. Combined neighbors of entity 1
+            neighbors_of_2,  # 3. Combined neighbors of entity 2
+            neighbors_of_3,  # 4. Combined neighbors of entity 3 (empty)
         ]
 
         # When
@@ -639,6 +621,40 @@ class TestGraphTraversal(unittest.TestCase):
             "properties": json.dumps(properties) if properties is not None else None,
             "created_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
             "updated_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
+        }
+        mock_row.__getitem__.side_effect = data.get
+        return mock_row
+
+    def _create_combined_neighbor_row(
+        self,
+        entity_id: int,
+        entity_name: str,
+        entity_type: str,
+        entity_subtype: str,
+        rel_id: int,
+        source_id: int,
+        target_id: int,
+        rel_type: str,
+    ):
+        """Create a mock row with combined entity and relationship data as returned by get_neighbors."""
+        mock_row = MagicMock()
+        data = {
+            # Entity fields
+            "id": entity_id,
+            "uuid": f"entity-{entity_id}",
+            "name": entity_name,
+            "type": entity_subtype,
+            "properties": None,
+            "created_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
+            "updated_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
+            # Relationship fields (with rel_ prefix)
+            "rel_id": rel_id,
+            "source_id": source_id,
+            "target_id": target_id,
+            "relation_type": rel_type,
+            "rel_properties": None,
+            "rel_created_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
+            "rel_updated_at": datetime.datetime(2023, 1, 1, 12, 0, 0),
         }
         mock_row.__getitem__.side_effect = data.get
         return mock_row

@@ -131,7 +131,7 @@ class TestRelationshipManagerCRUD(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             self.manager.create_relationship(source_id, target_id, relation_type)
 
-        self.assertIn("Failed to insert edge", str(context.exception))
+        self.assertIn("엣지 삽입 실패", str(context.exception))
 
     def test_success_when_get_relationship_exists(self):
         """Given: 존재하는 관계 ID가 제공될 때

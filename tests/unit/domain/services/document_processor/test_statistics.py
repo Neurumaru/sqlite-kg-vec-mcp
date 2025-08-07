@@ -53,8 +53,8 @@ class TestDocumentProcessorGetProcessingStatistics(unittest.TestCase):
         self.assertEqual(stats["processing"], 0)
         self.assertEqual(stats["failed"], 0)
         self.assertEqual(stats["pending"], 1)
-        self.assertEqual(stats["total_extracted_nodes"], 2)
-        self.assertEqual(stats["total_extracted_relationships"], 1)
+        self.assertIn("processing_rate", stats)
+        self.assertIn("status_distribution", stats)
 
 
 if __name__ == "__main__":

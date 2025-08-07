@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import AsyncMock, Mock
 
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
+from src.domain.entities.node import Node, NodeType
 from src.domain.services.document_processor import DocumentProcessor
 from src.domain.value_objects.document_id import DocumentId
 from src.domain.value_objects.node_id import NodeId
@@ -46,6 +47,17 @@ class TestDocumentProcessorReprocessDocument(unittest.IsolatedAsyncioTestCase):
         )
 
         mock_knowledge_extractor.extract = AsyncMock(return_value=([sample_node_data], []))
+
+        # Create actual entity instance that the mapper should return
+        sample_node = Node(
+            id=NodeId(sample_node_data.id),
+            name=sample_node_data.name,
+            node_type=NodeType.PERSON,
+            properties=sample_node_data.properties,
+        )
+
+        # Mock the mapper to return actual entity instance
+        mock_node_mapper.from_data.return_value = sample_node
 
         # When
         result = await processor.reprocess_document(document)

@@ -253,7 +253,7 @@ class TestEntityManager(unittest.TestCase):
         with self.assertRaises(RuntimeError) as context:
             self.entity_manager.create_entity(entity_type="Test", name="Test")
 
-        self.assertIn("Failed to insert entity", str(context.exception))
+        self.assertIn("엔티티 삽입 실패", str(context.exception))
 
     def test_get_entity_success(self):
         """Given: 존재하는 엔티티 ID가 제공될 때

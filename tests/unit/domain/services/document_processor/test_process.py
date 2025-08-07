@@ -6,6 +6,8 @@ import unittest
 from unittest.mock import AsyncMock, Mock
 
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
+from src.domain.entities.node import Node, NodeType
+from src.domain.entities.relationship import Relationship, RelationshipType
 from src.domain.exceptions.document_exceptions import DocumentProcessingException
 from src.domain.services.document_processor import (
     DocumentProcessor,
@@ -59,13 +61,34 @@ class TestDocumentProcessorProcess(unittest.IsolatedAsyncioTestCase):
             id=str(RelationshipId.generate()),
             source_node_id=str(NodeId.generate()),
             target_node_id=str(NodeId.generate()),
-            relationship_type=DTORelationshipType.RELATES_TO,
+            relationship_type=DTORelationshipType.CONTAINS,
             properties={},
         )
 
         mock_knowledge_extractor.extract = AsyncMock(
             return_value=([sample_node_data], [sample_rel_data])
         )
+
+        # Create actual entity instances that the mappers should return
+        sample_node = Node(
+            id=NodeId(sample_node_data.id),
+            name=sample_node_data.name,
+            node_type=NodeType.PERSON,
+            properties=sample_node_data.properties,
+        )
+
+        sample_relationship = Relationship(
+            id=RelationshipId(sample_rel_data.id),
+            source_node_id=NodeId(sample_rel_data.source_node_id),
+            target_node_id=NodeId(sample_rel_data.target_node_id),
+            relationship_type=RelationshipType.CONTAINS,
+            label="CONTAINS",
+            properties=sample_rel_data.properties,
+        )
+
+        # Mock the mappers to return actual entity instances
+        mock_node_mapper.from_data.return_value = sample_node
+        mock_relationship_mapper.from_data.return_value = sample_relationship
 
         # When
         result = await processor.process(document)

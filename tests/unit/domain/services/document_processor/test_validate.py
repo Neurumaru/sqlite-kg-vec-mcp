@@ -5,8 +5,10 @@ DocumentProcessor.validate_document_for_processing 메서드 단위 테스트.
 import unittest
 from unittest.mock import Mock
 
+from src.domain.config.validation_config import ValidationConfig
 from src.domain.entities.document import Document, DocumentType
 from src.domain.services.document_processor import DocumentProcessor
+from src.domain.services.document_validation import DocumentValidationService
 from src.domain.value_objects.document_id import DocumentId
 
 
@@ -75,11 +77,26 @@ class TestDocumentProcessorValidateDocumentForProcessing(unittest.TestCase):
         mock_document_mapper = Mock()
         mock_node_mapper = Mock()
         mock_relationship_mapper = Mock()
+
+        # Create validation config that doesn't allow reprocessing
+        validation_config = ValidationConfig(
+            min_content_length=1,
+            max_content_length=1_000_000,
+            allow_empty_title=False,
+            allow_reprocessing=False,  # This is the key setting
+            allow_processing_while_processing=False,
+            required_metadata_keys=None,
+            max_metadata_size=10_000,
+        )
+
+        validation_service = DocumentValidationService(config=validation_config)
+
         processor = DocumentProcessor(
             mock_knowledge_extractor,
             mock_document_mapper,
             mock_node_mapper,
             mock_relationship_mapper,
+            document_validation_service=validation_service,
         )
 
         document = Document(
