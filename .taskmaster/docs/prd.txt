@@ -1,0 +1,157 @@
+# SQLite Knowledge Graph Vector MCP - Development Tasks PRD
+
+## Project Overview
+SQLite-based knowledge graph with vector embeddings and MCP (Model Context Protocol) server implementation following hexagonal architecture patterns.
+
+## Critical Issues (Immediate fixes required)
+
+### Document Processing Failures
+**Priority**: Critical
+**Description**: Document processing fails during node validation with error "nodes[0] must be a Node instance"
+- Root cause analysis of duplicate document processing validation logic
+- Fix validation logic in document processing workflow
+- Ensure proper Node instance creation and validation
+- Add comprehensive error handling for document processing edge cases
+
+### SQLite Transaction Management Issues  
+**Priority**: Critical
+**Description**: Transaction failures in edge insertion, commit/rollback state management problems
+- Fix transaction failure in edge insertion operations
+- Resolve commit/rollback state management issues
+- Handle inactive transaction processing warnings
+- Implement proper transaction boundary management
+- Add transaction state validation and recovery mechanisms
+
+### FastMCP Server CRUD Operations
+**Priority**: Critical  
+**Description**: JSON-RPC protocol processing and CRUD operation failures
+- Fix JSON-RPC protocol handling in FastMCP server
+- Resolve CRUD operation failures for nodes and edges
+- Implement proper error responses for failed operations
+- Add comprehensive request/response validation
+- Fix server initialization and connection handling
+
+### Vector Store and Search Operations
+**Priority**: Critical
+**Description**: Vector similarity search failures and embedding processing errors
+- Fix vector similarity search functionality
+- Resolve vector embedding processing errors
+- Address HNSW index related issues
+- Implement proper vector dimensionality validation
+- Add fallback mechanisms for search failures
+
+## High Priority Features
+
+### Logging Pattern Standardization
+**Priority**: High
+**Description**: Inconsistent logging patterns across the codebase
+- Standardize logging.getLogger(__name__) vs parameter injection usage
+- Implement consistent dependency injection pattern for logging
+- Update all modules to use unified logging approach
+- Add structured logging with proper context
+
+### Metrics Collection System Implementation
+**Priority**: High
+**Description**: Partial metrics collection implementation needs completion
+- Complete metrics collection system implementation
+- Create comprehensive metrics.py module in observability package  
+- Implement performance monitoring for key operations
+- Add business metrics for document processing and search operations
+- Create metrics dashboard and alerting
+
+### Query Processing Error Handling
+**Priority**: High
+**Description**: Query analysis and expansion parsing failures
+- Fix "No valid JSON found in response" parsing errors
+- Improve LLM response processing logic
+- Add robust error handling for query analysis failures
+- Implement fallback mechanisms for query processing
+- Add query validation and sanitization
+
+### Knowledge Graph Relationship Management
+**Priority**: High
+**Description**: Graph traversal and relationship processing failures
+- Fix graph traversal functionality
+- Resolve entity relationship creation/modification errors
+- Implement proper relationship validation
+- Add cascade operations for relationship updates
+- Fix bidirectional relationship handling
+
+### Configuration and Integration Improvements
+**Priority**: High  
+**Description**: Configuration management and environment variable handling improvements
+- Remove Langfuse integration related warnings
+- Improve configuration management system
+- Enhance environment variable processing
+- Add configuration validation and error reporting
+- Implement dynamic configuration reloading
+
+## Medium Priority Optimizations
+
+### Duplicate Validation Logic Consolidation
+**Priority**: Medium
+**Description**: Similar validation logic duplicated across DTO files
+- Create common validation utility classes
+- Consolidate duplicate validation patterns
+- Implement reusable validation decorators
+- Add comprehensive validation test coverage
+
+### Test Optimization - Remove time.sleep
+**Priority**: Medium
+**Description**: Tests use actual time delays which slow down execution
+- Replace time.sleep with mock time mechanisms
+- Implement better synchronization mechanisms
+- Add deterministic timing for async operations
+- Optimize test execution speed
+
+### Naming Convention Standardization
+**Priority**: Medium
+**Description**: Inconsistent Service suffix usage and import ordering
+- Standardize naming conventions across the codebase
+- Fix Service suffix inconsistencies
+- Enhance isort configuration for consistent import ordering
+- Add naming convention validation in CI
+
+### Documentation Enhancement
+**Priority**: Medium
+**Description**: Missing docstrings for some methods and classes
+- Add comprehensive docstrings for all public methods
+- Document complex algorithms and data structures
+- Add usage examples for key components
+- Create API documentation
+
+### Repository Interface Consolidation
+**Priority**: Medium
+**Description**: NodeRepository and RelationshipRepository have nearly identical CRUD patterns
+- Introduce common base interface for repositories
+- Reduce code duplication in repository implementations
+- Standardize CRUD operation patterns
+- Add generic repository utilities
+
+## Technical Requirements
+
+### Architecture Constraints
+- Maintain hexagonal architecture (ports and adapters) pattern
+- Ensure domain logic remains free of external dependencies
+- Use dependency injection consistently
+- Follow SOLID principles
+
+### Quality Standards
+- All changes must pass `make check` (lint + test)
+- Maintain 10.0/10 Pylint score
+- Ensure comprehensive test coverage
+- Follow Python type hints best practices
+
+### Performance Requirements
+- Vector search operations should complete within acceptable time limits
+- Document processing should handle batches efficiently
+- Database operations should use proper indexing
+- Memory usage should remain reasonable for large knowledge graphs
+
+## Success Criteria
+- All critical issues resolved with working functionality
+- Comprehensive test suite with no failures
+- Clean code quality metrics maintained
+- Proper error handling and logging throughout
+- Documentation complete and up-to-date
+- Performance benchmarks meet requirements

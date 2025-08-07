@@ -1,0 +1,124 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "문서 처리 검증 실패 수정",
+        "description": "nodes[0] Node 인스턴스 검증 오류 해결",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "DocumentProcessor에서 mock mapper들이 실제 Node/Relationship 엔티티 대신 Mock 객체를 반환하여 KnowledgeExtractionResult 검증이 실패하는 문제 해결",
+        "testStrategy": "모든 document processor 테스트가 통과하는지 확인",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "SQLite 트랜잭션 관리 문제 해결",
+        "description": "엣지 삽입 실패 및 커밋/롤백 상태 관리 문제",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "테스트에서 영어 오류 메시지를 기대했지만 실제로는 한국어 오류 메시지('엣지 삽입 실패', '엔티티 삽입 실패')가 반환되는 언어 불일치 문제 해결",
+        "testStrategy": "관련 SQLite 그래프 테스트들이 통과하는지 확인",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "FastMCP Server CRUD 작업 수정",
+        "description": "JSON-RPC 프로토콜 처리 및 CRUD 작업 실패",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "FastMCP 서버의 JSON-RPC 프로토콜 처리 오류와 노드/엣지 CRUD 작업 실패 문제 해결 필요",
+        "testStrategy": "FastMCP 서버 테스트 통과 및 실제 MCP 통신 검증",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Vector Store/Search 작업 해결",
+        "description": "유사도 검색 실패 및 임베딩 처리 오류",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "벡터 유사도 검색 기능 실패, 벡터 임베딩 처리 오류, HNSW 인덱스 관련 문제들 해결",
+        "testStrategy": "벡터 검색 테스트와 임베딩 테스트 통과 확인",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "로깅 패턴 표준화",
+        "description": "getLogger vs 의존성 주입 방식 통일",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결",
+        "testStrategy": "일관된 로깅 패턴 적용 확인",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "메트릭 수집 시스템 구현",
+        "description": "observability 패키지의 완전한 메트릭 수집 시스템",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "src/common/observability/integration.py의 부분적 메트릭 수집 구현을 완전한 시스템으로 확장",
+        "testStrategy": "메트릭 수집 및 모니터링 기능 검증",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Query Processing 오류 수정",
+        "description": "JSON 파싱 실패 및 LLM 응답 처리 문제",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [],
+        "details": "쿼리 분석 응답에서 '유효한 JSON을 찾을 수 없습니다' 오류와 LLM 응답 처리 로직 개선 필요",
+        "testStrategy": "LLM 기반 쿼리 처리 테스트 통과 확인",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Knowledge Graph 관계 관리 수정",
+        "description": "그래프 순회 및 엔티티 관계 처리 실패",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정",
+        "testStrategy": "그래프 순회 테스트들이 올바른 결과를 반환하는지 확인",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Configuration 및 Integration 개선",
+        "description": "Langfuse 경고 제거, 환경변수 처리 강화",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [],
+        "details": "Langfuse 통합 제거 관련 경고 처리 및 설정 관리, 환경변수 처리 시스템 개선",
+        "testStrategy": "설정 관리 테스트 및 경고 메시지 제거 확인",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "중복 검증 로직 통합",
+        "description": "DTO 파일들의 유사한 검증 로직 중복 제거",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [],
+        "details": "여러 DTO 파일에서 중복되는 검증 로직을 공통 검증 유틸리티 클래스로 통합",
+        "testStrategy": "리팩터링 후 모든 검증 테스트 통과 확인",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created_at": "2025-01-06T23:44:00Z",
+      "updated_at": "2025-01-06T23:44:00Z",
+      "total_tasks": 10,
+      "created": "2025-08-07T04:23:06.511Z",
+      "description": "Tasks for master context",
+      "updated": "2025-08-07T04:23:06.511Z"
+    }
+  }
+}
