@@ -22,6 +22,10 @@ class Vector:
             raise ValueError("Vector cannot be empty")
         if not all(isinstance(v, int | float) for v in self.values):
             raise ValueError("Vector values must be numeric")
+        # Check for NaN and infinity values
+        for v in self.values:
+            if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+                raise ValueError("Vector values must be numeric")
 
     @property
     def dimension(self) -> int:
