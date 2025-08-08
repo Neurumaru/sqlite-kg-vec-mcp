@@ -79,7 +79,9 @@ class TestDocumentComplexOperations(unittest.TestCase):
 
         # created_at should be very close to updated_at initially (within 1 ms)
         time_delta = abs((initial_updated_at - initial_created_at).total_seconds())
-        self.assertLess(time_delta, 0.001, "created_at and updated_at should be very close initially")
+        self.assertLess(
+            time_delta, 0.001, "created_at and updated_at should be very close initially"
+        )
 
         def mark_as_processing_op():
             document.mark_as_processing()

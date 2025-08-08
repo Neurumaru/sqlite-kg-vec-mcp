@@ -181,7 +181,7 @@ class TestOllamaClientGenerate(unittest.TestCase, BaseOllamaClientTestCase):
 
         # When: Call generate with missing response field
         result = client.generate("Test prompt")
-        
+
         # Then: Should return LLMResponse with empty text
         self.assertEqual(result.text, "")
         self.assertEqual(result.tokens_used, 0)

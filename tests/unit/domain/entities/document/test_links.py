@@ -115,7 +115,6 @@ class TestDocumentLinks(unittest.TestCase):
 
     def test_success_when_remove_connected_relationship(self):
         """연결된 관계 제거 성공 테스트."""
-        import time
         document = Document(
             id=DocumentId.generate(),
             title="테스트 문서",

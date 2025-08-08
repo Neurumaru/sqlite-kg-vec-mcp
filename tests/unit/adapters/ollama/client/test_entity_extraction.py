@@ -95,7 +95,7 @@ class TestOllamaClientEntityExtraction(unittest.TestCase, BaseOllamaClientTestCa
             lambda **kwargs: lambda func: func,
         ):  # Bypass decorator
             result = client.extract_entities_and_relationships("Some text")
-            
+
         # Should return default structure when JSON parsing fails
         expected_result = {"entities": [], "relationships": []}
         self.assertEqual(result, expected_result)
@@ -116,16 +116,16 @@ class TestOllamaClientGenerateEmbeddings(unittest.TestCase, BaseOllamaClientTest
         """임베딩 생성 설명 테스트."""
         # Given: Mock response for generate method
         from src.adapters.ollama.ollama_client import LLMResponse
-        
+
         mock_response = LLMResponse(
             text="test는 컨셉 유형의 엔티티입니다.",
             model="gemma3n",
             tokens_used=10,
-            response_time=0.1
+            response_time=0.1,
         )
-        
+
         # Mock the generate method
-        with patch.object(OllamaClient, 'generate', return_value=mock_response):
+        with patch.object(OllamaClient, "generate", return_value=mock_response):
             client = OllamaClient()
 
             # When: Get embeddings description

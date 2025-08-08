@@ -7,7 +7,6 @@ from unittest.mock import Mock
 
 import requests
 
-from src.adapters.ollama.exceptions import OllamaConnectionException
 from src.adapters.ollama.ollama_client import OllamaClient
 from tests.unit.adapters.ollama.client.test_base import BaseOllamaClientTestCase
 
@@ -57,7 +56,7 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
 
         # When: Call list_available_models during error
         result = client.list_available_models()
-        
+
         # Then: Should return empty list on error
         self.assertEqual(result, [])
 
@@ -110,7 +109,7 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
 
         # When: Call pull_model during error
         result = client.pull_model("llama3.2")
-        
+
         # Then: Should return False on error
         self.assertFalse(result)
 

@@ -172,37 +172,39 @@ class SQLiteVectorStore(VectorStore):
             return 0.0
         return self.writer._cosine_similarity(vec1.values, vec2.values)
 
-    async def search_similar(self, query_vector: Vector, k: int = 5, **kwargs) -> list[tuple[str, float]]:
+    async def search_similar(
+        self, query_vector: Vector, k: int = 5, **kwargs
+    ) -> list[tuple[str, float]]:
         """유사한 벡터를 검색합니다."""
         # If we have a direct connection (for testing), use it
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
-            
+
             # Build query with optional filters
             base_query = f"SELECT id, vector_data FROM {self.table_name}"
             params = []
-            
+
             # Handle filter_criteria
-            filter_criteria = kwargs.get('filter_criteria', {})
+            filter_criteria = kwargs.get("filter_criteria", {})
             if filter_criteria:
                 where_conditions = []
                 for key, value in filter_criteria.items():
                     where_conditions.append(f"json_extract(metadata, '$.{key}') = ?")
                     params.append(value)
-                
+
                 if where_conditions:
                     base_query += " WHERE " + " AND ".join(where_conditions)
-            
+
             cursor.execute(base_query, params)
             rows = cursor.fetchall()
             cursor.close()
-            
+
             results = []
             for vector_id, vector_blob in rows:
                 stored_vector = self._deserialize_vector(vector_blob)
                 similarity = self._calculate_similarity(query_vector, stored_vector)
                 results.append((vector_id, similarity))
-            
+
             # Sort by similarity (highest first) and return top k
             results.sort(key=lambda x: x[1], reverse=True)
             return results[:k]
@@ -211,12 +213,14 @@ class SQLiteVectorStore(VectorStore):
             search_results = await self.similarity_search_by_vector(query_vector, k=k, **kwargs)
             return [(result.id or "", result.score) for result in search_results.results]
 
-    async def search_similar_with_vectors(self, query_vector: Vector, k: int = 5, **kwargs) -> list[tuple[str, Vector, float]]:
+    async def search_similar_with_vectors(
+        self, query_vector: Vector, k: int = 5, **kwargs
+    ) -> list[tuple[str, Vector, float]]:
         """유사한 벡터를 벡터 데이터와 함께 검색합니다."""
         results = await self.search_similar(query_vector, k=k, **kwargs)
         vector_ids = [vector_id for vector_id, score in results]
         vectors = await self.get_vectors(vector_ids)
-        
+
         vectors_with_data = []
         for vector_id, score in results:
             if vector_id in vectors:
@@ -235,32 +239,33 @@ class SQLiteVectorStore(VectorStore):
     async def update_metadata(self, vector_id: str, metadata: dict) -> bool:
         """벡터의 메타데이터를 업데이트합니다."""
         # If we have a direct connection (for testing), use it
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
             import json
+
             cursor.execute(
                 f"UPDATE {self.table_name} SET metadata = ? WHERE id = ?",
-                (json.dumps(metadata), vector_id)
+                (json.dumps(metadata), vector_id),
             )
             success = cursor.rowcount > 0
             cursor.close()
-            return success
+            return bool(success)  # Explicit cast to bool
         else:
             # Otherwise delegate to document update
             document = await self.get_document(vector_id)
             if not document:
                 return False
-            
+
             updated_document = DocumentMetadata(
                 source=document.source,
                 content=document.content,
                 metadata=metadata,
-                created_at=document.created_at,
-                updated_at=document.updated_at
             )
             return await self.update_document(vector_id, updated_document)
 
-    async def batch_search(self, query_vectors: list[Vector], k: int = 5, **kwargs) -> list[list[tuple[str, float]]]:
+    async def batch_search(
+        self, query_vectors: list[Vector], k: int = 5, **kwargs
+    ) -> list[list[tuple[str, float]]]:
         """여러 쿼리 벡터에 대해 배치 검색을 수행합니다."""
         results = []
         for query_vector in query_vectors:
@@ -268,16 +273,18 @@ class SQLiteVectorStore(VectorStore):
             results.append(search_results)
         return results
 
-    async def search_by_ids(self, query_vector: Vector, candidate_ids: list[str], **kwargs) -> list[tuple[str, float]]:
+    async def search_by_ids(
+        self, query_vector: Vector, candidate_ids: list[str], **kwargs
+    ) -> list[tuple[str, float]]:
         """특정 ID 후보군에서 유사한 벡터를 검색합니다."""
         # Use get_vectors to retrieve candidate vectors, then calculate similarities
         candidate_vectors = await self.get_vectors(candidate_ids)
-        
+
         results = []
         for vector_id, stored_vector in candidate_vectors.items():
             similarity = self._calculate_similarity(query_vector, stored_vector)
             results.append((vector_id, similarity))
-        
+
         # Sort by similarity (highest first)
         results.sort(key=lambda x: x[1], reverse=True)
         return results
@@ -285,26 +292,26 @@ class SQLiteVectorStore(VectorStore):
     async def search_by_metadata(self, metadata_filter: dict, **kwargs) -> list[str]:
         """메타데이터 필터를 사용하여 벡터 ID를 검색합니다."""
         # If we have a direct connection (for testing), use it
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
-            
+
             # Build query with metadata filters
             base_query = f"SELECT id FROM {self.table_name}"
             params = []
-            
+
             if metadata_filter:
                 where_conditions = []
                 for key, value in metadata_filter.items():
                     where_conditions.append(f"json_extract(metadata, '$.{key}') = ?")
                     params.append(value)
-                
+
                 if where_conditions:
                     base_query += " WHERE " + " AND ".join(where_conditions)
-            
+
             cursor.execute(base_query, params)
             rows = cursor.fetchall()
             cursor.close()
-            
+
             return [row[0] for row in rows]
         else:
             # For real implementation, delegate to reader component
@@ -313,15 +320,16 @@ class SQLiteVectorStore(VectorStore):
     async def get_metadata(self, vector_id: str) -> Optional[dict]:
         """벡터의 메타데이터를 조회합니다."""
         # If we have a direct connection (for testing), use it
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
             cursor.execute(f"SELECT metadata FROM {self.table_name} WHERE id = ?", (vector_id,))
             result = cursor.fetchone()
             cursor.close()
-            
+
             if result:
                 import json
-                return json.loads(result[0])
+
+                return json.loads(result[0])  # type: ignore[no-any-return]
             return None
         else:
             # Otherwise delegate to get_document
@@ -334,15 +342,15 @@ class SQLiteVectorStore(VectorStore):
         vector_count = await self.get_vector_count()
         return {
             "table_name": self.table_name,
-            "dimension": getattr(self, '_dimension', None),
-            "metric": getattr(self, '_metric', 'cosine'),
+            "dimension": getattr(self, "_dimension", None),
+            "metric": getattr(self, "_metric", "cosine"),
             "optimize": self.optimize,
-            "vector_count": vector_count
+            "vector_count": vector_count,
         }
 
     async def get_vector_count(self) -> int:
         """저장된 벡터의 개수를 반환합니다."""
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
             cursor.execute(f"SELECT COUNT(*) FROM {self.table_name}")
             result = cursor.fetchone()
@@ -353,23 +361,23 @@ class SQLiteVectorStore(VectorStore):
 
     async def get_dimension(self) -> Optional[int]:
         """벡터 차원을 반환합니다."""
-        return getattr(self, '_dimension', None)
+        return getattr(self, "_dimension", None)
 
     async def optimize_store(self) -> dict:
         """벡터 스토어를 최적화합니다."""
         try:
-            if hasattr(self, '_connection') and self._connection:
+            if hasattr(self, "_connection") and self._connection:
                 cursor = self._connection.cursor()
                 operations = []
-                
+
                 # Execute VACUUM
                 cursor.execute("VACUUM")
                 operations.append("vacuum")
-                
+
                 # Execute ANALYZE
                 cursor.execute(f"ANALYZE {self.table_name}")
                 operations.append("analyze")
-                
+
                 cursor.close()
                 return {"status": "optimized", "success": True, "operations": operations}
             else:
@@ -379,7 +387,7 @@ class SQLiteVectorStore(VectorStore):
 
     async def clear_store(self) -> bool:
         """모든 벡터를 삭제합니다."""
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
             cursor.execute(f"DELETE FROM {self.table_name}")
             cursor.close()
@@ -390,34 +398,34 @@ class SQLiteVectorStore(VectorStore):
         """벡터 스토어 상태 확인."""
         try:
             # Check if we can connect
-            is_connected = hasattr(self, '_connection') and self._connection is not None
-            
+            is_connected = hasattr(self, "_connection") and self._connection is not None
+
             # Check if table exists
             table_exists = False
             if is_connected and self._connection:
                 cursor = self._connection.cursor()
                 cursor.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-                    (self.table_name,)
+                    (self.table_name,),
                 )
                 table_exists = cursor.fetchone() is not None
                 cursor.close()
-            
+
             # Try to count vectors
             vector_count = await self.get_vector_count() if is_connected and table_exists else 0
-            
+
             # Check if configuration is loaded
-            config_loaded = hasattr(self, '_dimension') and self._dimension is not None
-            
+            config_loaded = hasattr(self, "_dimension") and self._dimension is not None
+
             is_healthy = is_connected and table_exists and config_loaded
-            
+
             return {
                 "status": "healthy" if is_healthy else "unhealthy",
                 "connected": is_connected,
                 "table_exists": table_exists,
                 "config_loaded": config_loaded,
                 "vector_count": vector_count,
-                "dimension": getattr(self, '_dimension', None)
+                "dimension": getattr(self, "_dimension", None),
             }
         except Exception:
             return {
@@ -426,7 +434,7 @@ class SQLiteVectorStore(VectorStore):
                 "table_exists": False,
                 "config_loaded": False,
                 "vector_count": 0,
-                "dimension": None
+                "dimension": None,
             }
 
     def _blob_to_vector(self, blob: bytes) -> Vector:
@@ -436,17 +444,17 @@ class SQLiteVectorStore(VectorStore):
     async def _load_config(self) -> None:
         """저장된 설정을 로드합니다."""
         # If we have a direct connection, load config from database
-        if hasattr(self, '_connection') and self._connection:
+        if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
             try:
                 cursor.execute(
                     "SELECT dimension, metric FROM vector_store_config WHERE table_name = ?",
-                    (self.table_name,)
+                    (self.table_name,),
                 )
                 result = cursor.fetchone()
                 if result:
-                    object.__setattr__(self, '_dimension', result[0])
-                    object.__setattr__(self, '_metric', result[1])
+                    object.__setattr__(self, "_dimension", result[0])
+                    object.__setattr__(self, "_metric", result[1])
             except Exception:
                 # Config table doesn't exist or error occurred
                 pass
@@ -454,10 +462,10 @@ class SQLiteVectorStore(VectorStore):
                 cursor.close()
         else:
             # Delegate to the base class method if available
-            if hasattr(self.writer, '_load_config'):
+            if hasattr(self.writer, "_load_config"):
                 await self.writer._load_config()
             # Update our attributes from the base
-            if hasattr(self.writer, '_dimension'):
-                object.__setattr__(self, '_dimension', self.writer._dimension)
-            if hasattr(self.writer, '_metric'):
-                object.__setattr__(self, '_metric', self.writer._metric)
+            if hasattr(self.writer, "_dimension"):
+                object.__setattr__(self, "_dimension", self.writer._dimension)
+            if hasattr(self.writer, "_metric"):
+                object.__setattr__(self, "_metric", self.writer._metric)

@@ -695,6 +695,4 @@ class OllamaLLMService(LLM):
                     raise ValueError(
                         f"Cannot parse JSON extracted from response: {response_text}"
                     ) from inner_exception
-            raise ValueError(
-                f"No valid JSON found in response: {response_text}"
-            ) from exception
+            raise ValueError(f"No valid JSON found in response: {response_text}") from exception
