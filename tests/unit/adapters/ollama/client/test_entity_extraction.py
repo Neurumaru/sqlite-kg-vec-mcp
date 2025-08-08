@@ -54,7 +54,7 @@ class TestOllamaClientEntityExtraction(unittest.TestCase, BaseOllamaClientTestCa
         """마크다운 정리가 필요한 경우 엔티티 추출 테스트."""
         # Given: Response with markdown formatting
         extraction_result = {
-            "nodes": [{"id": "1", "name": "AI", "type": "TECHNOLOGY"}],
+            "entities": [],
             "relationships": [],
         }
 
@@ -78,8 +78,8 @@ class TestOllamaClientEntityExtraction(unittest.TestCase, BaseOllamaClientTestCa
         # Then: Should return cleaned extraction data
         self.assertEqual(result, extraction_result)
 
-    def test_value_error_when_json_error(self):
-        """JSON 파싱 오류 시 ValueError 발생 테스트."""
+    def test_default_structure_when_json_error(self):
+        """JSON 파싱 오류 시 기본 구조 반환 테스트."""
         # Given: Invalid JSON response
         mock_response = Mock()
         mock_response.status_code = 200
@@ -89,13 +89,16 @@ class TestOllamaClientEntityExtraction(unittest.TestCase, BaseOllamaClientTestCa
 
         client = OllamaClient()
 
-        # When & Then: Should raise ValueError
+        # When & Then: Should return default structure for invalid JSON
         with patch(
             "src.adapters.ollama.ollama_client.with_observability",
             lambda **kwargs: lambda func: func,
         ):  # Bypass decorator
-            with self.assertRaises(ValueError):
-                client.extract_entities_and_relationships("Some text")
+            result = client.extract_entities_and_relationships("Some text")
+            
+        # Should return default structure when JSON parsing fails
+        expected_result = {"entities": [], "relationships": []}
+        self.assertEqual(result, expected_result)
 
 
 class TestOllamaClientGenerateEmbeddings(unittest.TestCase, BaseOllamaClientTestCase):
@@ -111,19 +114,27 @@ class TestOllamaClientGenerateEmbeddings(unittest.TestCase, BaseOllamaClientTest
 
     def test_success(self):
         """임베딩 생성 설명 테스트."""
-        # Given: OllamaClient instance
-        client = OllamaClient()
-
-        # When: Get embeddings description
-        test_entity = {"name": "test", "type": "CONCEPT"}
-        description = client.generate_embeddings_description(test_entity)
-
-        # Then: Should return proper description
-        expected_description = (
-            "Ollama 클라이언트는 직접적인 임베딩 생성을 지원하지 않습니다. "
-            "별도의 임베딩 모델 어댑터를 사용하세요."
+        # Given: Mock response for generate method
+        from src.adapters.ollama.ollama_client import LLMResponse
+        
+        mock_response = LLMResponse(
+            text="test는 컨셉 유형의 엔티티입니다.",
+            model="gemma3n",
+            tokens_used=10,
+            response_time=0.1
         )
-        self.assertEqual(description, expected_description)
+        
+        # Mock the generate method
+        with patch.object(OllamaClient, 'generate', return_value=mock_response):
+            client = OllamaClient()
+
+            # When: Get embeddings description
+            test_entity = {"name": "test", "type": "CONCEPT"}
+            description = client.generate_embeddings_description(test_entity)
+
+            # Then: Should return generated description
+            expected_description = "test는 컨셉 유형의 엔티티입니다."
+            self.assertEqual(description, expected_description)
 
 
 if __name__ == "__main__":

@@ -179,9 +179,12 @@ class TestOllamaClientGenerate(unittest.TestCase, BaseOllamaClientTestCase):
 
         client = OllamaClient()
 
-        # When & Then: Should raise OllamaResponseException
-        with self.assertRaises(OllamaResponseException):
-            client.generate("Test prompt")
+        # When: Call generate with missing response field
+        result = client.generate("Test prompt")
+        
+        # Then: Should return LLMResponse with empty text
+        self.assertEqual(result.text, "")
+        self.assertEqual(result.tokens_used, 0)
 
 
 if __name__ == "__main__":

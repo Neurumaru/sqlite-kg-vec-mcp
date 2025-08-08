@@ -78,7 +78,7 @@ class MCPConfig(BaseSettings):
     def validate_port(cls, v: int) -> int:
         """포트 번호 유효성 검사."""
         if not 1 <= v <= 65535:
-            raise ValueError("포트는 1에서 65535 사이여야 합니다")
+            raise ValueError("Port must be between 1 and 65535")
         return v
 
     @field_validator("embedding_dim")
@@ -86,7 +86,7 @@ class MCPConfig(BaseSettings):
     def validate_embedding_dim(cls, v: int) -> int:
         """임베딩 차원 유효성 검사."""
         if v <= 0:
-            raise ValueError("임베딩 차원은 양수여야 합니다")
+            raise ValueError("Embedding dimension must be positive")
         return v
 
     @field_validator("vector_similarity")
@@ -95,7 +95,7 @@ class MCPConfig(BaseSettings):
         """벡터 유사도 측정 기준 유효성 검사."""
         valid_metrics = {"cosine", "euclidean", "dot", "l2"}
         if v not in valid_metrics:
-            raise ValueError(f"벡터 유사도 측정 기준은 {valid_metrics} 중 하나여야 합니다")
+            raise ValueError(f"Vector similarity must be one of {valid_metrics}")
         return v
 
     @field_validator("search_threshold")
@@ -103,7 +103,7 @@ class MCPConfig(BaseSettings):
     def validate_search_threshold(cls, v: float) -> float:
         """검색 임계값 유효성 검사."""
         if not 0.0 <= v <= 1.0:
-            raise ValueError("검색 임계값은 0.0에서 1.0 사이여야 합니다")
+            raise ValueError("Search threshold must be between 0.0 and 1.0")
         return v
 
     @field_validator("log_level")
@@ -112,7 +112,7 @@ class MCPConfig(BaseSettings):
         """로그 레벨 유효성 검사."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         if v.upper() not in valid_levels:
-            raise ValueError(f"로그 레벨은 {valid_levels} 중 하나여야 합니다")
+            raise ValueError(f"Log level must be one of {valid_levels}")
         return v.upper()
 
     @field_validator("vector_index_dir")
@@ -120,7 +120,7 @@ class MCPConfig(BaseSettings):
     def validate_vector_index_dir(cls, v: Optional[str]) -> Optional[str]:
         """벡터 인덱스 디렉토리 형식 유효성 검사."""
         if v is not None and (not isinstance(v, str) or not v.strip()):
-            raise ValueError("벡터 인덱스 디렉토리는 비어 있지 않은 문자열이어야 합니다")
+            raise ValueError("Vector index directory must be a non-empty string")
         return v
 
     @property

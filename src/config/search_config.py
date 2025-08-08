@@ -83,16 +83,16 @@ class SearchConfig:
         if not 0.0 <= self.score_threshold <= 1.0:
             raise ValueError("score_threshold must be between 0.0 and 1.0")
         if not 0.0 <= self.node_similarity_threshold <= 1.0:
-            raise ValueError("node_similarity_threshold는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("node_similarity_threshold must be between 0.0 and 1.0")
 
         # 신뢰도 계산 가중치 검증
         if not 0.0 <= self.confidence_length_weight <= 1.0:
-            raise ValueError("confidence_length_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("confidence_length_weight must be between 0.0 and 1.0")
         if not 0.0 <= self.confidence_structure_weight <= 1.0:
-            raise ValueError("confidence_structure_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("confidence_structure_weight must be between 0.0 and 1.0")
         if abs(self.confidence_length_weight + self.confidence_structure_weight - 1.0) > 1e-6:
             raise ValueError(
-                "confidence_length_weight + confidence_structure_weight는 1.0이어야 합니다"
+                "confidence_length_weight + confidence_structure_weight must equal 1.0"
             )
 
 

@@ -27,7 +27,7 @@ def convert_datetime(s: str | bytes) -> datetime.datetime | str | bytes:
             s = s.decode("utf-8")
         return datetime.datetime.fromisoformat(s)
     except (ValueError, AttributeError, UnicodeDecodeError) as exception:
-        warnings.warn(f"datetime {s!r} 변환 실패: {exception}", stacklevel=2)
+        warnings.warn(f"datetime {s!r} conversion failed: {exception}", stacklevel=2)
         return s
 
 
@@ -73,7 +73,7 @@ class DatabaseConnection:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         except PermissionError as exception:
             raise PermissionError(
-                f"데이터베이스 디렉토리 {self.db_path.parent}를 생성할 수 없습니다: {exception}"
+                f"Cannot create database directory {self.db_path.parent}: {exception}"
             ) from exception
         try:
             # 데이터베이스에 연결
@@ -95,19 +95,19 @@ class DatabaseConnection:
         except sqlite3.Error as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"SQLite 데이터베이스 연결 실패: {exception}",
+                message=f"SQLite database connection failed: {exception}",
                 original_error=exception,
             ) from exception
         except PermissionError as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"데이터베이스 접근 권한 거부: {exception}",
+                message=f"Database access permission denied: {exception}",
                 original_error=exception,
             ) from exception
         except Exception as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"연결 중 예기치 않은 오류 발생: {exception}",
+                message=f"Unexpected error occurred during connection: {exception}",
                 original_error=exception,
             ) from exception
 

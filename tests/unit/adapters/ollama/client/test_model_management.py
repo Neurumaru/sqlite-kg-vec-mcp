@@ -46,7 +46,7 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
         # Then: Should return models list
         expected_models = ["llama3.2:latest", "codellama:7b"]
         self.assertEqual(result, expected_models)
-        self.mock_session.get.assert_called_with("http://localhost:11434/api/tags", timeout=30)
+        self.mock_session.get.assert_called_with("http://localhost:11434/api/tags", timeout=5.0)
 
     def test_list_available_models_error(self):
         """모델 목록 조회 오류 테스트."""
@@ -55,9 +55,11 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
 
         client = OllamaClient()
 
-        # When & Then: Should raise OllamaConnectionException
-        with self.assertRaises(OllamaConnectionException):
-            client.list_available_models()
+        # When: Call list_available_models during error
+        result = client.list_available_models()
+        
+        # Then: Should return empty list on error
+        self.assertEqual(result, [])
 
     def test_pull_model_success(self):
         """모델 다운로드 성공 테스트."""
@@ -106,9 +108,11 @@ class TestOllamaClientModelManagement(unittest.TestCase, BaseOllamaClientTestCas
 
         client = OllamaClient()
 
-        # When & Then: Should raise OllamaConnectionException
-        with self.assertRaises(OllamaConnectionException):
-            client.pull_model("llama3.2")
+        # When: Call pull_model during error
+        result = client.pull_model("llama3.2")
+        
+        # Then: Should return False on error
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":

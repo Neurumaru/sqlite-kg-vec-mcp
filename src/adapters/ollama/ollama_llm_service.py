@@ -661,7 +661,7 @@ class OllamaLLMService(LLM):
             "average_response_time": 0.0,
             "error_rate": 0.0,
             "model": self.ollama_client.model,
-            "note": "사용량 추적은 아직 구현되지 않았습니다",
+            "note": "Usage tracking not implemented",
         }
 
     # 헬퍼 메서드
@@ -693,8 +693,8 @@ class OllamaLLMService(LLM):
                     return cast(dict[str, Any] | list[Any], parsed)
                 except json.JSONDecodeError as inner_exception:
                     raise ValueError(
-                        f"응답에서 추출한 JSON을 파싱할 수 없습니다: {response_text}"
+                        f"Cannot parse JSON extracted from response: {response_text}"
                     ) from inner_exception
             raise ValueError(
-                f"응답에서 유효한 JSON을 찾을 수 없습니다: {response_text}"
+                f"No valid JSON found in response: {response_text}"
             ) from exception

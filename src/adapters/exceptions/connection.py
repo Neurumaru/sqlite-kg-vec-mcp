@@ -37,7 +37,7 @@ class ConnectionException(InfrastructureException):
         self.service = service
         self.endpoint = endpoint
 
-        full_message = f"{service} 연결 실패 ({endpoint}): {message}"
+        full_message = f"{service} connection failed ({endpoint}): {message}"
         super().__init__(
             message=full_message,
             error_code=error_code or "CONNECTION_FAILED",
