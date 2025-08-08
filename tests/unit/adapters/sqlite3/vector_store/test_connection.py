@@ -102,15 +102,15 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         """
         # Given
         mock_connection_manager = Mock()
-        self.vector_store._connection_manager = mock_connection_manager
-        self.vector_store._connection = Mock()
+        self.vector_store.writer._connection_manager = mock_connection_manager
+        self.vector_store.writer._connection = Mock()
 
         # When
         result = await self.vector_store.disconnect()
 
         # Then
         self.assertTrue(result)
-        self.assertIsNone(self.vector_store._connection)
+        self.assertIsNone(self.vector_store.writer._connection)
         mock_connection_manager.close.assert_called_once()
 
     async def test_true_when_is_connected(self):
@@ -121,7 +121,7 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         # Given
         mock_connection = Mock()
         mock_connection.execute.return_value.fetchone.return_value = (1,)
-        self.vector_store._connection = mock_connection
+        self.vector_store.writer._connection = mock_connection
 
         # When
         result = await self.vector_store.is_connected()
@@ -152,7 +152,8 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         mock_connection = Mock()
         mock_cursor = Mock()
         mock_connection.cursor.return_value = mock_cursor
-        self.vector_store._connection = mock_connection
+        # Set connection on the writer component since initialize_store is delegated to it
+        self.vector_store.writer._connection = mock_connection
 
         # When
         result = await self.vector_store.initialize_store(
@@ -172,8 +173,8 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         Then: 자동으로 연결을 시도한다
         """
         # Given
-        self.vector_store._connection = None
-        with patch.object(self.vector_store, "connect", return_value=False):
+        self.vector_store.writer._connection = None
+        with patch.object(self.vector_store.writer, "connect", return_value=False):
             # When
             result = await self.vector_store.initialize_store(dimension=SMALL_DIMENSION)
 

@@ -200,11 +200,11 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         db._connection = mock_connection
 
         # When
-        tx_id = await db.begin_transaction()
+        tx_context = await db.begin_transaction()
 
         # Then
-        self.assertIsInstance(tx_id, str)
-        self.assertIn(tx_id, db._active_transactions)
+        self.assertIsInstance(tx_context.transaction_id, str)
+        self.assertIn(tx_context.transaction_id, db._active_transactions)
         mock_connection.execute.assert_called_with("BEGIN")
 
     async def test_begin_transaction_no_connection(self):
@@ -505,8 +505,10 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         db = SQLiteDatabase(config=self.config)
         mock_main_connection = Mock()
         mock_transaction_connection = Mock()
+        mock_transaction_context = Mock()
+        mock_transaction_context.connection = mock_transaction_connection
         db._connection = mock_main_connection
-        db._active_transactions["tx1"] = mock_transaction_connection
+        db._active_transactions["tx1"] = mock_transaction_context
 
         # When
         result = db._get_connection("tx1")

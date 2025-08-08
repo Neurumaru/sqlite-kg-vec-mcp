@@ -101,13 +101,13 @@ class DatabaseConnection:
         except PermissionError as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"Database access permission denied: {exception}",
+                message=f"Permission denied accessing database: {exception}",
                 original_error=exception,
             ) from exception
         except Exception as exception:
             raise SQLiteConnectionException(
                 db_path=str(self.db_path),
-                message=f"Unexpected error occurred during connection: {exception}",
+                message=f"An unexpected error occurred during connection: {exception}",
                 original_error=exception,
             ) from exception
 
