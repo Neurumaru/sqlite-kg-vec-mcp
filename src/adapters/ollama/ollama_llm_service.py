@@ -215,9 +215,37 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            result = self._parse_json_response(response.text)
+            result = self._parse_json_response(response.text, fallback_on_error=True)
             if isinstance(result, dict):
-                return result
+                if "text_response" in result:
+                    # 텍스트 응답이 있는 경우 분석 시도
+                    text_response = result["text_response"]
+                    if "semantic" in text_response.lower():
+                        strategy = "SEMANTIC"
+                    elif "structural" in text_response.lower():
+                        strategy = "STRUCTURAL"
+                    elif "hybrid" in text_response.lower():
+                        strategy = "HYBRID"
+                    else:
+                        strategy = "SEMANTIC"
+
+                    return {
+                        "strategy": strategy,
+                        "confidence": 0.6,
+                        "reasoning": f"텍스트 응답 기반 분석: {text_response}",
+                        "suggested_filters": [],
+                        "query_type": "exploratory",
+                    }
+                # 일반 JSON 응답 - 필수 필드가 있는지 확인하고 기본값으로 보완
+                default_result = {
+                    "strategy": "SEMANTIC",
+                    "confidence": 0.5,
+                    "reasoning": "분석 완료",
+                    "suggested_filters": [],
+                    "query_type": "exploratory",
+                }
+                default_result.update(result)
+                return default_result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("쿼리 분석 응답 파싱 실패: %s", exception)
@@ -276,9 +304,39 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            result = self._parse_json_response(response.text)
+            result = self._parse_json_response(response.text, fallback_on_error=True)
             if isinstance(result, dict):
-                return result
+                if "text_response" in result:
+                    # 텍스트 응답에서 액션 추출 시도
+                    text_response = result["text_response"].lower()
+                    if "refine" in text_response:
+                        next_action = "refine"
+                    elif "expand" in text_response:
+                        next_action = "expand"
+                    elif "pivot" in text_response:
+                        next_action = "pivot"
+                    else:
+                        next_action = "stop"
+
+                    return {
+                        "next_action": next_action,
+                        "strategy": "SEMANTIC",
+                        "suggested_query": original_query,
+                        "reasoning": f"텍스트 응답 기반 분석: {result['text_response']}",
+                        "focus_areas": [],
+                        "confidence": 0.6,
+                    }
+                # 일반 JSON 응답 - 필수 필드가 있는지 확인하고 기본값으로 보완
+                default_result = {
+                    "next_action": "stop",
+                    "strategy": "STOP",
+                    "suggested_query": original_query,
+                    "reasoning": "탐색 안내 생성됨",
+                    "focus_areas": [],
+                    "confidence": 0.5,
+                }
+                default_result.update(result)
+                return default_result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("탐색 안내 파싱 실패: %s", exception)
@@ -458,9 +516,28 @@ class OllamaLLMService(LLM):
         )
 
         try:
-            result = self._parse_json_response(response.text)
+            result = self._parse_json_response(response.text, fallback_on_error=True)
             if isinstance(result, list):
                 return result
+            if isinstance(result, dict) and "text_response" in result:
+                # 텍스트 응답에서 용어 추출 시도
+                text_response = result["text_response"]
+                # 간단한 파싱으로 콤마나 줄바꿈으로 분리된 용어들 찾기
+                terms = []
+                for line in text_response.split("\n"):
+                    line = line.strip()
+                    if line:
+                        # 불릿 포인트나 번호 제거
+                        line = re.sub(r"^[-*•]\s*", "", line)
+                        line = re.sub(r"^\d+\.\s*", "", line)
+                        if line:
+                            terms.append(line)
+
+                # 콤마로 분리된 경우도 처리
+                if len(terms) == 1 and "," in terms[0]:
+                    terms = [t.strip() for t in terms[0].split(",") if t.strip()]
+
+                return terms if terms else [original_query]
             return [original_query]
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
             logging.warning("쿼리 확장 파싱 실패: %s", exception)
@@ -666,8 +743,11 @@ class OllamaLLMService(LLM):
 
     # 헬퍼 메서드
 
-    def _parse_json_response(self, response_text: str) -> dict[str, Any] | list[Any]:
+    def _parse_json_response(
+        self, response_text: str, fallback_on_error: bool = False
+    ) -> dict[str, Any] | list[Any]:
         """LLM의 JSON 응답을 파싱하고 일반적인 형식 문제를 처리합니다."""
+        original_text = response_text
         response_text = response_text.strip()
 
         # 마크다운 코드 블록이 있는 경우 제거
@@ -684,15 +764,36 @@ class OllamaLLMService(LLM):
         try:
             parsed = json.loads(response_text)
             return cast(dict[str, Any] | list[Any], parsed)
-        except json.JSONDecodeError as exception:
-            # 응답에서 JSON 추출 시도
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                try:
-                    parsed = json.loads(json_match.group())
-                    return cast(dict[str, Any] | list[Any], parsed)
-                except json.JSONDecodeError as inner_exception:
-                    raise ValueError(
-                        f"Cannot parse JSON extracted from response: {response_text}"
-                    ) from inner_exception
-            raise ValueError(f"No valid JSON found in response: {response_text}") from exception
+        except json.JSONDecodeError:
+            # 다양한 JSON 추출 패턴 시도
+            patterns = [
+                r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}",  # 중첩된 객체 포함
+                r"\[[^\[\]]*(?:\[[^\[\]]*\][^\[\]]*)*\]",  # 배열 패턴
+                r"\{.*?\}",  # 단순 객체 패턴
+                r"\[.*?\]",  # 단순 배열 패턴
+            ]
+
+            for pattern in patterns:
+                json_matches = re.finditer(pattern, response_text, re.DOTALL)
+                for match in json_matches:
+                    try:
+                        parsed = json.loads(match.group())
+                        return cast(dict[str, Any] | list[Any], parsed)
+                    except json.JSONDecodeError:
+                        continue
+
+            # fallback_on_error가 True인 경우에만 텍스트 래핑 시도
+            if fallback_on_error and response_text and len(response_text.strip()) > 0:
+                # 단순한 값들을 JSON으로 래핑
+                clean_text = response_text.strip()
+                if clean_text.lower() in ["true", "false"]:
+                    return {"value": clean_text.lower() == "true"}
+                if clean_text.isdigit():
+                    return {"value": int(clean_text)}
+                # 텍스트 응답을 JSON 객체로 래핑
+                return {"text_response": clean_text}
+
+            # 완전히 파싱할 수 없는 경우 - 원본 텍스트를 포함한 오류 정보 제공
+            raise ValueError(
+                f"No valid JSON found in response: {original_text[:200]}{'...' if len(original_text) > 200 else ''}"
+            ) from None
