@@ -14,9 +14,6 @@ from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
 from src.ports.text_embedder import TextEmbedder
 
-# 로거 설정
-logger = logging.getLogger(__name__)
-
 
 class SearchStrategy(Enum):
     """검색 전략을 정의합니다."""
@@ -102,11 +99,14 @@ class KnowledgeSearchService:
     """
 
     def __init__(
-        self, text_embedder: Optional[TextEmbedder], search_config: Optional[SearchConfig] = None
+        self,
+        text_embedder: Optional[TextEmbedder],
+        search_config: Optional[SearchConfig] = None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.text_embedder = text_embedder
         self.search_config = search_config or SearchConfig()
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logger or logging.getLogger(__name__)
 
     def search(
         self,

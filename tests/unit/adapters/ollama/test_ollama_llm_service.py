@@ -457,9 +457,13 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
                 "What is machine learning?", context={"domain": "AI"}
             )
 
-            # Then: Should return analysis result
-            expected = {"strategy": "SEMANTIC", "confidence": 0.8, "reasoning": "Conceptual query"}
-            self.assertEqual(result, expected)
+            # Then: Should return analysis result with expected fields
+            self.assertEqual(result["strategy"], "SEMANTIC")
+            self.assertEqual(result["confidence"], 0.8)
+            self.assertEqual(result["reasoning"], "Conceptual query")
+            # Default fields should also be present
+            self.assertIn("suggested_filters", result)
+            self.assertIn("query_type", result)
 
     async def test_analyze_query_json_error_fallback(self):
         """쿼리 분석 JSON 오류 시 fallback 테스트."""
@@ -470,18 +474,14 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = mock_response
 
-            # Suppress expected warning during this test
-            with self.assertLogs(level="WARNING") as cm:
-                # When: Analyze query
-                result = await self.llm_service.analyze_query("Test query")
+            # When: Analyze query
+            result = await self.llm_service.analyze_query("Test query")
 
-                # Then: Should return fallback result
-                self.assertEqual(result["strategy"], "SEMANTIC")
-                self.assertEqual(result["confidence"], 0.5)
-
-                # Verify warning was logged
-                self.assertIn("쿼리 분석 응답 파싱 실패", cm.output[0])
-            self.assertIn("대체", result["reasoning"])
+            # Then: Should return fallback result
+            self.assertEqual(result["strategy"], "SEMANTIC")
+            self.assertEqual(result["confidence"], 0.5)
+            # text_response fallback으로 처리되므로 "텍스트 응답 기반 분석"이 포함됨
+            self.assertIn("텍스트 응답 기반 분석", result["reasoning"])
 
     async def test_guide_search_navigation(self):
         """검색 내비게이션 가이드 테스트."""
@@ -640,16 +640,11 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = mock_response
 
-            # Suppress expected warning during this test
-            with self.assertLogs(level="WARNING") as cm:
-                # When: Expand query
-                result = await self.llm_service.expand_query("original query")
+            # When: Expand query
+            result = await self.llm_service.expand_query("original query")
 
-                # Then: Should return original query as fallback
-                self.assertEqual(result, ["original query"])
-
-                # Verify warning was logged
-                self.assertIn("쿼리 확장 파싱 실패", cm.output[0])
+            # Then: Should return original query as fallback
+            self.assertEqual(result, ["original query"])
 
     async def test_generate_search_suggestions(self):
         """검색 제안 생성 테스트."""

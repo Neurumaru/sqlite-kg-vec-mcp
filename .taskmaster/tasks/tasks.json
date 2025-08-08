@@ -91,20 +91,7 @@
         "dependencies": [],
         "details": "코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결",
         "testStrategy": "일관된 로깅 패턴 적용 확인",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Knowledge Graph 관계 관리 수정",
-            "description": "그래프 순회 및 엔티티 관계 처리 실패",
-            "status": "done",
-            "priority": "high",
-            "dependencies": [],
-            "details": "DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정",
-            "testStrategy": "그래프 순회 테스트들이 올바른 결과를 반환하는지 확인",
-            "subtasks": [],
-            "parentTaskId": 5
-          }
-        ]
+        "subtasks": []
       },
       {
         "id": 6,

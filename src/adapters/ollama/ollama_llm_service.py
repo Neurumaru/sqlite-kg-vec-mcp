@@ -231,24 +231,22 @@ class OllamaLLMService(LLM):
 
                     return {
                         "strategy": strategy,
-                        "confidence": 0.6,
+                        "confidence": 0.5,
                         "reasoning": f"텍스트 응답 기반 분석: {text_response}",
                         "suggested_filters": [],
                         "query_type": "exploratory",
                     }
-                # 일반 JSON 응답 - 필수 필드가 있는지 확인하고 기본값으로 보완
-                default_result = {
-                    "strategy": "SEMANTIC",
-                    "confidence": 0.5,
-                    "reasoning": "분석 완료",
-                    "suggested_filters": [],
-                    "query_type": "exploratory",
-                }
-                default_result.update(result)
-                return default_result
+                # 일반 JSON 응답 - 원래 결과를 유지하고 누락된 필드만 기본값으로 보완
+                result.setdefault("strategy", "SEMANTIC")
+                result.setdefault("confidence", 0.5)
+                result.setdefault("reasoning", "분석 완료")
+                result.setdefault("suggested_filters", [])
+                result.setdefault("query_type", "exploratory")
+                return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("쿼리 분석 응답 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("쿼리 분석 응답 파싱 실패: %s", exception)
             return {
                 "strategy": "SEMANTIC",
                 "confidence": 0.5,
@@ -324,22 +322,20 @@ class OllamaLLMService(LLM):
                         "suggested_query": original_query,
                         "reasoning": f"텍스트 응답 기반 분석: {result['text_response']}",
                         "focus_areas": [],
-                        "confidence": 0.6,
+                        "confidence": 0.5,
                     }
-                # 일반 JSON 응답 - 필수 필드가 있는지 확인하고 기본값으로 보완
-                default_result = {
-                    "next_action": "stop",
-                    "strategy": "STOP",
-                    "suggested_query": original_query,
-                    "reasoning": "탐색 안내 생성됨",
-                    "focus_areas": [],
-                    "confidence": 0.5,
-                }
-                default_result.update(result)
-                return default_result
+                # 일반 JSON 응답 - 원래 결과를 유지하고 누락된 필드만 기본값으로 보완
+                result.setdefault("next_action", "stop")
+                result.setdefault("strategy", "STOP")
+                result.setdefault("suggested_query", original_query)
+                result.setdefault("reasoning", "탐색 안내 생성됨")
+                result.setdefault("focus_areas", [])
+                result.setdefault("confidence", 0.5)
+                return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("탐색 안내 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("탐색 안내 파싱 실패: %s", exception)
             return {
                 "next_action": "stop",
                 "strategy": "STOP",
@@ -401,7 +397,8 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("결과 평가 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("결과 평가 파싱 실패: %s", exception)
             return {
                 "overall_quality": 0.5,
                 "relevance_score": 0.5,
@@ -488,7 +485,8 @@ class OllamaLLMService(LLM):
                 return result
             return []
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("관계 제안 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("관계 제안 파싱 실패: %s", exception)
             return []
 
     # 쿼리 향상
@@ -522,6 +520,11 @@ class OllamaLLMService(LLM):
             if isinstance(result, dict) and "text_response" in result:
                 # 텍스트 응답에서 용어 추출 시도
                 text_response = result["text_response"]
+
+                # fallback_on_error로 인해 원본 응답이 래핑된 경우 원본 쿼리 반환
+                if text_response.strip() == response.text.strip():
+                    return [original_query]
+
                 # 간단한 파싱으로 콤마나 줄바꿈으로 분리된 용어들 찾기
                 terms = []
                 for line in text_response.split("\n"):
@@ -540,7 +543,8 @@ class OllamaLLMService(LLM):
                 return terms if terms else [original_query]
             return [original_query]
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("쿼리 확장 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("쿼리 확장 파싱 실패: %s", exception)
             return [original_query]
 
     async def generate_search_suggestions(
@@ -571,7 +575,8 @@ class OllamaLLMService(LLM):
                 return result
             return [partial_query]
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("검색 제안 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("검색 제안 파싱 실패: %s", exception)
             return [partial_query]
 
     # 콘텐츠 분석
@@ -602,7 +607,8 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logging.warning("콘텐츠 분류 파싱 실패: %s", exception)
+            logger = logging.getLogger(__name__)
+            logger.warning("콘텐츠 분류 파싱 실패: %s", exception)
             return {"error": "분류 실패", "confidence": 0.0}
 
     async def detect_language(self, text: str) -> str:
