@@ -50,7 +50,7 @@ class PrometheusConfig(BaseSettings):
     def validate_port(cls, v: int) -> int:
         """포트 번호 유효성 검사."""
         if not 1 <= v <= 65535:
-            raise ValueError("포트는 1에서 65535 사이여야 합니다")
+            raise ValueError("Port must be between 1 and 65535")
         return v
 
     model_config = {"env_prefix": "PROMETHEUS_", "extra": "ignore"}
@@ -107,7 +107,7 @@ class LoggingObservabilityConfig(BaseSettings):
         """로그 레벨 유효성 검사."""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         if v.upper() not in valid_levels:
-            raise ValueError(f"레벨은 {valid_levels} 중 하나여야 합니다")
+            raise ValueError(f"Level must be one of {valid_levels}")
         return v.upper()
 
     @field_validator("format")
@@ -116,7 +116,7 @@ class LoggingObservabilityConfig(BaseSettings):
         """로그 형식 유효성 검사."""
         valid_formats = {"json", "text"}
         if v not in valid_formats:
-            raise ValueError(f"형식은 {valid_formats} 중 하나여야 합니다")
+            raise ValueError(f"Format must be one of {valid_formats}")
         return v
 
     model_config = {"env_prefix": "LOG_", "extra": "ignore"}
@@ -168,7 +168,7 @@ class ObservabilityConfig(BaseSettings):
     def validate_trace_sampling_ratio(cls, v: float) -> float:
         """트레이스 샘플링 비율 유효성 검사."""
         if not 0.0 <= v <= 1.0:
-            raise ValueError("트레이스 샘플링 비율은 0.0에서 1.0 사이여야 합니다")
+            raise ValueError("Trace sampling ratio must be between 0.0 and 1.0")
         return v
 
     @field_validator("environment")
@@ -177,7 +177,7 @@ class ObservabilityConfig(BaseSettings):
         """환경 유효성 검사."""
         valid_envs = {"development", "staging", "production"}
         if v not in valid_envs:
-            raise ValueError(f"환경은 {valid_envs} 중 하나여야 합니다")
+            raise ValueError(f"Environment must be one of {valid_envs}")
         return v
 
     model_config = {"env_prefix": "OBSERVABILITY_", "env_file": ".env", "extra": "ignore"}

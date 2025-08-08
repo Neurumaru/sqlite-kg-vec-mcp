@@ -21,11 +21,11 @@ class DocumentMetadata:
     def __post_init__(self):
         """유효성 검사."""
         if not isinstance(self.content, str):
-            raise ValueError("content는 문자열이어야 합니다")
+            raise ValueError("content must be a string")
         if not isinstance(self.metadata, dict):
-            raise ValueError("metadata는 딕셔너리여야 합니다")
+            raise ValueError("metadata must be a dictionary")
         if self.source is not None and not isinstance(self.source, str):
-            raise ValueError("source는 문자열이거나 None이어야 합니다")
+            raise ValueError("source must be a string or None")
 
     @classmethod
     def create(

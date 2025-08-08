@@ -55,7 +55,7 @@ class Embedding:
         # if-elif 체인 대신 빠른 사전 조회
         id_field = cls._ENTITY_ID_FIELDS.get(entity_type)
         if not id_field:
-            raise ValueError(f"지원되지 않는 엔티티 유형: {entity_type}")
+            raise ValueError(f"Unsupported entity type: {entity_type}")
 
         entity_id = row[id_field]
 
@@ -113,7 +113,7 @@ class EmbeddingManager:
             ValueError: entity_type이 잘못된 경우
         """
         if entity_type not in ("node", "edge", "hyperedge"):
-            raise ValueError("엔티티 유형은 'node', 'edge' 또는 'hyperedge'여야 합니다.")
+            raise ValueError("Entity type must be 'node', 'edge', or 'hyperedge'")
 
         # 엔티티 유형에 따라 테이블 이름 및 ID 열 가져오기
         if entity_type == "node":
@@ -187,7 +187,7 @@ class EmbeddingManager:
             Embedding 객체 또는 찾을 수 없는 경우 None
         """
         if entity_type not in ("node", "edge", "hyperedge"):
-            raise ValueError("엔티티 유형은 'node', 'edge' 또는 'hyperedge'여야 합니다.")
+            raise ValueError("Entity type must be 'node', 'edge', or 'hyperedge'")
 
         # 엔티티 유형에 따라 테이블 이름 및 ID 열 가져오기
         if entity_type == "node":
@@ -218,7 +218,7 @@ class EmbeddingManager:
             성공하면 True, 찾을 수 없으면 False
         """
         if entity_type not in ("node", "edge", "hyperedge"):
-            raise ValueError("엔티티 유형은 'node', 'edge' 또는 'hyperedge'여야 합니다.")
+            raise ValueError("Entity type must be 'node', 'edge', or 'hyperedge'")
 
         # 엔티티 유형에 따라 테이블 이름 및 ID 열 가져오기
         if entity_type == "node":
@@ -255,7 +255,7 @@ class EmbeddingManager:
             Embedding 객체 목록
         """
         if entity_type not in ("node", "edge", "hyperedge"):
-            raise ValueError("엔티티 유형은 'node', 'edge' 또는 'hyperedge'여야 합니다.")
+            raise ValueError("Entity type must be 'node', 'edge', or 'hyperedge'")
 
         # 엔티티 유형에 따라 테이블 이름 및 ID 열 가져오기
         if entity_type == "node":
@@ -314,7 +314,7 @@ class EmbeddingManager:
             오래된 임베딩이 있는 엔티티 ID 목록
         """
         if entity_type not in ("node", "edge", "hyperedge"):
-            raise ValueError("엔티티 유형은 'node', 'edge' 또는 'hyperedge'여야 합니다.")
+            raise ValueError("Entity type must be 'node', 'edge', or 'hyperedge'")
 
         # 엔티티 유형에 따라 테이블 이름 및 ID 열 가져오기
         if entity_type == "node":
@@ -533,16 +533,16 @@ class EmbeddingManager:
 
             result = cursor.fetchone()
             if not result:
-                return f"엔티티 {entity_id}를 찾을 수 없습니다."
+                return f"Entity {entity_id} not found"
 
             name, ent_type, properties = result
 
             # 이름, 유형 및 관련 속성 결합
             text_parts = []
             if name:
-                text_parts.append(f"이름: {name}")
+                text_parts.append(f"Name: {name}")
             if ent_type:
-                text_parts.append(f"유형: {ent_type}")
+                text_parts.append(f"Type: {ent_type}")
 
             # 속성 JSON에서 텍스트 추출
             if properties:
@@ -579,9 +579,9 @@ class EmbeddingManager:
 
             # 관계 텍스트 생성
             text_parts = [
-                f"관계: {relation_type}",
-                f"출발: {src_name or src_type}",
-                f"도착: {tgt_name or tgt_type}",
+                f"Relationship: {relation_type}",
+                f"Source: {src_name or src_type}",
+                f"Target: {tgt_name or tgt_type}",
             ]
 
             # 속성이 있으면 추가

@@ -46,42 +46,42 @@ class SearchConfig:
         """설정 검증"""
         # 기본 설정 검증
         if not 0.0 <= self.similarity_threshold <= 1.0:
-            raise ValueError("similarity_threshold는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("similarity_threshold must be between 0.0 and 1.0")
         if self.max_results <= 0:
-            raise ValueError("max_results는 양수여야 합니다")
+            raise ValueError("max_results must be positive")
 
         # 하이브리드 검색 가중치 검증
         if not 0.0 <= self.semantic_weight <= 1.0:
-            raise ValueError("semantic_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("semantic_weight must be between 0.0 and 1.0")
         if not 0.0 <= self.keyword_weight <= 1.0:
-            raise ValueError("keyword_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("keyword_weight must be between 0.0 and 1.0")
 
         # 문서 검색 가중치 검증
         if not 0.0 <= self.document_title_weight <= 1.0:
-            raise ValueError("document_title_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("document_title_weight must be between 0.0 and 1.0")
         if not 0.0 <= self.document_content_weight <= 1.0:
-            raise ValueError("document_content_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("document_content_weight must be between 0.0 and 1.0")
         if abs(self.document_title_weight + self.document_content_weight - 1.0) > 1e-6:
-            raise ValueError("document_title_weight + document_content_weight는 1.0이어야 합니다")
+            raise ValueError("document_title_weight + document_content_weight must equal 1.0")
 
         # 노드 검색 가중치 검증
         if not 0.0 <= self.node_name_weight <= 1.0:
-            raise ValueError("node_name_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("node_name_weight must be between 0.0 and 1.0")
         if not 0.0 <= self.node_description_weight <= 1.0:
-            raise ValueError("node_description_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("node_description_weight must be between 0.0 and 1.0")
         if not 0.0 <= self.node_embedding_weight <= 1.0:
-            raise ValueError("node_embedding_weight는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("node_embedding_weight must be between 0.0 and 1.0")
         total_node_weight = (
             self.node_name_weight + self.node_description_weight + self.node_embedding_weight
         )
         if abs(total_node_weight - 1.0) > 1e-6:
-            raise ValueError("노드 가중치들의 합은 1.0이어야 합니다")
+            raise ValueError("sum of node weights must equal 1.0")
 
         # MMR 및 임계값 검증
         if not 0.0 <= self.mmr_lambda <= 1.0:
-            raise ValueError("mmr_lambda는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("mmr_lambda must be between 0.0 and 1.0")
         if not 0.0 <= self.score_threshold <= 1.0:
-            raise ValueError("score_threshold는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("score_threshold must be between 0.0 and 1.0")
         if not 0.0 <= self.node_similarity_threshold <= 1.0:
             raise ValueError("node_similarity_threshold는 0.0과 1.0 사이여야 합니다")
 

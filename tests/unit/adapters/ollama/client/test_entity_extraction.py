@@ -25,6 +25,7 @@ class TestOllamaClientEntityExtraction(unittest.TestCase, BaseOllamaClientTestCa
         """엔티티와 관계 추출 성공 테스트."""
         # Given: Successful extraction response
         extraction_result = {
+            "entities": [],
             "nodes": [{"id": "1", "name": "Python", "type": "TECHNOLOGY"}],
             "relationships": [{"source": "1", "target": "2", "type": "USES"}],
         }

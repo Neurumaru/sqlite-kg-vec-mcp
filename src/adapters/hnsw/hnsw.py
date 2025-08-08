@@ -147,7 +147,7 @@ class HNSWIndex:
             filename: 확장자가 없는 기본 파일 이름 (제공된 경우 index_dir 사용)
         """
         if not self.is_initialized:
-            raise RuntimeError("인덱스가 초기화되지 않았습니다.")
+            raise RuntimeError("Index is not initialized")
 
         if self.index_dir is None and filename is None:
             raise ValueError("index_dir 또는 filename 중 하나를 제공해야 합니다.")
@@ -210,7 +210,7 @@ class HNSWIndex:
             추가된 항목의 인덱스 ID
         """
         if not self.is_initialized:
-            raise RuntimeError("인덱스가 초기화되지 않았습니다.")
+            raise RuntimeError("Index is not initialized")
 
         item_key = (entity_type, entity_id)
 
@@ -263,10 +263,10 @@ class HNSWIndex:
             추가된 항목의 인덱스 ID 목록
         """
         if not self.is_initialized:
-            raise RuntimeError("인덱스가 초기화되지 않았습니다.")
+            raise RuntimeError("Index is not initialized")
 
         if len(entity_types) != len(entity_ids) or len(entity_types) != len(vectors):
-            raise ValueError("entity_types, entity_ids, vectors는 길이가 같아야 합니다.")
+            raise ValueError("entity_types, entity_ids, vectors must have the same length")
 
         if len(vectors) == 0:
             return []
@@ -335,7 +335,7 @@ class HNSWIndex:
             항목이 제거되었으면 True, 찾을 수 없으면 False
         """
         if not self.is_initialized:
-            raise RuntimeError("인덱스가 초기화되지 않았습니다.")
+            raise RuntimeError("Index is not initialized")
 
         item_key = (entity_type, entity_id)
 
@@ -373,7 +373,7 @@ class HNSWIndex:
             (entity_type, entity_id, distance) 튜플 목록
         """
         if not self.is_initialized:
-            raise RuntimeError("인덱스가 초기화되지 않았습니다.")
+            raise RuntimeError("Index is not initialized")
 
         # 빈 인덱스 처리
         if self.current_size == 0:

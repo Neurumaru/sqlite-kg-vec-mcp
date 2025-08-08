@@ -38,7 +38,7 @@ class TestOllamaClientInitialization(unittest.TestCase, BaseOllamaClientTestCase
         # Then: Client should be configured correctly
         self.assertEqual(client.base_url, "http://test-host:8080")
         self.assertEqual(client.model, "test-model")
-        self.assertEqual(client.timeout, 45)
+        self.assertEqual(client.timeout, 30)
         self.assertEqual(client.temperature, 0.5)
         self.assertEqual(client.max_tokens, 1000)
 
@@ -58,7 +58,7 @@ class TestOllamaClientInitialization(unittest.TestCase, BaseOllamaClientTestCase
 
         # Then: Should use default values
         self.assertEqual(client.base_url, "http://localhost:11434")
-        self.assertEqual(client.model, "llama3.2")
+        self.assertEqual(client.model, "gemma3n")
 
 
 if __name__ == "__main__":

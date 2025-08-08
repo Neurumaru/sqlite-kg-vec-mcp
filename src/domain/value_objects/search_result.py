@@ -23,13 +23,13 @@ class VectorSearchResult:
     def __post_init__(self):
         """유효성 검사."""
         if not isinstance(self.document, DocumentMetadata):
-            raise ValueError("document는 DocumentMetadata 인스턴스여야 합니다")
+            raise ValueError("document must be a DocumentMetadata instance")
         if not isinstance(self.score, int | float):
-            raise ValueError("score는 숫자여야 합니다")
+            raise ValueError("score must be numeric")
         if self.score < 0.0 or self.score > 1.0:
-            raise ValueError("score는 0.0과 1.0 사이여야 합니다")
+            raise ValueError("score must be between 0.0 and 1.0")
         if self.id is not None and not isinstance(self.id, str):
-            raise ValueError("id는 문자열이거나 None이어야 합니다")
+            raise ValueError("id must be a string or None")
 
     @classmethod
     def create(
@@ -58,18 +58,18 @@ class VectorSearchResultCollection:
     def __post_init__(self):
         """유효성 검사."""
         if not isinstance(self.results, list):
-            raise ValueError("results는 리스트여야 합니다")
+            raise ValueError("results must be a list")
         if not all(isinstance(r, VectorSearchResult) for r in self.results):
-            raise ValueError("모든 결과는 VectorSearchResult 인스턴스여야 합니다")
+            raise ValueError("all results must be VectorSearchResult instances")
         if not isinstance(self.total_count, int) or self.total_count < 0:
-            raise ValueError("total_count는 음이 아닌 정수여야 합니다")
+            raise ValueError("total_count must be a non-negative integer")
         if not isinstance(self.query, str):
-            raise ValueError("query는 문자열이어야 합니다")
+            raise ValueError("query must be a string")
 
     def top_k(self, k: int) -> "VectorSearchResultCollection":
         """상위 k개 결과만 포함하는 새 컬렉션 반환."""
         if k < 0:
-            raise ValueError("k는 음이 아닌 정수여야 합니다")
+            raise ValueError("k must be a non-negative integer")
 
         top_results = self.results[:k]
         return VectorSearchResultCollection(

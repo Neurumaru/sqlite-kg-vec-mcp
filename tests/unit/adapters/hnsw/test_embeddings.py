@@ -513,8 +513,8 @@ class TestEmbeddingManagerExtractEntityText(unittest.TestCase):
 
         # Then
         self.assertIn("Relationship: WORKS_FOR", result)
-        self.assertIn("From: John Doe", result)
-        self.assertIn("To: Google", result)
+        self.assertIn("Source: John Doe", result)
+        self.assertIn("Target: Google", result)
         self.assertIn("since: 2020", result)
 
     def test_extract_entity_text_returns_not_found_when_missing(self):
