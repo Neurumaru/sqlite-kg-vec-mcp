@@ -31,7 +31,12 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
         async def mock_transaction():
             yield None
 
-        self.mock_database.transaction = mock_transaction
+        # Create a mock that returns the context manager
+        self.mock_transaction_context = AsyncMock()
+        self.mock_transaction_context.__aenter__ = AsyncMock(return_value=None)
+        self.mock_transaction_context.__aexit__ = AsyncMock(return_value=None)
+        
+        self.mock_database.transaction = AsyncMock(return_value=self.mock_transaction_context)
 
         self.repository = SQLiteDocumentRepository(self.mock_database)
 
@@ -71,7 +76,7 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
 
     async def test_transaction_rollback_success_when_operation_fails(self):
         """Given: 트랜잭션 중 오류가 발생하는 상황
-        When: 작업이 실패하면
+        When: update_with_knowledge 작업이 실패하면
         Then: 트랜잭션이 롤백되어야 한다
         """
         # Given
@@ -81,7 +86,7 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
 
         # When & Then
         with self.assertRaises(Exception):  # noqa: B017
-            await self.repository.save(sample_data)
+            await self.repository.update_with_knowledge(sample_data, [], [])
 
         # 트랜잭션 컨텍스트가 호출되었는지 확인
         self.mock_database.transaction.assert_called()
