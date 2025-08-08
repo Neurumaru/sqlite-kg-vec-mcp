@@ -6,7 +6,7 @@ import json
 import unittest
 from unittest.mock import Mock, patch
 
-from src.adapters.ollama.ollama_client import OllamaClient
+from src.adapters.ollama.ollama_client import LLMResponse, OllamaClient
 from tests.unit.adapters.ollama.client.test_base import BaseOllamaClientTestCase
 
 
@@ -115,8 +115,6 @@ class TestOllamaClientGenerateEmbeddings(unittest.TestCase, BaseOllamaClientTest
     def test_success(self):
         """임베딩 생성 설명 테스트."""
         # Given: Mock response for generate method
-        from src.adapters.ollama.ollama_client import LLMResponse
-
         mock_response = LLMResponse(
             text="test는 컨셉 유형의 엔티티입니다.",
             model="gemma3n",

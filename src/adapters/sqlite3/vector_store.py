@@ -2,6 +2,7 @@
 sqlite-vec 확장을 사용한 VectorStore 포트의 SQLite 구현.
 """
 
+import json
 from typing import Any, Optional
 
 from src.config.search_config import SearchConfig
@@ -160,16 +161,17 @@ class SQLiteVectorStore(VectorStore):
     # Additional methods for test compatibility
     def _vector_to_blob(self, vector: Vector) -> bytes:
         """벡터를 바이너리 형식으로 직렬화합니다."""
-        return self.writer._serialize_vector(vector)
+        return self.writer._serialize_vector(vector)  # pylint: disable=protected-access
 
     def _deserialize_vector(self, blob: bytes) -> Vector:
         """바이너리 형식에서 벡터로 역직렬화합니다."""
-        return self.writer._deserialize_vector(blob)
+        return self.writer._deserialize_vector(blob)  # pylint: disable=protected-access
 
     def _calculate_similarity(self, vec1: Vector, vec2: Vector) -> float:
         """두 벡터 간의 유사도를 계산합니다."""
         if len(vec1.values) != len(vec2.values):
             return 0.0
+        # pylint: disable=protected-access
         return self.writer._cosine_similarity(vec1.values, vec2.values)
 
     async def search_similar(
@@ -208,10 +210,10 @@ class SQLiteVectorStore(VectorStore):
             # Sort by similarity (highest first) and return top k
             results.sort(key=lambda x: x[1], reverse=True)
             return results[:k]
-        else:
-            # Otherwise delegate to the reader
-            search_results = await self.similarity_search_by_vector(query_vector, k=k, **kwargs)
-            return [(result.id or "", result.score) for result in search_results.results]
+
+        # Otherwise delegate to the reader
+        search_results = await self.similarity_search_by_vector(query_vector, k=k, **kwargs)
+        return [(result.id or "", result.score) for result in search_results.results]
 
     async def search_similar_with_vectors(
         self, query_vector: Vector, k: int = 5, **kwargs
@@ -241,7 +243,6 @@ class SQLiteVectorStore(VectorStore):
         # If we have a direct connection (for testing), use it
         if hasattr(self, "_connection") and self._connection:
             cursor = self._connection.cursor()
-            import json
 
             cursor.execute(
                 f"UPDATE {self.table_name} SET metadata = ? WHERE id = ?",
@@ -250,18 +251,18 @@ class SQLiteVectorStore(VectorStore):
             success = cursor.rowcount > 0
             cursor.close()
             return bool(success)  # Explicit cast to bool
-        else:
-            # Otherwise delegate to document update
-            document = await self.get_document(vector_id)
-            if not document:
-                return False
 
-            updated_document = DocumentMetadata(
-                source=document.source,
-                content=document.content,
-                metadata=metadata,
-            )
-            return await self.update_document(vector_id, updated_document)
+        # Otherwise delegate to document update
+        document = await self.get_document(vector_id)
+        if not document:
+            return False
+
+        updated_document = DocumentMetadata(
+            source=document.source,
+            content=document.content,
+            metadata=metadata,
+        )
+        return await self.update_document(vector_id, updated_document)
 
     async def batch_search(
         self, query_vectors: list[Vector], k: int = 5, **kwargs
@@ -313,9 +314,9 @@ class SQLiteVectorStore(VectorStore):
             cursor.close()
 
             return [row[0] for row in rows]
-        else:
-            # For real implementation, delegate to reader component
-            return []
+
+        # For real implementation, delegate to reader component
+        return []
 
     async def get_metadata(self, vector_id: str) -> Optional[dict]:
         """벡터의 메타데이터를 조회합니다."""
@@ -327,14 +328,12 @@ class SQLiteVectorStore(VectorStore):
             cursor.close()
 
             if result:
-                import json
-
                 return json.loads(result[0])  # type: ignore[no-any-return]
             return None
-        else:
-            # Otherwise delegate to get_document
-            document = await self.get_document(vector_id)
-            return document.metadata if document else None
+
+        # Otherwise delegate to get_document
+        document = await self.get_document(vector_id)
+        return document.metadata if document else None
 
     # Additional utility methods for test compatibility
     async def get_store_info(self) -> dict:
@@ -356,8 +355,8 @@ class SQLiteVectorStore(VectorStore):
             result = cursor.fetchone()
             cursor.close()
             return result[0] if result else 0
-        else:
-            return await self.count_documents()
+
+        return await self.count_documents()
 
     async def get_dimension(self) -> Optional[int]:
         """벡터 차원을 반환합니다."""
@@ -380,8 +379,8 @@ class SQLiteVectorStore(VectorStore):
 
                 cursor.close()
                 return {"status": "optimized", "success": True, "operations": operations}
-            else:
-                return {"status": "failed", "success": False, "error": "No connection"}
+
+            return {"status": "failed", "success": False, "error": "No connection"}
         except Exception as e:
             return {"status": "failed", "success": False, "error": str(e)}
 
@@ -460,12 +459,15 @@ class SQLiteVectorStore(VectorStore):
                 pass
             finally:
                 cursor.close()
-        else:
-            # Delegate to the base class method if available
-            if hasattr(self.writer, "_load_config"):
-                await self.writer._load_config()
-            # Update our attributes from the base
-            if hasattr(self.writer, "_dimension"):
-                object.__setattr__(self, "_dimension", self.writer._dimension)
-            if hasattr(self.writer, "_metric"):
-                object.__setattr__(self, "_metric", self.writer._metric)
+            return
+
+        # Delegate to the base class method if available
+        if hasattr(self.writer, "_load_config"):
+            await self.writer._load_config()  # pylint: disable=protected-access
+        # Update our attributes from the base
+        if hasattr(self.writer, "_dimension"):
+            # pylint: disable=protected-access
+            object.__setattr__(self, "_dimension", self.writer._dimension)
+        if hasattr(self.writer, "_metric"):
+            # pylint: disable=protected-access
+            object.__setattr__(self, "_metric", self.writer._metric)

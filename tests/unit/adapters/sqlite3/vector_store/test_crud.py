@@ -188,10 +188,9 @@ class TestSQLiteVectorStoreCRUD(unittest.IsolatedAsyncioTestCase):
             mock_fetchone_side_effect.call_count += 1
             if call_count == 0:
                 return (vector1_blob,)
-            elif call_count == 1:
+            if call_count == 1:
                 return (vector2_blob,)
-            else:
-                return None
+            return None
 
         mock_fetchone_side_effect.call_count = 0
 
