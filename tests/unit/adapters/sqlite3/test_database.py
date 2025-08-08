@@ -197,6 +197,7 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         # Given
         db = SQLiteDatabase(config=self.config)
         mock_connection = Mock(spec=sqlite3.Connection)
+        mock_connection.in_transaction = False  # Ensure transaction is not active
         db._connection = mock_connection
 
         # When
@@ -205,7 +206,7 @@ class TestSQLiteDatabase(unittest.IsolatedAsyncioTestCase):
         # Then
         self.assertIsInstance(tx_context.transaction_id, str)
         self.assertIn(tx_context.transaction_id, db._active_transactions)
-        mock_connection.execute.assert_called_with("BEGIN")
+        mock_connection.execute.assert_called_with("BEGIN IMMEDIATE")
 
     async def test_begin_transaction_no_connection(self):
         """Given: 연결이 없을 때

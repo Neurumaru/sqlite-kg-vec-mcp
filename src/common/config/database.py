@@ -53,7 +53,7 @@ class DatabaseConfig(BaseSettings):
     @classmethod
     def validate_db_path(cls, v: str) -> str:
         """데이터베이스 경로 형식 유효성 검사."""
-        return validate_file_path(v, "데이터베이스 경로")
+        return validate_file_path(v, "Database path")
 
     @field_validator("vector_dimension")
     @classmethod
@@ -71,22 +71,22 @@ class DatabaseConfig(BaseSettings):
     @classmethod
     def validate_max_connections(cls, v: int) -> int:
         """최대 연결 수가 합리적인 범위인지 유효성 검사."""
-        return validate_positive_integer(v, "최대 연결 수", 1000)
+        return validate_positive_integer(v, "Maximum connections", 1000)
 
     @field_validator("backup_interval")
     @classmethod
     def validate_backup_interval(cls, v: int) -> int:
         """백업 간격이 합리적한 범위인지 유효성 검사."""
         if v < 60:
-            raise ValueError("백업 간격은 최소 60초여야 합니다")
-        return validate_positive_integer(v, "백업 간격", 604800)  # 7일
+            raise ValueError("Backup interval must be at least 60 seconds")
+        return validate_positive_integer(v, "Backup interval", 604800)  # 7일
 
     @field_validator("backup_path")
     @classmethod
     def validate_backup_path(cls, v: Optional[str]) -> Optional[str]:
         """제공된 경우 백업 경로 형식 유효성 검사."""
         if v is not None:
-            return validate_file_path(v, "백업 경로")
+            return validate_file_path(v, "Backup path")
         return v
 
     @property

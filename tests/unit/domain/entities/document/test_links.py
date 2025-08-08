@@ -115,6 +115,7 @@ class TestDocumentLinks(unittest.TestCase):
 
     def test_success_when_remove_connected_relationship(self):
         """연결된 관계 제거 성공 테스트."""
+        import time
         document = Document(
             id=DocumentId.generate(),
             title="테스트 문서",
@@ -123,6 +124,7 @@ class TestDocumentLinks(unittest.TestCase):
         )
         relationship_id = RelationshipId.generate()
         document.add_connected_relationship(relationship_id)
+        time.sleep(0.001)  # Ensure timestamp difference
         original_updated_at = document.updated_at
 
         # When

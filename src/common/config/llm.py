@@ -32,7 +32,7 @@ class OllamaConfig(BaseSettings):
     def validate_port(cls, v: int) -> int:
         """포트 번호 유효성 검사."""
         if not 1 <= v <= 65535:
-            raise ValueError("포트는 1에서 65535 사이여야 합니다")
+            raise ValueError("Port must be between 1 and 65535")
         return v
 
     @field_validator("timeout")
@@ -40,9 +40,9 @@ class OllamaConfig(BaseSettings):
     def validate_timeout(cls, v: float) -> float:
         """타임아웃 범위 유효성 검사."""
         if v <= 0:
-            raise ValueError("타임아웃은 0보다 커야 합니다")
+            raise ValueError("Timeout must be greater than 0")
         if v > 600:
-            raise ValueError("타임아웃은 10분(600초) 이하여야 합니다")
+            raise ValueError("Timeout must be 600 seconds or less")
         return v
 
     @field_validator("temperature")
@@ -50,7 +50,7 @@ class OllamaConfig(BaseSettings):
     def validate_temperature(cls, v: float) -> float:
         """온도 범위 유효성 검사."""
         if not 0.0 <= v <= 2.0:
-            raise ValueError("온도는 0.0에서 2.0 사이여야 합니다")
+            raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
 
     @field_validator("max_tokens")
@@ -58,9 +58,9 @@ class OllamaConfig(BaseSettings):
     def validate_max_tokens(cls, v: int) -> int:
         """최대 토큰 수 유효성 검사."""
         if v <= 0:
-            raise ValueError("최대 토큰 수는 양수여야 합니다")
+            raise ValueError("Max tokens must be positive")
         if v > 100000:
-            raise ValueError("최대 토큰 수는 100,000 이하여야 합니다")
+            raise ValueError("Max tokens must be 100,000 or less")
         return v
 
     @field_validator("embedding_dimension")
@@ -68,9 +68,9 @@ class OllamaConfig(BaseSettings):
     def validate_embedding_dimension(cls, v: int) -> int:
         """임베딩 차원 유효성 검사."""
         if v <= 0:
-            raise ValueError("임베딩 차원은 양수여야 합니다")
+            raise ValueError("Embedding dimension must be positive")
         if v > 4096:
-            raise ValueError("임베딩 차원은 4096 이하여야 합니다")
+            raise ValueError("Embedding dimension must be 4096 or less")
         return v
 
     model_config = {"env_prefix": "OLLAMA_", "extra": "ignore"}
@@ -190,7 +190,7 @@ class LLMConfig(BaseSettings):
         """기본 제공업체 유효성 검사."""
         valid_providers = {"ollama", "openai", "anthropic"}
         if v not in valid_providers:
-            raise ValueError(f"제공업체는 {valid_providers} 중 하나여야 합니다")
+            raise ValueError(f"Provider must be one of {valid_providers}")
         return v
 
     @field_validator("retry_attempts")
