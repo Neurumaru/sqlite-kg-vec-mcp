@@ -55,7 +55,7 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(store._dimension)
         self.assertEqual(store._metric, DEFAULT_METRIC)
 
-    @patch("src.adapters.sqlite3.vector_store.DatabaseConnection")
+    @patch("src.adapters.sqlite3.vector_store_base.DatabaseConnection")
     async def test_success_when_connect(self, mock_connection_class):
         """Given: 정상적인 데이터베이스 연결이 가능할 때
         When: connect를 호출하면
@@ -76,7 +76,7 @@ class TestSQLiteVectorStoreConnection(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result)
         self.assertEqual(store._connection, mock_connection)
 
-    @patch("src.adapters.sqlite3.vector_store.DatabaseConnection")
+    @patch("src.adapters.sqlite3.vector_store_base.DatabaseConnection")
     async def test_false_when_connect_fails(self, mock_connection_class):
         """Given: 데이터베이스 연결에 실패할 때
         When: connect를 호출하면
