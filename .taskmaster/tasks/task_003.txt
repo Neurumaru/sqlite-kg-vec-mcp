@@ -1,6 +1,6 @@
 # Task ID: 3
 # Title: FastMCP Server CRUD 작업 수정
-# Status: in-progress
+# Status: done
 # Dependencies: None
 # Priority: high
 # Description: JSON-RPC 프로토콜 처리 및 CRUD 작업 실패
@@ -11,25 +11,25 @@ FastMCP 서버의 JSON-RPC 프로토콜 처리 오류와 노드/엣지 CRUD 작�
 FastMCP 서버 테스트 통과 및 실제 MCP 통신 검증
 
 # Subtasks:
-## 1. Identify FastMCP Server Test Failures [pending]
+## 1. Identify FastMCP Server Test Failures [done]
 ### Dependencies: None
 ### Description: Run make check and identify specific FastMCP server CRUD test failures
 ### Details:
 
 
-## 2. Fix JSON-RPC Protocol Handling [pending]
+## 2. Fix JSON-RPC Protocol Handling [done]
 ### Dependencies: None
 ### Description: Resolve JSON-RPC message parsing and response formatting issues
 ### Details:
 
 
-## 3. Fix Node/Entity CRUD Operations [pending]
+## 3. Fix Node/Entity CRUD Operations [done]
 ### Dependencies: None
 ### Description: Resolve entity creation, update, delete operation failures
 ### Details:
 
 
-## 4. Validate and Test MCP Integration [pending]
+## 4. Validate and Test MCP Integration [done]
 ### Dependencies: None
 ### Description: Run comprehensive tests and validate MCP communication works properly
 ### Details:

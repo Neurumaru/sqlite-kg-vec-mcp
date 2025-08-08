@@ -9,3 +9,11 @@
 
 # Test Strategy:
 일관된 로깅 패턴 적용 확인
+
+# Subtasks:
+## 1. Knowledge Graph 관계 관리 수정 [done]
+### Dependencies: None
+### Description: 그래프 순회 및 엔티티 관계 처리 실패
+### Details:
+DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정
+

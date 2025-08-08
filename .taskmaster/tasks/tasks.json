@@ -75,7 +75,7 @@
         "id": 4,
         "title": "Vector Store/Search 작업 해결",
         "description": "유사도 검색 실패 및 임베딩 처리 오류",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [],
         "details": "벡터 유사도 검색 기능 실패, 벡터 임베딩 처리 오류, HNSW 인덱스 관련 문제들 해결",
@@ -91,7 +91,20 @@
         "dependencies": [],
         "details": "코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결",
         "testStrategy": "일관된 로깅 패턴 적용 확인",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Knowledge Graph 관계 관리 수정",
+            "description": "그래프 순회 및 엔티티 관계 처리 실패",
+            "status": "done",
+            "priority": "high",
+            "dependencies": [],
+            "details": "DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정",
+            "testStrategy": "그래프 순회 테스트들이 올바른 결과를 반환하는지 확인",
+            "subtasks": [],
+            "parentTaskId": 5
+          }
+        ]
       },
       {
         "id": 6,
@@ -113,17 +126,6 @@
         "dependencies": [],
         "details": "쿼리 분석 응답에서 '유효한 JSON을 찾을 수 없습니다' 오류와 LLM 응답 처리 로직 개선 필요",
         "testStrategy": "LLM 기반 쿼리 처리 테스트 통과 확인",
-        "subtasks": []
-      },
-      {
-        "id": 8,
-        "title": "Knowledge Graph 관계 관리 수정",
-        "description": "그래프 순회 및 엔티티 관계 처리 실패",
-        "status": "done",
-        "priority": "high",
-        "dependencies": [],
-        "details": "DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정",
-        "testStrategy": "그래프 순회 테스트들이 올바른 결과를 반환하는지 확인",
         "subtasks": []
       },
       {
@@ -210,7 +212,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-08T09:31:08.862Z"
+      "updated": "2025-08-08T15:31:22.377Z"
     }
   }
 }
