@@ -27,12 +27,49 @@
         "id": 3,
         "title": "FastMCP Server CRUD 작업 수정",
         "description": "JSON-RPC 프로토콜 처리 및 CRUD 작업 실패",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [],
         "details": "FastMCP 서버의 JSON-RPC 프로토콜 처리 오류와 노드/엣지 CRUD 작업 실패 문제 해결 필요",
         "testStrategy": "FastMCP 서버 테스트 통과 및 실제 MCP 통신 검증",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify FastMCP Server Test Failures",
+            "description": "Run make check and identify specific FastMCP server CRUD test failures",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 2,
+            "title": "Fix JSON-RPC Protocol Handling",
+            "description": "Resolve JSON-RPC message parsing and response formatting issues",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 3,
+            "title": "Fix Node/Entity CRUD Operations",
+            "description": "Resolve entity creation, update, delete operation failures",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          },
+          {
+            "id": 4,
+            "title": "Validate and Test MCP Integration",
+            "description": "Run comprehensive tests and validate MCP communication works properly",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 3
+          }
+        ]
       },
       {
         "id": 4,
@@ -173,7 +210,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-07T18:06:49.590Z"
+      "updated": "2025-08-08T09:31:08.862Z"
     }
   }
 }

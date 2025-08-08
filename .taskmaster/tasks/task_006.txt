@@ -1,0 +1,11 @@
+# Task ID: 6
+# Title: 메트릭 수집 시스템 구현
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: observability 패키지의 완전한 메트릭 수집 시스템
+# Details:
+src/common/observability/integration.py의 부분적 메트릭 수집 구현을 완전한 시스템으로 확장
+
+# Test Strategy:
+메트릭 수집 및 모니터링 기능 검증

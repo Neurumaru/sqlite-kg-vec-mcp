@@ -1,0 +1,13 @@
+# Task ID: 14
+# Title: Improve Transaction Context Error Handling
+# Status: done
+# Dependencies: None
+# Priority: medium
+# Description: Fix SQLite transaction state management issues
+# Details:
+- Errors: 엣지 삽입 실패, 비활성 트랜잭션 커밋/롤백 시도
+- Strengthen transaction state validation logic
+- Improve error handling in transaction_context.py
+
+# Test Strategy:
+

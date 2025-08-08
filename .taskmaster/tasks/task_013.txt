@@ -1,0 +1,13 @@
+# Task ID: 13
+# Title: Fix LLM Query Processing JSON Parsing
+# Status: done
+# Dependencies: None
+# Priority: medium
+# Description: Resolve JSON parsing failures in query analysis and expansion
+# Details:
+- Errors: 'Invalid JSON response', 'Invalid JSON' in query processing
+- Add fallback handling for non-JSON LLM responses
+- Improve error handling in domain services
+
+# Test Strategy:
+

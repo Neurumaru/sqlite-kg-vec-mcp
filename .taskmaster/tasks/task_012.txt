@@ -1,0 +1,13 @@
+# Task ID: 12
+# Title: Fix Graph Traversal StopIteration Error
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Resolve BFS algorithm StopIteration error in graph traversal
+# Details:
+- Error: neighbor_query_failed_bfs entity_id=2 error_type=StopIteration
+- Location: src/adapters/sqlite3/graph/traversal.py
+- Add proper exception handling for empty results in BFS
+
+# Test Strategy:
+

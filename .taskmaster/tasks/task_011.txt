@@ -1,0 +1,12 @@
+# Task ID: 11
+# Title: Fix Ollama Test Failures
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Fix remaining Ollama adapter test failures
+# Details:
+- test_embed_texts_partial_failure: Configure mock side_effect for partial failure
+- test_is_available_failure: Use correct exception types (ConnectionError, TimeoutError)
+
+# Test Strategy:
+

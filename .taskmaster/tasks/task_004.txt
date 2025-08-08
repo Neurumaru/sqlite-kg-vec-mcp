@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Vector Store/Search 작업 해결
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: 유사도 검색 실패 및 임베딩 처리 오류
+# Details:
+벡터 유사도 검색 기능 실패, 벡터 임베딩 처리 오류, HNSW 인덱스 관련 문제들 해결
+
+# Test Strategy:
+벡터 검색 테스트와 임베딩 테스트 통과 확인

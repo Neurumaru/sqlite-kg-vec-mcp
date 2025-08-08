@@ -221,7 +221,9 @@ class TestOllamaLLMService(unittest.IsolatedAsyncioTestCase):
 
                         elif scenario["expected_behavior"] == "fallback_response":
                             # Fallback behavior for analyze_query - mock response with invalid JSON
-                            with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
+                            with patch(
+                                "asyncio.to_thread", new_callable=AsyncMock
+                            ) as mock_to_thread:
                                 mock_response = Mock()
                                 mock_response.text = "Invalid JSON response"
                                 mock_to_thread.return_value = mock_response

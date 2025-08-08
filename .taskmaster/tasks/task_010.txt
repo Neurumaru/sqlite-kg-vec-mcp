@@ -1,0 +1,11 @@
+# Task ID: 10
+# Title: 중복 검증 로직 통합
+# Status: pending
+# Dependencies: None
+# Priority: low
+# Description: DTO 파일들의 유사한 검증 로직 중복 제거
+# Details:
+여러 DTO 파일에서 중복되는 검증 로직을 공통 검증 유틸리티 클래스로 통합
+
+# Test Strategy:
+리팩터링 후 모든 검증 테스트 통과 확인

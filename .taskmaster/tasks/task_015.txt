@@ -1,0 +1,13 @@
+# Task ID: 15
+# Title: Clean Up Integration Warnings
+# Status: done
+# Dependencies: None
+# Priority: low
+# Description: Remove or suppress integration-related warning messages
+# Details:
+- Warning: 'Langfuse integration has been removed'
+- Clean up deprecated integration references
+- Improve logging configuration
+
+# Test Strategy:
+

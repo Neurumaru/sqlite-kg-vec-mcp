@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: SQLite 트랜잭션 관리 문제 해결
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: 엣지 삽입 실패 및 커밋/롤백 상태 관리 문제
+# Details:
+테스트에서 영어 오류 메시지를 기대했지만 실제로는 한국어 오류 메시지('엣지 삽입 실패', '엔티티 삽입 실패')가 반환되는 언어 불일치 문제 해결
+
+# Test Strategy:
+관련 SQLite 그래프 테스트들이 통과하는지 확인

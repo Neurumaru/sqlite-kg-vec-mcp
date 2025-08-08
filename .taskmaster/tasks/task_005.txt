@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: 로깅 패턴 표준화
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: getLogger vs 의존성 주입 방식 통일
+# Details:
+코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결
+
+# Test Strategy:
+일관된 로깅 패턴 적용 확인

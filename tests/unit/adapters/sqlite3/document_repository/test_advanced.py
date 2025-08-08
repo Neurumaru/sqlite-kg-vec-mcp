@@ -35,7 +35,7 @@ class TestDocumentRepositoryAdvanced(unittest.IsolatedAsyncioTestCase):
         self.mock_transaction_context = AsyncMock()
         self.mock_transaction_context.__aenter__ = AsyncMock(return_value=None)
         self.mock_transaction_context.__aexit__ = AsyncMock(return_value=None)
-        
+
         self.mock_database.transaction = AsyncMock(return_value=self.mock_transaction_context)
 
         self.repository = SQLiteDocumentRepository(self.mock_database)

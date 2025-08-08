@@ -1,0 +1,11 @@
+# Task ID: 1
+# Title: 문서 처리 검증 실패 수정
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: nodes[0] Node 인스턴스 검증 오류 해결
+# Details:
+DocumentProcessor에서 mock mapper들이 실제 Node/Relationship 엔티티 대신 Mock 객체를 반환하여 KnowledgeExtractionResult 검증이 실패하는 문제 해결
+
+# Test Strategy:
+모든 document processor 테스트가 통과하는지 확인

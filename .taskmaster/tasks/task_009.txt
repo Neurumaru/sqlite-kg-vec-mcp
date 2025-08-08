@@ -1,0 +1,11 @@
+# Task ID: 9
+# Title: Configuration 및 Integration 개선
+# Status: pending
+# Dependencies: None
+# Priority: medium
+# Description: Langfuse 경고 제거, 환경변수 처리 강화
+# Details:
+Langfuse 통합 제거 관련 경고 처리 및 설정 관리, 환경변수 처리 시스템 개선
+
+# Test Strategy:
+설정 관리 테스트 및 경고 메시지 제거 확인
