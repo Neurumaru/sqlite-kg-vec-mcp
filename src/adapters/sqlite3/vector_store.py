@@ -327,3 +327,137 @@ class SQLiteVectorStore(VectorStore):
             # Otherwise delegate to get_document
             document = await self.get_document(vector_id)
             return document.metadata if document else None
+
+    # Additional utility methods for test compatibility
+    async def get_store_info(self) -> dict:
+        """벡터 스토어 정보를 반환합니다."""
+        vector_count = await self.get_vector_count()
+        return {
+            "table_name": self.table_name,
+            "dimension": getattr(self, '_dimension', None),
+            "metric": getattr(self, '_metric', 'cosine'),
+            "optimize": self.optimize,
+            "vector_count": vector_count
+        }
+
+    async def get_vector_count(self) -> int:
+        """저장된 벡터의 개수를 반환합니다."""
+        if hasattr(self, '_connection') and self._connection:
+            cursor = self._connection.cursor()
+            cursor.execute(f"SELECT COUNT(*) FROM {self.table_name}")
+            result = cursor.fetchone()
+            cursor.close()
+            return result[0] if result else 0
+        else:
+            return await self.count_documents()
+
+    async def get_dimension(self) -> Optional[int]:
+        """벡터 차원을 반환합니다."""
+        return getattr(self, '_dimension', None)
+
+    async def optimize_store(self) -> dict:
+        """벡터 스토어를 최적화합니다."""
+        try:
+            if hasattr(self, '_connection') and self._connection:
+                cursor = self._connection.cursor()
+                operations = []
+                
+                # Execute VACUUM
+                cursor.execute("VACUUM")
+                operations.append("vacuum")
+                
+                # Execute ANALYZE
+                cursor.execute(f"ANALYZE {self.table_name}")
+                operations.append("analyze")
+                
+                cursor.close()
+                return {"status": "optimized", "success": True, "operations": operations}
+            else:
+                return {"status": "failed", "success": False, "error": "No connection"}
+        except Exception as e:
+            return {"status": "failed", "success": False, "error": str(e)}
+
+    async def clear_store(self) -> bool:
+        """모든 벡터를 삭제합니다."""
+        if hasattr(self, '_connection') and self._connection:
+            cursor = self._connection.cursor()
+            cursor.execute(f"DELETE FROM {self.table_name}")
+            cursor.close()
+            return True
+        return False
+
+    async def health_check(self) -> dict:
+        """벡터 스토어 상태 확인."""
+        try:
+            # Check if we can connect
+            is_connected = hasattr(self, '_connection') and self._connection is not None
+            
+            # Check if table exists
+            table_exists = False
+            if is_connected and self._connection:
+                cursor = self._connection.cursor()
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (self.table_name,)
+                )
+                table_exists = cursor.fetchone() is not None
+                cursor.close()
+            
+            # Try to count vectors
+            vector_count = await self.get_vector_count() if is_connected and table_exists else 0
+            
+            # Check if configuration is loaded
+            config_loaded = hasattr(self, '_dimension') and self._dimension is not None
+            
+            is_healthy = is_connected and table_exists and config_loaded
+            
+            return {
+                "status": "healthy" if is_healthy else "unhealthy",
+                "connected": is_connected,
+                "table_exists": table_exists,
+                "config_loaded": config_loaded,
+                "vector_count": vector_count,
+                "dimension": getattr(self, '_dimension', None)
+            }
+        except Exception:
+            return {
+                "status": "unhealthy",
+                "connected": False,
+                "table_exists": False,
+                "config_loaded": False,
+                "vector_count": 0,
+                "dimension": None
+            }
+
+    def _blob_to_vector(self, blob: bytes) -> Vector:
+        """바이너리 형식에서 벡터로 역직렬화합니다 (별칭)."""
+        return self._deserialize_vector(blob)
+
+    async def _load_config(self) -> None:
+        """저장된 설정을 로드합니다."""
+        # If we have a direct connection, load config from database
+        if hasattr(self, '_connection') and self._connection:
+            cursor = self._connection.cursor()
+            try:
+                cursor.execute(
+                    "SELECT dimension, metric FROM vector_store_config WHERE table_name = ?",
+                    (self.table_name,)
+                )
+                result = cursor.fetchone()
+                if result:
+                    object.__setattr__(self, '_dimension', result[0])
+                    object.__setattr__(self, '_metric', result[1])
+            except Exception:
+                # Config table doesn't exist or error occurred
+                pass
+            finally:
+                cursor.close()
+        else:
+            # Delegate to the base class method if available
+            if hasattr(self.writer, '_load_config'):
+                await self.writer._load_config()
+            # Update our attributes from the base
+            if hasattr(self.writer, '_dimension'):
+                object.__setattr__(self, '_dimension', self.writer._dimension)
+            if hasattr(self.writer, '_metric'):
+                object.__setattr__(self, '_metric', self.writer._metric)
