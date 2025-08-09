@@ -2,9 +2,10 @@
 트레이스 컨텍스트 및 구조화된 로깅과 통합되는 관찰 가능한 로거.
 """
 
-import time
 import json
+import logging
 import os
+import time
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Optional
@@ -96,13 +97,11 @@ class ObservableLogger:
         # pytest 환경에서는 표준 로거에 직접 기록하여 캡처 안정성을 높입니다.
         if os.getenv("PYTEST_CURRENT_TEST"):
             try:
-                import logging as _stdlib_logging
-
                 fallback_payload = dict(log_data)
                 fallback_payload["event"] = event
                 fallback_payload["level"] = level.value
                 # 루트 레벨이 높을 수 있으므로 경고 레벨로 기록
-                _stdlib_logging.getLogger().warning(json.dumps(fallback_payload))
+                logging.getLogger().warning(json.dumps(fallback_payload))
                 return
             except Exception:
                 # 실패 시 일반 경로로 진행

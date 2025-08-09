@@ -94,65 +94,55 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "로깅 표준 초안(RFC) 수립",
-            "description": "로깅 레벨, 필드 스키마(서비스, 환경, request_id, trace_id), DI vs getLogger 정책, 출력 포맷(JSON/logfmt) 및 구성 키 정의를 문서화합니다. 산출물: docs/observability/logging-spec.md, 승인 체크리스트.",
-            "details": "",
-            "status": "review",
+            "title": "로거 팩토리 개선 및 표준화",
+            "description": "ObservableLogger 팩토리 함수 개선하여 의존성 주입을 위한 표준 인터페이스 제공",
+            "details": "기존 get_logger() 함수를 개선하여 컴포넌트별 로거 생성을 표준화하고, 타입 힌트와 문서화 추가",
+            "status": "pending",
             "dependencies": [],
             "parentTaskId": 5
           },
           {
             "id": 2,
-            "title": "기본 로깅 유틸 구현",
-            "description": "컨텍스트 인지 로거(contextvars 기반), JSON/logfmt 포맷터, 팩토리/DI 헬퍼, 환경변수 기반 구성 스위치를 구현합니다. 산출물: observability/logging/ 모듈, 단위 테스트.",
-            "details": "",
+            "title": "Domain 서비스 로깅 리팩터링",
+            "description": "도메인 서비스들의 로깅을 ObservableLogger로 통일하고 의존성 주입 패턴으로 변경",
+            "details": "DocumentProcessor, DocumentValidation, DocumentPersistence, KnowledgeSearch 서비스들을 ObservableLogger로 변경",
             "status": "pending",
-            "dependencies": [
-              "5.1",
-              "5.6",
-              "9.2"
-            ],
+            "dependencies": [],
             "parentTaskId": 5
           },
           {
             "id": 3,
-            "title": "트레이스/리퀘스트 ID 전파",
-            "description": "서버 미들웨어/컨텍스트 유틸로 request_id/trace_id를 생성/전파하고, 하위 호출에 자동 주입합니다. 산출물: 미들웨어, 통합 테스트.",
-            "details": "",
+            "title": "Adapter 계층 로깅 리팩터링",
+            "description": "어댑터 계층의 로깅을 ObservableLogger로 통일하고 직접 getLogger 호출 제거",
+            "details": "SQLite, Ollama, FastMCP 어댑터들의 로깅을 표준화하고 의존성 주입 패턴 적용",
             "status": "pending",
-            "dependencies": [
-              "5.2"
-            ],
+            "dependencies": [],
             "parentTaskId": 5
           },
           {
             "id": 4,
-            "title": "대표 모듈 리팩터링",
-            "description": "핵심 모듈(DB, Vector, LLM, 서버 엔드포인트 등)을 신규 로깅 패턴으로 이행합니다(하위 호환 유지). 산출물: 코드 변경, 회귀 테스트.",
-            "details": "",
+            "title": "Validation Manager 로깅 개선",
+            "description": "ValidationManager의 혼재된 로깅 패턴을 ObservableLogger로 통일",
+            "details": "getLogger 직접 호출과 의존성 주입이 혼재된 ValidationManager를 일관된 패턴으로 리팩터링",
             "status": "pending",
-            "dependencies": [
-              "5.2"
-            ],
+            "dependencies": [],
             "parentTaskId": 5
           },
           {
             "id": 5,
-            "title": "검증 및 강제(테스트/CI)",
-            "description": "포맷터/컨텍스트 단위 테스트, 회귀 테스트 추가 및 금지 패턴에 대한 lint/pre-commit 훅을 구성합니다. 문서를 갱신하고 CI에 추가합니다.",
-            "details": "",
+            "title": "팩토리 함수들의 로거 주입 구현",
+            "description": "모든 팩토리 함수와 생성자에 로거 매개변수 추가하여 의존성 주입 완성",
+            "details": "서비스와 어댑터 팩토리 함수들에 logger 매개변수를 추가하고 기본값으로 get_logger() 사용",
             "status": "pending",
-            "dependencies": [
-              "5.4"
-            ],
+            "dependencies": [],
             "parentTaskId": 5
           },
           {
             "id": 6,
-            "title": "POC: Logging",
-            "description": "Create a minimal proof-of-concept under `./poc/logging` using only `logging.py` and `test_logging.py`. Show JSON and logfmt outputs and context propagation of `request_id`. This POC must run with `uv` and not touch production code.",
-            "details": "",
-            "status": "done",
+            "title": "테스트 및 검증",
+            "description": "리팩터링된 로깅 시스템의 동작 확인과 회귀 테스트 실행",
+            "details": "모든 테스트 통과 확인, 로깅 출력 형식 검증, 컨텍스트 전파 테스트",
+            "status": "pending",
             "dependencies": [],
             "parentTaskId": 5
           }
