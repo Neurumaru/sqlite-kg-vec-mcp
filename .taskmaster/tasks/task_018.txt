@@ -1,0 +1,70 @@
+# Task ID: 18
+# Title: 성능 테스트 체계 구축
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: SQLite/Vector/LLM 경로에 대한 성능 기준을 수립하고, 마이크로벤치·E2E 성능 테스트, 리포팅/CI 회귀 감시까지 포함한 체계를 구축합니다.
+# Details:
+Scope:
+- 대상: SQLite CRUD, Vector 검색/삽입, 임베딩 호출(실/스텁), FastMCP 서버 요청 경로
+- 산출물: 성능 기준 문서, 마이크로벤치 하네스, E2E 성능 테스트, 리포트/대시보드, CI 회귀 임계치
+- 제약: POC를 `./poc/perf` 에서 `perf.py`, `test_perf.py`로 먼저 완수(uv 사용), 초기 단계에서 프로덕션 코드 변경 금지
+Acceptance:
+- 정의된 SLO/SLA와 측정 방법 문서화
+- 마이크로벤치 및 E2E 테스트가 로컬에서 uv로 실행 가능
+- 기준선 리포트 생성 및 CI에서 선택적으로 회귀 감시 가능
+
+# Test Strategy:
+- POC: `uv run -m pytest poc/perf/test_perf.py`
+- 마이크로벤치: pytest-benchmark 또는 perf_counter로 반복 측정, 결과 JSON 저장
+- E2E: 동시성 단계별 P50/P95/Throughput 측정 및 기준선 비교
+- CI: 기준선 대비 임계치 초과 시 실패(선택적)
+
+# Subtasks:
+## 1. POC: Perf [pending]
+### Dependencies: None
+### Description: `./poc/perf` 폴더에서 `perf.py`와 `test_perf.py`만 사용하여 마이크로벤치 스켈레톤과 간단한 SQLite/Vector 더미 측정을 구현합니다. `uv`로 실행 가능해야 하며, 프로덕션 코드에는 변경을 가하지 않습니다.
+### Details:
+- 측정 도구: time.perf_counter, 반복/워밍업 구조, 결과 요약
+- 대상: SQLite in-memory 간단 CRUD, 벡터 코사인 유사도 루프 더미
+- 출력: 콘솔 요약 + JSON 파일 저장(./poc/perf/.out)
+- 성공 기준: 테스트가 1초 내 통과, 결과 파일 생성
+
+## 2. 성능 기준(SLO/SLA) 및 대상 정의 [pending]
+### Dependencies: None
+### Description: 주요 경로(SQLite CRUD, Vector 검색/삽입, 임베딩 호출, FastMCP 서버 요청)의 성능 목표(P50/P95/Throughput/Error rate)와 측정 방법을 정의하고 문서화합니다.
+### Details:
+- 산출물: `docs/perf/perf-spec.md`
+- 내용: 지표 정의, 워크로드 모델(동시성/요청 믹스), 측정 환경, 허용 임계치, 기준선 생성 절차
+
+## 3. 마이크로벤치 하네스 구현 [pending]
+### Dependencies: 18.1, 18.2
+### Description: pytest 기반의 마이크로벤치 하네스를 구현하고 SQLite/Vector/임베딩 스텁 측정을 추가합니다.
+### Details:
+- 툴링: pytest + pytest-benchmark(optional) 또는 수제 하네스
+- 대상: SQLite: 단건 insert/select 트랜잭션, Vector: 코사인 검색 TopK, Embedding: 스텁 함수 지연 주입
+- 출력: JSON 결과(./perf/.out)와 표 형식 콘솔 리포트
+
+## 4. E2E 성능 시나리오 추가 [pending]
+### Dependencies: 18.2
+### Description: FastMCP 서버 경로에 대해 동시성 단계 부하(예: 1→2→4→8)로 P50/P95/Throughput 측정하는 간단한 E2E 성능 테스트를 추가합니다.
+### Details:
+- 툴링: pytest + asyncio + httpx
+- 시나리오: 문서 등록→질의→검색→응답까지 왕복 지연 측정, 워커 수 조절
+- 출력: JSON/CSV 리포트와 기준선 파일
+
+## 5. 리포팅/대시보드 및 기준선 관리 [pending]
+### Dependencies: 18.3, 18.4
+### Description: 측정 결과를 JSON/CSV로 보관하고 간단한 대시보드(노트북 또는 HTML 리포트)와 기준선 비교 유틸을 만듭니다.
+### Details:
+- 산출물: `tools/perf/report.py` or notebook, `perf_baseline.json`
+- 기능: 기준선 저장/로드, 신뢰구간 계산, 리그레션 하이라이트
+
+## 6. CI 통합 및 회귀 감시 [pending]
+### Dependencies: 18.5
+### Description: 성능 테스트를 CI에 통합하고 기준선 대비 임계치 초과 시 실패하도록(옵션) 구성합니다.
+### Details:
+- CI 잡: `uv run -m pytest -k perf` 선택적 실행, 결과 아티팩트 업로드
+- 임계치: P95 지연, Throughput 하한, 에러율 상한
+- 파이프라인 변수로 온/오프 가능하도록 설계
+

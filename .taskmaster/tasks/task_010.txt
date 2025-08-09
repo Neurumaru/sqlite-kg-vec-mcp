@@ -9,3 +9,41 @@
 
 # Test Strategy:
 리팩터링 후 모든 검증 테스트 통과 확인
+
+# Subtasks:
+## 1. 중복 검증 탐색 리포트 [pending]
+### Dependencies: None
+### Description: DTO 전수 스캔으로 id/enum/range 중복 검증 로직을 식별하고 호출 지점을 매핑합니다. 산출물: docs/validation/dup-report.md.
+### Details:
+
+
+## 2. 공용 검증 유틸 API 설계 [pending]
+### Dependencies: 10.1
+### Description: 에러 타입/메시지 표준화, 함수 시그니처/구성 설계를 진행합니다. 산출물: 설계 문서.
+### Details:
+
+
+## 3. 유틸 구현 및 파일럿 리팩터링 [pending]
+### Dependencies: 10.2, 10.6
+### Description: 공용 유틸을 구현하고 2개 DTO를 시범 전환하여 동치성을 검증합니다. 산출물: 코드, 테스트.
+### Details:
+
+
+## 4. 전체 DTO 리팩터링 [pending]
+### Dependencies: 10.3
+### Description: 남은 DTO를 단계적으로 전환하고 동작 동일성을 유지합니다. 산출물: 변경 PR들과 테스트 통과.
+### Details:
+
+
+## 5. 중복 제거/폐지 및 문서 [pending]
+### Dependencies: 10.4
+### Description: 기존 중복 로직을 폐지/삭제하고 마이그레이션 가이드를 작성합니다. 산출물: 제거 커밋, 문서.
+### Details:
+
+
+## 6. POC: Validation Utils [pending]
+### Dependencies: None
+### Description: Create a minimal proof-of-concept under `./poc/validation_utils` using only `validation_utils.py` and `test_validation_utils.py`. Implement id/enum/range validators and ensure consistent error messages. Use `uv` to run tests. No production changes.
+### Details:
+
+

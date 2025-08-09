@@ -86,12 +86,77 @@
         "id": 5,
         "title": "로깅 패턴 표준화",
         "description": "getLogger vs 의존성 주입 방식 통일",
-        "status": "pending",
+        "status": "in-progress",
         "priority": "medium",
         "dependencies": [],
         "details": "코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결",
         "testStrategy": "일관된 로깅 패턴 적용 확인",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "로깅 표준 초안(RFC) 수립",
+            "description": "로깅 레벨, 필드 스키마(서비스, 환경, request_id, trace_id), DI vs getLogger 정책, 출력 포맷(JSON/logfmt) 및 구성 키 정의를 문서화합니다. 산출물: docs/observability/logging-spec.md, 승인 체크리스트.",
+            "details": "",
+            "status": "review",
+            "dependencies": [],
+            "parentTaskId": 5
+          },
+          {
+            "id": 2,
+            "title": "기본 로깅 유틸 구현",
+            "description": "컨텍스트 인지 로거(contextvars 기반), JSON/logfmt 포맷터, 팩토리/DI 헬퍼, 환경변수 기반 구성 스위치를 구현합니다. 산출물: observability/logging/ 모듈, 단위 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.1",
+              "5.6",
+              "9.2"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 3,
+            "title": "트레이스/리퀘스트 ID 전파",
+            "description": "서버 미들웨어/컨텍스트 유틸로 request_id/trace_id를 생성/전파하고, 하위 호출에 자동 주입합니다. 산출물: 미들웨어, 통합 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.2"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 4,
+            "title": "대표 모듈 리팩터링",
+            "description": "핵심 모듈(DB, Vector, LLM, 서버 엔드포인트 등)을 신규 로깅 패턴으로 이행합니다(하위 호환 유지). 산출물: 코드 변경, 회귀 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.2"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 5,
+            "title": "검증 및 강제(테스트/CI)",
+            "description": "포맷터/컨텍스트 단위 테스트, 회귀 테스트 추가 및 금지 패턴에 대한 lint/pre-commit 훅을 구성합니다. 문서를 갱신하고 CI에 추가합니다.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.4"
+            ],
+            "parentTaskId": 5
+          },
+          {
+            "id": 6,
+            "title": "POC: Logging",
+            "description": "Create a minimal proof-of-concept under `./poc/logging` using only `logging.py` and `test_logging.py`. Show JSON and logfmt outputs and context propagation of `request_id`. This POC must run with `uv` and not touch production code.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 5
+          }
+        ]
       },
       {
         "id": 6,
@@ -99,10 +164,93 @@
         "description": "observability 패키지의 완전한 메트릭 수집 시스템",
         "status": "pending",
         "priority": "medium",
-        "dependencies": [],
+        "dependencies": [
+          "9"
+        ],
         "details": "src/common/observability/integration.py의 부분적 메트릭 수집 구현을 완전한 시스템으로 확장",
         "testStrategy": "메트릭 수집 및 모니터링 기능 검증",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "메트릭 설계 및 백엔드 결정",
+            "description": "OpenTelemetry Metrics + OTLP/Prometheus 선택, 네이밍 컨벤션/라벨 정책 수립, SDK 의존성 추상화 설계를 완료합니다. 산출물: docs/observability/metrics-spec.md.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 6
+          },
+          {
+            "id": 2,
+            "title": "관측성 SDK 래퍼 구현",
+            "description": "카운터/히스토그램/게이지 API와 레지스트리, 환경 기반 구성(수집 주기, 엔드포인트)을 구현합니다. 산출물: observability/metrics/ 모듈, 단위 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.2",
+              "6.1",
+              "6.7"
+            ],
+            "parentTaskId": 6
+          },
+          {
+            "id": 3,
+            "title": "DB/Vector/Embedding 계측",
+            "description": "SQLite 쿼리 지연/에러율, 벡터 검색/삽입, 임베딩 호출 지표를 추가합니다. 산출물: 계측 코드, 오버헤드 측정 포함 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.4",
+              "6.2"
+            ],
+            "parentTaskId": 6
+          },
+          {
+            "id": 4,
+            "title": "LLM/서버 계측",
+            "description": "LLM 요청 지연 히스토그램, 토큰 사용량, 성공률 및 서버 요청 레이턴시/에러율 지표를 추가합니다. 산출물: 계측 코드, 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.4",
+              "6.2"
+            ],
+            "parentTaskId": 6
+          },
+          {
+            "id": 5,
+            "title": "Exporter/구성 배선",
+            "description": "OTLP/Prometheus exporter 연결, 보안/권한 설정, 환경변수로 온오프 가능하도록 배선합니다. 산출물: 환경 템플릿, e2e 스모크 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "6.2",
+              "9.2",
+              "9.3"
+            ],
+            "parentTaskId": 6
+          },
+          {
+            "id": 6,
+            "title": "대시보드/알림 구성",
+            "description": "최소 대시보드(레이트/에러/지연)와 알림 규칙(에러율/지연 임계)을 추가합니다. 산출물: 대시보드 JSON, 알림 정의.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "6.3",
+              "6.5"
+            ],
+            "parentTaskId": 6
+          },
+          {
+            "id": 7,
+            "title": "POC: Metrics",
+            "description": "Create a minimal proof-of-concept under `./poc/metrics` using only `metrics.py` and `test_metrics.py`. Export a counter and histogram via OTLP or a stub, with `uv` runnable tests. Do not modify production code.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 6
+          }
+        ]
       },
       {
         "id": 7,
@@ -124,7 +272,74 @@
         "dependencies": [],
         "details": "Langfuse 통합 제거 관련 경고 처리 및 설정 관리, 환경변수 처리 시스템 개선",
         "testStrategy": "설정 관리 테스트 및 경고 메시지 제거 확인",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "경고/이슈 감사",
+            "description": "Langfuse 등 통합 경고를 수집하고 발생원/재현 조건/우선순위 체크리스트를 작성합니다. 산출물: docs/integration/warnings-audit.md.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 9
+          },
+          {
+            "id": 2,
+            "title": "중앙 구성 로더 구현",
+            "description": "타이핑/스키마 검증, 기본값, 필수 항목 fail-fast, 시크릿 로그 리덕션을 제공하는 구성 로더를 구현합니다. 산출물: config/loader 모듈, 단위 테스트.",
+            "details": "",
+            "status": "in-progress",
+            "dependencies": [
+              "9.1",
+              "9.6"
+            ],
+            "parentTaskId": 9
+          },
+          {
+            "id": 3,
+            "title": "Langfuse 초기화 정규화",
+            "description": "로그 레벨/초기화 순서를 조정하고 누락 값 처리를 표준화하여 경고를 제거합니다. 산출물: 코드 변경, 스모크 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "5.2",
+              "5.3",
+              "9.1"
+            ],
+            "parentTaskId": 9
+          },
+          {
+            "id": 4,
+            "title": "통합 테스트/회귀 방지",
+            "description": "구성 로더와 통합들의 테스트를 추가하고 누락 ENV 시 실패를 검증합니다. CI에 통합합니다.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "9.2",
+              "9.3"
+            ],
+            "parentTaskId": 9
+          },
+          {
+            "id": 5,
+            "title": "문서/마이그레이션",
+            "description": ".env.example, 설정 가이드, 변경점 문서를 작성/갱신합니다.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "9.4"
+            ],
+            "parentTaskId": 9
+          },
+          {
+            "id": 6,
+            "title": "POC: Config Loader",
+            "description": "Create a minimal proof-of-concept under `./poc/config_loader` using only `config_loader.py` and `test_config_loader.py`. Demonstrate typed env loading with defaults and fail-fast for missing required vars. Use `uv`. No production changes.",
+            "details": "",
+            "status": "done",
+            "dependencies": [],
+            "parentTaskId": 9
+          }
+        ]
       },
       {
         "id": 10,
@@ -135,7 +350,71 @@
         "dependencies": [],
         "details": "여러 DTO 파일에서 중복되는 검증 로직을 공통 검증 유틸리티 클래스로 통합",
         "testStrategy": "리팩터링 후 모든 검증 테스트 통과 확인",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "중복 검증 탐색 리포트",
+            "description": "DTO 전수 스캔으로 id/enum/range 중복 검증 로직을 식별하고 호출 지점을 매핑합니다. 산출물: docs/validation/dup-report.md.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 10
+          },
+          {
+            "id": 2,
+            "title": "공용 검증 유틸 API 설계",
+            "description": "에러 타입/메시지 표준화, 함수 시그니처/구성 설계를 진행합니다. 산출물: 설계 문서.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "10.1"
+            ],
+            "parentTaskId": 10
+          },
+          {
+            "id": 3,
+            "title": "유틸 구현 및 파일럿 리팩터링",
+            "description": "공용 유틸을 구현하고 2개 DTO를 시범 전환하여 동치성을 검증합니다. 산출물: 코드, 테스트.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "10.2",
+              "10.6"
+            ],
+            "parentTaskId": 10
+          },
+          {
+            "id": 4,
+            "title": "전체 DTO 리팩터링",
+            "description": "남은 DTO를 단계적으로 전환하고 동작 동일성을 유지합니다. 산출물: 변경 PR들과 테스트 통과.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "10.3"
+            ],
+            "parentTaskId": 10
+          },
+          {
+            "id": 5,
+            "title": "중복 제거/폐지 및 문서",
+            "description": "기존 중복 로직을 폐지/삭제하고 마이그레이션 가이드를 작성합니다. 산출물: 제거 커밋, 문서.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "10.4"
+            ],
+            "parentTaskId": 10
+          },
+          {
+            "id": 6,
+            "title": "POC: Validation Utils",
+            "description": "Create a minimal proof-of-concept under `./poc/validation_utils` using only `validation_utils.py` and `test_validation_utils.py`. Implement id/enum/range validators and ensure consistent error messages. Use `uv` to run tests. No production changes.",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 10
+          }
+        ]
       },
       {
         "id": 11,
@@ -191,6 +470,110 @@
         "dependencies": [],
         "priority": "low",
         "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "E2E 테스트 시스템 구현",
+        "description": "문서 처리부터 MCP 서버 상호작용까지 전체 워크플로우 E2E 테스트",
+        "details": "SQLite KG Vec MCP 시스템의 완전한 종단간 테스트를 구현합니다. 문서 처리, 지식 추출, 벡터 저장, 그래프 작업, MCP 프로토콜 통신을 포함한 모든 주요 컴포넌트의 완전한 통합을 테스트합니다.",
+        "testStrategy": "실제 데이터와 시나리오를 사용한 종단간 테스트",
+        "status": "done",
+        "dependencies": [
+          "5",
+          "6",
+          "9"
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "E2E 테스트 추가 구현",
+        "description": "기존 E2E 테스트 시스템을 확장하여 추가적인 시나리오와 엣지 케이스를 포함한 포괄적인 종단간 테스트를 구현합니다.",
+        "details": "Task 16에서 구현된 기본 E2E 테스트 시스템을 기반으로 다음 추가 테스트를 구현합니다:\n\n1. **오류 시나리오 테스트**\n   - 잘못된 문서 형식 처리\n   - 네트워크 연결 실패 시나리오\n   - SQLite 데이터베이스 락 상황\n   - 메모리 부족 상황 시뮬레이션\n\n2. **성능 테스트**\n   - 대용량 문서 처리 테스트\n   - 동시 요청 처리 테스트\n   - 벡터 검색 성능 측정\n   - 메모리 사용량 모니터링\n\n3. **데이터 일관성 테스트**\n   - 트랜잭션 롤백 시나리오\n   - 동시성 제어 테스트\n   - 데이터 무결성 검증\n\n4. **MCP 프로토콜 테스트**\n   - 다양한 클라이언트 시나리오\n   - 연결 끊김 및 재연결 테스트\n   - 프로토콜 버전 호환성\n\n5. **회귀 테스트**\n   - 이전 버그 재발 방지 테스트\n   - 기능 변경 시 영향도 검증",
+        "testStrategy": "pytest를 사용하여 다음 테스트 전략을 적용합니다:\n\n1. **테스트 환경 분리**: 각 테스트는 독립적인 SQLite 데이터베이스와 임시 디렉토리 사용\n2. **픽스처 활용**: 공통 테스트 데이터와 설정을 위한 pytest fixture 구성\n3. **병렬 실행**: pytest-xdist를 사용한 테스트 병렬 실행으로 수행 시간 단축\n4. **커버리지 측정**: pytest-cov로 코드 커버리지 90% 이상 달성\n5. **CI/CD 통합**: GitHub Actions에서 자동 실행되는 테스트 파이프라인 구성\n6. **성능 벤치마크**: 기준 성능 대비 회귀 검증\n7. **메모리 프로파일링**: 메모리 누수 및 과도한 사용량 감지",
+        "status": "pending",
+        "dependencies": [
+          16
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "성능 테스트 체계 구축",
+        "description": "SQLite/Vector/LLM 경로에 대한 성능 기준을 수립하고, 마이크로벤치·E2E 성능 테스트, 리포팅/CI 회귀 감시까지 포함한 체계를 구축합니다.",
+        "details": "Scope:\n- 대상: SQLite CRUD, Vector 검색/삽입, 임베딩 호출(실/스텁), FastMCP 서버 요청 경로\n- 산출물: 성능 기준 문서, 마이크로벤치 하네스, E2E 성능 테스트, 리포트/대시보드, CI 회귀 임계치\n- 제약: POC를 `./poc/perf` 에서 `perf.py`, `test_perf.py`로 먼저 완수(uv 사용), 초기 단계에서 프로덕션 코드 변경 금지\nAcceptance:\n- 정의된 SLO/SLA와 측정 방법 문서화\n- 마이크로벤치 및 E2E 테스트가 로컬에서 uv로 실행 가능\n- 기준선 리포트 생성 및 CI에서 선택적으로 회귀 감시 가능",
+        "testStrategy": "- POC: `uv run -m pytest poc/perf/test_perf.py`\n- 마이크로벤치: pytest-benchmark 또는 perf_counter로 반복 측정, 결과 JSON 저장\n- E2E: 동시성 단계별 P50/P95/Throughput 측정 및 기준선 비교\n- CI: 기준선 대비 임계치 초과 시 실패(선택적)",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "POC: Perf",
+            "description": "`./poc/perf` 폴더에서 `perf.py`와 `test_perf.py`만 사용하여 마이크로벤치 스켈레톤과 간단한 SQLite/Vector 더미 측정을 구현합니다. `uv`로 실행 가능해야 하며, 프로덕션 코드에는 변경을 가하지 않습니다.",
+            "details": "- 측정 도구: time.perf_counter, 반복/워밍업 구조, 결과 요약\n- 대상: SQLite in-memory 간단 CRUD, 벡터 코사인 유사도 루프 더미\n- 출력: 콘솔 요약 + JSON 파일 저장(./poc/perf/.out)\n- 성공 기준: 테스트가 1초 내 통과, 결과 파일 생성",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 18
+          },
+          {
+            "id": 2,
+            "title": "성능 기준(SLO/SLA) 및 대상 정의",
+            "description": "주요 경로(SQLite CRUD, Vector 검색/삽입, 임베딩 호출, FastMCP 서버 요청)의 성능 목표(P50/P95/Throughput/Error rate)와 측정 방법을 정의하고 문서화합니다.",
+            "details": "- 산출물: `docs/perf/perf-spec.md`\n- 내용: 지표 정의, 워크로드 모델(동시성/요청 믹스), 측정 환경, 허용 임계치, 기준선 생성 절차",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 18
+          },
+          {
+            "id": 3,
+            "title": "마이크로벤치 하네스 구현",
+            "description": "pytest 기반의 마이크로벤치 하네스를 구현하고 SQLite/Vector/임베딩 스텁 측정을 추가합니다.",
+            "details": "- 툴링: pytest + pytest-benchmark(optional) 또는 수제 하네스\n- 대상: SQLite: 단건 insert/select 트랜잭션, Vector: 코사인 검색 TopK, Embedding: 스텁 함수 지연 주입\n- 출력: JSON 결과(./perf/.out)와 표 형식 콘솔 리포트",
+            "status": "pending",
+            "dependencies": [
+              "18.1",
+              "18.2"
+            ],
+            "parentTaskId": 18
+          },
+          {
+            "id": 4,
+            "title": "E2E 성능 시나리오 추가",
+            "description": "FastMCP 서버 경로에 대해 동시성 단계 부하(예: 1→2→4→8)로 P50/P95/Throughput 측정하는 간단한 E2E 성능 테스트를 추가합니다.",
+            "details": "- 툴링: pytest + asyncio + httpx\n- 시나리오: 문서 등록→질의→검색→응답까지 왕복 지연 측정, 워커 수 조절\n- 출력: JSON/CSV 리포트와 기준선 파일",
+            "status": "pending",
+            "dependencies": [
+              "18.2"
+            ],
+            "parentTaskId": 18
+          },
+          {
+            "id": 5,
+            "title": "리포팅/대시보드 및 기준선 관리",
+            "description": "측정 결과를 JSON/CSV로 보관하고 간단한 대시보드(노트북 또는 HTML 리포트)와 기준선 비교 유틸을 만듭니다.",
+            "details": "- 산출물: `tools/perf/report.py` or notebook, `perf_baseline.json`\n- 기능: 기준선 저장/로드, 신뢰구간 계산, 리그레션 하이라이트",
+            "status": "pending",
+            "dependencies": [
+              "18.3",
+              "18.4"
+            ],
+            "parentTaskId": 18
+          },
+          {
+            "id": 6,
+            "title": "CI 통합 및 회귀 감시",
+            "description": "성능 테스트를 CI에 통합하고 기준선 대비 임계치 초과 시 실패하도록(옵션) 구성합니다.",
+            "details": "- CI 잡: `uv run -m pytest -k perf` 선택적 실행, 결과 아티팩트 업로드\n- 임계치: P95 지연, Throughput 하한, 에러율 상한\n- 파이프라인 변수로 온/오프 가능하도록 설계",
+            "status": "pending",
+            "dependencies": [
+              "18.5"
+            ],
+            "parentTaskId": 18
+          }
+        ]
       }
     ],
     "metadata": {
@@ -199,7 +582,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-08T15:47:36.796Z"
+      "updated": "2025-08-08T17:13:08.413Z"
     }
   }
 }

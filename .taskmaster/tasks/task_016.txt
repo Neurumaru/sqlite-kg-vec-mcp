@@ -1,0 +1,11 @@
+# Task ID: 16
+# Title: E2E 테스트 시스템 구현
+# Status: done
+# Dependencies: 5, 6, 9
+# Priority: high
+# Description: 문서 처리부터 MCP 서버 상호작용까지 전체 워크플로우 E2E 테스트
+# Details:
+SQLite KG Vec MCP 시스템의 완전한 종단간 테스트를 구현합니다. 문서 처리, 지식 추출, 벡터 저장, 그래프 작업, MCP 프로토콜 통신을 포함한 모든 주요 컴포넌트의 완전한 통합을 테스트합니다.
+
+# Test Strategy:
+실제 데이터와 시나리오를 사용한 종단간 테스트

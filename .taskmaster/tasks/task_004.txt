@@ -1,6 +1,6 @@
 # Task ID: 4
 # Title: Vector Store/Search 작업 해결
-# Status: pending
+# Status: done
 # Dependencies: None
 # Priority: high
 # Description: 유사도 검색 실패 및 임베딩 처리 오류

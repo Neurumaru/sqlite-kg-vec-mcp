@@ -1,6 +1,6 @@
 # Task ID: 7
 # Title: Query Processing 오류 수정
-# Status: pending
+# Status: done
 # Dependencies: None
 # Priority: high
 # Description: JSON 파싱 실패 및 LLM 응답 처리 문제

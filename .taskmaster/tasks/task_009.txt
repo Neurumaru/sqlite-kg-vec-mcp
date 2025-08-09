@@ -9,3 +9,41 @@ Langfuse 통합 제거 관련 경고 처리 및 설정 관리, 환경변수 처�
 
 # Test Strategy:
 설정 관리 테스트 및 경고 메시지 제거 확인
+
+# Subtasks:
+## 1. 경고/이슈 감사 [done]
+### Dependencies: None
+### Description: Langfuse 등 통합 경고를 수집하고 발생원/재현 조건/우선순위 체크리스트를 작성합니다. 산출물: docs/integration/warnings-audit.md.
+### Details:
+
+
+## 2. 중앙 구성 로더 구현 [in-progress]
+### Dependencies: 9.1, 9.6
+### Description: 타이핑/스키마 검증, 기본값, 필수 항목 fail-fast, 시크릿 로그 리덕션을 제공하는 구성 로더를 구현합니다. 산출물: config/loader 모듈, 단위 테스트.
+### Details:
+
+
+## 3. Langfuse 초기화 정규화 [pending]
+### Dependencies: 5.2, 5.3, 9.1
+### Description: 로그 레벨/초기화 순서를 조정하고 누락 값 처리를 표준화하여 경고를 제거합니다. 산출물: 코드 변경, 스모크 테스트.
+### Details:
+
+
+## 4. 통합 테스트/회귀 방지 [pending]
+### Dependencies: 9.2, 9.3
+### Description: 구성 로더와 통합들의 테스트를 추가하고 누락 ENV 시 실패를 검증합니다. CI에 통합합니다.
+### Details:
+
+
+## 5. 문서/마이그레이션 [pending]
+### Dependencies: 9.4
+### Description: .env.example, 설정 가이드, 변경점 문서를 작성/갱신합니다.
+### Details:
+
+
+## 6. POC: Config Loader [done]
+### Dependencies: None
+### Description: Create a minimal proof-of-concept under `./poc/config_loader` using only `config_loader.py` and `test_config_loader.py`. Demonstrate typed env loading with defaults and fail-fast for missing required vars. Use `uv`. No production changes.
+### Details:
+
+

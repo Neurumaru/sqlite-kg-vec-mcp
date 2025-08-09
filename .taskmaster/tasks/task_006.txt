@@ -1,7 +1,7 @@
 # Task ID: 6
 # Title: 메트릭 수집 시스템 구현
 # Status: pending
-# Dependencies: None
+# Dependencies: 9
 # Priority: medium
 # Description: observability 패키지의 완전한 메트릭 수집 시스템
 # Details:
@@ -9,3 +9,47 @@ src/common/observability/integration.py의 부분적 메트릭 수집 구현을 
 
 # Test Strategy:
 메트릭 수집 및 모니터링 기능 검증
+
+# Subtasks:
+## 1. 메트릭 설계 및 백엔드 결정 [pending]
+### Dependencies: None
+### Description: OpenTelemetry Metrics + OTLP/Prometheus 선택, 네이밍 컨벤션/라벨 정책 수립, SDK 의존성 추상화 설계를 완료합니다. 산출물: docs/observability/metrics-spec.md.
+### Details:
+
+
+## 2. 관측성 SDK 래퍼 구현 [pending]
+### Dependencies: 5.2, 6.1, 6.7
+### Description: 카운터/히스토그램/게이지 API와 레지스트리, 환경 기반 구성(수집 주기, 엔드포인트)을 구현합니다. 산출물: observability/metrics/ 모듈, 단위 테스트.
+### Details:
+
+
+## 3. DB/Vector/Embedding 계측 [pending]
+### Dependencies: 5.4, 6.2
+### Description: SQLite 쿼리 지연/에러율, 벡터 검색/삽입, 임베딩 호출 지표를 추가합니다. 산출물: 계측 코드, 오버헤드 측정 포함 테스트.
+### Details:
+
+
+## 4. LLM/서버 계측 [pending]
+### Dependencies: 5.4, 6.2
+### Description: LLM 요청 지연 히스토그램, 토큰 사용량, 성공률 및 서버 요청 레이턴시/에러율 지표를 추가합니다. 산출물: 계측 코드, 테스트.
+### Details:
+
+
+## 5. Exporter/구성 배선 [pending]
+### Dependencies: 6.2, 9.2, 9.3
+### Description: OTLP/Prometheus exporter 연결, 보안/권한 설정, 환경변수로 온오프 가능하도록 배선합니다. 산출물: 환경 템플릿, e2e 스모크 테스트.
+### Details:
+
+
+## 6. 대시보드/알림 구성 [pending]
+### Dependencies: 6.3, 6.5
+### Description: 최소 대시보드(레이트/에러/지연)와 알림 규칙(에러율/지연 임계)을 추가합니다. 산출물: 대시보드 JSON, 알림 정의.
+### Details:
+
+
+## 7. POC: Metrics [done]
+### Dependencies: None
+### Description: Create a minimal proof-of-concept under `./poc/metrics` using only `metrics.py` and `test_metrics.py`. Export a counter and histogram via OTLP or a stub, with `uv` runnable tests. Do not modify production code.
+### Details:
+
+

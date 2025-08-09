@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: 로깅 패턴 표준화
-# Status: pending
+# Status: in-progress
 # Dependencies: None
 # Priority: medium
 # Description: getLogger vs 의존성 주입 방식 통일
@@ -11,9 +11,39 @@
 일관된 로깅 패턴 적용 확인
 
 # Subtasks:
-## 1. Knowledge Graph 관계 관리 수정 [done]
+## 1. 로깅 표준 초안(RFC) 수립 [review]
 ### Dependencies: None
-### Description: 그래프 순회 및 엔티티 관계 처리 실패
+### Description: 로깅 레벨, 필드 스키마(서비스, 환경, request_id, trace_id), DI vs getLogger 정책, 출력 포맷(JSON/logfmt) 및 구성 키 정의를 문서화합니다. 산출물: docs/observability/logging-spec.md, 승인 체크리스트.
 ### Details:
-DFS 검색 알고리즘의 IndexError, 최단경로 찾기 None 반환, 연결 구성요소 감지 문제 등 그래프 순회 알고리즘 수정
+
+
+## 2. 기본 로깅 유틸 구현 [pending]
+### Dependencies: 5.1, 5.6, 9.2
+### Description: 컨텍스트 인지 로거(contextvars 기반), JSON/logfmt 포맷터, 팩토리/DI 헬퍼, 환경변수 기반 구성 스위치를 구현합니다. 산출물: observability/logging/ 모듈, 단위 테스트.
+### Details:
+
+
+## 3. 트레이스/리퀘스트 ID 전파 [pending]
+### Dependencies: 5.2
+### Description: 서버 미들웨어/컨텍스트 유틸로 request_id/trace_id를 생성/전파하고, 하위 호출에 자동 주입합니다. 산출물: 미들웨어, 통합 테스트.
+### Details:
+
+
+## 4. 대표 모듈 리팩터링 [pending]
+### Dependencies: 5.2
+### Description: 핵심 모듈(DB, Vector, LLM, 서버 엔드포인트 등)을 신규 로깅 패턴으로 이행합니다(하위 호환 유지). 산출물: 코드 변경, 회귀 테스트.
+### Details:
+
+
+## 5. 검증 및 강제(테스트/CI) [pending]
+### Dependencies: 5.4
+### Description: 포맷터/컨텍스트 단위 테스트, 회귀 테스트 추가 및 금지 패턴에 대한 lint/pre-commit 훅을 구성합니다. 문서를 갱신하고 CI에 추가합니다.
+### Details:
+
+
+## 6. POC: Logging [done]
+### Dependencies: None
+### Description: Create a minimal proof-of-concept under `./poc/logging` using only `logging.py` and `test_logging.py`. Show JSON and logfmt outputs and context propagation of `request_id`. This POC must run with `uv` and not touch production code.
+### Details:
+
 
