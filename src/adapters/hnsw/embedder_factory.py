@@ -3,8 +3,11 @@
 """
 
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
+
+from src.common.observability.logger import ObservableLogger
 
 
 class VectorTextEmbedder(ABC):
@@ -46,22 +49,34 @@ class SyncRandomTextEmbedder(VectorTextEmbedder):
         return self._dimension
 
 
-def create_embedder(embedder_type: str, **kwargs) -> VectorTextEmbedder:
+def create_embedder(
+    embedder_type: str, logger: Optional[ObservableLogger] = None, **kwargs
+) -> VectorTextEmbedder:
     """
     텍스트 임베더를 생성하는 팩토리 함수.
 
     Args:
         embedder_type: 생성할 임베더 유형
+        logger: 선택적 로거 인스턴스
         **kwargs: 임베더 생성을 위한 추가 인수
 
     Returns:
         VectorTextEmbedder 인스턴스
     """
+    from src.common.observability.logger import get_logger
+
+    if logger is None:
+        logger = get_logger("embedder_factory", "adapter")
+
     if embedder_type == "random":
         dimension = kwargs.get("dimension", 128)
+        logger.info("embedder_created", type="random", dimension=dimension)
         return SyncRandomTextEmbedder(dimension=dimension)
     if embedder_type == "sentence-transformers":
         # 지금은 랜덤으로 대체
         dimension = kwargs.get("dimension", 384)
+        logger.info("embedder_created", type="sentence-transformers", dimension=dimension)
         return SyncRandomTextEmbedder(dimension=dimension)
+
+    logger.error("unknown_embedder_type", embedder_type=embedder_type)
     raise ValueError(f"알 수 없는 임베더 유형: {embedder_type}")

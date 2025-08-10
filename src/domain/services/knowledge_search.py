@@ -2,12 +2,12 @@
 지식 검색 도메인 서비스.
 """
 
-import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from src.common.observability.logger import ObservableLogger
 from src.config.search_config import DEFAULT_SIMILARITY_THRESHOLD, SearchConfig
 from src.domain.entities.document import Document
 from src.domain.entities.node import Node
@@ -102,11 +102,13 @@ class KnowledgeSearchService:
         self,
         text_embedder: Optional[TextEmbedder],
         search_config: Optional[SearchConfig] = None,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[ObservableLogger] = None,
     ):
         self.text_embedder = text_embedder
         self.search_config = search_config or SearchConfig()
-        self.logger = logger or logging.getLogger(__name__)
+        from src.common.observability.logger import get_logger
+
+        self.logger = logger or get_logger("knowledge_search", "domain")
 
     def search(
         self,
@@ -190,7 +192,11 @@ class KnowledgeSearchService:
         )
 
         self.logger.info(
-            "Search completed: %d results in %.2fms", len(limited_results), execution_time
+            "search_completed",
+            result_count=len(limited_results),
+            execution_time_ms=execution_time,
+            query=criteria.query,
+            strategy=criteria.strategy.value,
         )
 
         return result_collection

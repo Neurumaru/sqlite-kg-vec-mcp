@@ -2,8 +2,9 @@
 통합 설정 검증 관리자.
 """
 
-import logging
 from typing import Any, Optional
+
+from src.common.observability.logger import ObservableLogger
 
 from .app import AppConfig
 from .database import DatabaseConfig
@@ -15,15 +16,17 @@ from .observability import ObservabilityConfig
 class ConfigValidationManager:
     """모든 설정의 검증을 관리하는 클래스."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
-        self.logger = logger or logging.getLogger(__name__)
+    def __init__(self, logger: Optional[ObservableLogger] = None):
+        from src.common.observability.logger import get_logger
+
+        self.logger = logger or get_logger("config_validation_manager", "common")
         self._configs: dict[str, Any] = {}
         self._validation_errors: list[str] = []
 
     def register_config(self, name: str, config: Any) -> None:
         """설정을 등록합니다."""
         self._configs[name] = config
-        self.logger.debug("설정 '%s' 등록됨", name)
+        self.logger.debug("config_registered", config_name=name)
 
     def validate_all(self) -> tuple[bool, list[str]]:
         """등록된 모든 설정을 검증합니다."""
@@ -44,26 +47,28 @@ class ConfigValidationManager:
                         config.validate_provider_config()
                     # ValidationConfig의 validate 메서드는 value 매개변수가 필요하므로 제외
 
-                    self.logger.info("설정 '%s' 검증 성공", name)
+                    self.logger.info("config_validation_success", config_name=name)
 
                 except Exception as e:
                     error_msg = f"{name}: {str(e)}"
                     self._validation_errors.append(error_msg)
-                    self.logger.error("설정 '%s' 검증 실패: %s", name, e)
+                    self.logger.error("config_validation_failed", config_name=name, error=str(e))
 
             # 설정 간 의존성 검증
             self._validate_config_dependencies()
 
             success = len(self._validation_errors) == 0
             if success:
-                self.logger.info("모든 설정 검증 완료")
+                self.logger.info("all_config_validation_completed")
             else:
-                self.logger.error("설정 검증 실패: %s개 오류", len(self._validation_errors))
+                self.logger.error(
+                    "config_validation_failed", error_count=len(self._validation_errors)
+                )
 
             return success, self._validation_errors.copy()
 
         except Exception as e:
-            self.logger.error("설정 검증 중 예상치 못한 오류: %s", e)
+            self.logger.error("config_validation_unexpected_error", error=str(e))
             return False, [f"예상치 못한 오류: {str(e)}"]
 
     def _validate_config_dependencies(self) -> None:
@@ -126,8 +131,9 @@ class ConfigValidationManager:
 
         if mcp_config.log_level != obs_config.log_level:
             self.logger.warning(
-                f"MCP 로그 레벨({mcp_config.log_level})과 "
-                f"관찰가능성 로그 레벨({obs_config.log_level})이 다릅니다"
+                "log_level_mismatch",
+                mcp_log_level=mcp_config.log_level,
+                observability_log_level=obs_config.log_level,
             )
 
     def get_config_summary(self) -> dict[str, dict]:
@@ -167,7 +173,7 @@ class ConfigValidationManager:
         """등록된 모든 설정을 지웁니다."""
         self._configs.clear()
         self._validation_errors.clear()
-        self.logger.debug("모든 설정이 지워졌습니다")
+        self.logger.debug("all_configs_cleared")
 
 
 def create_default_validation_manager() -> ConfigValidationManager:
@@ -183,6 +189,9 @@ def create_default_validation_manager() -> ConfigValidationManager:
         manager.register_config("observability", ObservabilityConfig())
 
     except Exception as e:
-        logging.getLogger(__name__).error("기본 설정 로드 실패: %s", e)
+        from src.common.observability.logger import get_logger
+
+        logger = get_logger("config_validation_manager", "common")
+        logger.error("default_config_load_failed", error=str(e))
 
     return manager

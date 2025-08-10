@@ -262,13 +262,25 @@ def get_observable_logger(
     컴포넌트에 대한 관찰 가능한 로거를 가져오거나 생성합니다.
 
     인자:
-        component: 컴포넌트 이름
-        layer: 계층 이름
+        component: 컴포넌트 이름 (예: "document_processor", "sqlite_repository")
+        layer: 계층 이름 ("domain", "port", "adapter")
         observability_service: 선택적 관찰 가능성 서비스
 
     반환:
         관찰 가능한 로거 인스턴스
+
+    예시:
+        >>> logger = get_observable_logger("document_processor", "domain")
+        >>> logger.info("Document processed", document_id="123")
     """
+    # component가 None인 경우 기본값 설정
+    if component is None:
+        component = "unknown"
+
+    # layer가 None인 경우 기본값 설정
+    if layer is None:
+        layer = "unknown"
+
     key = f"{layer}.{component}"
 
     if key not in _logger_registry:
@@ -279,6 +291,19 @@ def get_observable_logger(
         )
 
     return _logger_registry[key]
+
+
+def get_logger(
+    component: Optional[str] = None,
+    layer: Optional[str] = None,
+    observability_service: Optional[Any] = None,
+) -> ObservableLogger:
+    """
+    get_observable_logger의 짧은 별칭입니다.
+
+    인자와 반환값은 get_observable_logger와 동일합니다.
+    """
+    return get_observable_logger(component, layer, observability_service)
 
 
 def configure_structured_logging() -> None:

@@ -22,6 +22,7 @@ from .integration import (
 )
 from .logger import (
     ObservableLogger,
+    get_logger,
     get_observable_logger,
 )
 from .setup import (
@@ -41,6 +42,7 @@ __all__ = [
     "TraceContextManager",
     # 로깅
     "ObservableLogger",
+    "get_logger",
     "get_observable_logger",
     # 데코레이터
     "with_observability",

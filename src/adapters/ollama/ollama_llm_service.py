@@ -4,7 +4,6 @@ LLMService 인터페이스의 Ollama 기반 구현.
 
 import asyncio
 import json
-import logging
 import re
 from collections.abc import AsyncGenerator
 from typing import Any, Optional, cast
@@ -245,8 +244,10 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("쿼리 분석 응답 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("query_analysis_parsing_failed", error=str(exception))
             return {
                 "strategy": "SEMANTIC",
                 "confidence": 0.5,
@@ -334,8 +335,10 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("탐색 안내 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("navigation_guide_parsing_failed", error=str(exception))
             return {
                 "next_action": "stop",
                 "strategy": "STOP",
@@ -397,8 +400,10 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("결과 평가 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("result_evaluation_parsing_failed", error=str(exception))
             return {
                 "overall_quality": 0.5,
                 "relevance_score": 0.5,
@@ -485,8 +490,10 @@ class OllamaLLMService(LLM):
                 return result
             return []
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("관계 제안 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("relationship_suggestion_parsing_failed", error=str(exception))
             return []
 
     # 쿼리 향상
@@ -543,8 +550,10 @@ class OllamaLLMService(LLM):
                 return terms if terms else [original_query]
             return [original_query]
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("쿼리 확장 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("query_expansion_parsing_failed", error=str(exception))
             return [original_query]
 
     async def generate_search_suggestions(
@@ -575,8 +584,10 @@ class OllamaLLMService(LLM):
                 return result
             return [partial_query]
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("검색 제안 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("search_suggestion_parsing_failed", error=str(exception))
             return [partial_query]
 
     # 콘텐츠 분석
@@ -607,8 +618,10 @@ class OllamaLLMService(LLM):
                 return result
             raise ValueError("dict 응답이 예상되었습니다") from None
         except (json.JSONDecodeError, ValueError, KeyError) as exception:
-            logger = logging.getLogger(__name__)
-            logger.warning("콘텐츠 분류 파싱 실패: %s", exception)
+            from src.common.observability.logger import get_logger
+
+            logger = get_logger("ollama_llm_service", "adapter")
+            logger.warning("content_classification_parsing_failed", error=str(exception))
             return {"error": "분류 실패", "confidence": 0.0}
 
     async def detect_language(self, text: str) -> str:

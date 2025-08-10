@@ -423,16 +423,21 @@ class ObservabilityManager:
 
 
 # ObservabilityManager 인스턴스 생성을 위한 팩토리 함수
-def create_observability_manager(config: Optional[dict[str, Any]] = None) -> ObservabilityManager:
+def create_observability_manager(
+    config: Optional[dict[str, Any]] = None, logger: Optional[Any] = None
+) -> ObservabilityManager:
     """
     새로운 ObservabilityManager 인스턴스를 생성합니다.
 
     인자:
         config: 관찰 가능성 서비스 구성
+        logger: 선택적 로거 인스턴스
 
     반환:
         ObservabilityManager 인스턴스
     """
+    if logger:
+        logger.info("observability_manager_created", config_provided=config is not None)
     return ObservabilityManager(config)
 
 

@@ -2,9 +2,9 @@
 문서 처리 도메인 서비스.
 """
 
-import logging
 from typing import Any, Optional
 
+from src.common.observability.logger import ObservableLogger
 from src.domain.entities.document import Document, DocumentStatus
 from src.domain.entities.node import Node
 from src.domain.entities.relationship import Relationship
@@ -37,7 +37,7 @@ class DocumentProcessor:
         document_persistence_service: Optional[DocumentPersistenceService] = None,
         document_statistics_service: Optional[DocumentStatisticsService] = None,
         document_repository: Optional[DocumentRepository] = None,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[ObservableLogger] = None,
     ):
         self.knowledge_extractor = knowledge_extractor
         self.document_mapper = document_mapper
@@ -58,7 +58,9 @@ class DocumentProcessor:
             document_statistics_service or DocumentStatisticsService()
         )
         self.document_repository = document_repository
-        self.logger = logger or logging.getLogger(__name__)
+        from src.common.observability.logger import get_logger
+
+        self.logger = logger or get_logger("document_processor", "domain")
 
     async def process(self, document: Document) -> KnowledgeExtractionResult:
         """
@@ -89,7 +91,9 @@ class DocumentProcessor:
         Returns:
             추출된 노드와 관계
         """
-        self.logger.info("Processing document with persistence: %s", document.id)
+        self.logger.info(
+            "document_processing_started", document_id=str(document.id), mode="with_persistence"
+        )
 
         try:
             # 1. 상태를 PROCESSING으로 변경하고 저장
@@ -113,23 +117,33 @@ class DocumentProcessor:
                 )
 
             self.logger.info(
-                "Successfully processed document %s: %s nodes, %s relationships",
-                document.id,
-                extraction_result.get_node_count(),
-                extraction_result.get_relationship_count(),
+                "document_processing_completed",
+                document_id=str(document.id),
+                node_count=extraction_result.get_node_count(),
+                relationship_count=extraction_result.get_relationship_count(),
+                mode="with_persistence",
             )
 
             return extraction_result
 
         except Exception as exception:
-            self.logger.error("Failed to process document %s: %s", document.id, exception)
+            self.logger.error(
+                "document_processing_failed",
+                document_id=str(document.id),
+                error=str(exception),
+                mode="with_persistence",
+            )
             # 실패 시 상태 업데이트
             document.mark_as_failed(str(exception))
             try:
                 if self.document_persistence_service:
                     await self.document_persistence_service.update_document_status(document)
             except Exception as update_error:
-                self.logger.error("Failed to update document status: %s", update_error)
+                self.logger.error(
+                    "document_status_update_failed",
+                    document_id=str(document.id),
+                    error=str(update_error),
+                )
             raise
 
     async def _process_document_in_memory(self, document: Document) -> KnowledgeExtractionResult:
@@ -142,7 +156,9 @@ class DocumentProcessor:
         Returns:
             추출된 노드와 관계
         """
-        self.logger.info("Processing document in memory: %s", document.id)
+        self.logger.info(
+            "document_processing_started", document_id=str(document.id), mode="in_memory"
+        )
 
         try:
             # 문서 상태를 처리 중으로 변경
@@ -158,16 +174,22 @@ class DocumentProcessor:
             document.mark_as_processed()
 
             self.logger.info(
-                "Successfully processed document %s: %s nodes, %s relationships",
-                document.id,
-                extraction_result.get_node_count(),
-                extraction_result.get_relationship_count(),
+                "document_processing_completed",
+                document_id=str(document.id),
+                node_count=extraction_result.get_node_count(),
+                relationship_count=extraction_result.get_relationship_count(),
+                mode="in_memory",
             )
 
             return extraction_result
 
         except Exception as exception:
-            self.logger.error("Failed to process document %s: %s", document.id, exception)
+            self.logger.error(
+                "document_processing_failed",
+                document_id=str(document.id),
+                error=str(exception),
+                mode="in_memory",
+            )
             document.mark_as_failed(str(exception))
             raise
 
@@ -241,7 +263,7 @@ class DocumentProcessor:
 
     async def reprocess_document(self, document: Document) -> KnowledgeExtractionResult:
         """문서를 재처리합니다."""
-        self.logger.info("Reprocessing document: %s", document.id)
+        self.logger.info("document_reprocessing_started", document_id=str(document.id))
 
         # 기존 연결 정보 초기화
         document.connected_nodes.clear()

@@ -3,11 +3,10 @@ DocumentRepository 포트의 SQLite 구현.
 """
 
 import json
-import logging
 from datetime import datetime
-from logging import Logger
 from typing import Any, Optional
 
+from src.common.observability.logger import ObservableLogger
 from src.domain.entities.document import Document, DocumentStatus, DocumentType
 from src.domain.exceptions.document_exceptions import (
     ConcurrentModificationError,
@@ -33,7 +32,7 @@ class SQLiteDocumentRepository(DocumentRepository):
     문서 지속성의 구체적인 구현을 제공합니다.
     """
 
-    def __init__(self, database: Database, logger: Optional[Logger] = None):
+    def __init__(self, database: Database, logger: Optional[ObservableLogger] = None):
         """
         SQLite 문서 리포지토리 어댑터를 초기화합니다.
         Args:
@@ -41,7 +40,9 @@ class SQLiteDocumentRepository(DocumentRepository):
             logger: 선택적 로거 인스턴스
         """
         self.database = database
-        self.logger = logger or logging.getLogger(__name__)
+        from src.common.observability.logger import get_logger
+
+        self.logger = logger or get_logger("sqlite_document_repository", "adapter")
 
     def _document_to_data(self, document: Document) -> DocumentData:
         """Document 엔티티를 DocumentData DTO로 변환합니다."""
@@ -112,7 +113,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         if existing:
             raise DocumentAlreadyExistsException(str(doc_entity.id))
         await self._insert_document(doc_entity)
-        self.logger.info("문서 저장됨: %s", doc_entity.id)
+        self.logger.info("document_saved", document_id=str(doc_entity.id))
         return document
 
     async def find_by_id(self, document_id: str) -> Optional[DocumentData]:
@@ -274,7 +275,9 @@ class SQLiteDocumentRepository(DocumentRepository):
         # 버전 증가
         doc_entity.increment_version()
         await self._update_document(doc_entity)
-        self.logger.info("문서 업데이트됨: %s, 버전: %s", doc_entity.id, doc_entity.version)
+        self.logger.info(
+            "document_updated", document_id=str(doc_entity.id), version=doc_entity.version
+        )
         # 업데이트된 DTO 반환
         return self._document_to_data(doc_entity)
 
@@ -325,7 +328,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         affected_rows = await self.database.execute_command(command, parameters)
         success = affected_rows > 0
         if success:
-            self.logger.info("문서 삭제됨: %s", document_id)
+            self.logger.info("document_deleted", document_id=document_id)
         return success
 
     async def exists(self, document_id: str) -> bool:
@@ -427,7 +430,7 @@ class SQLiteDocumentRepository(DocumentRepository):
         for i, doc_id in enumerate(document_ids):
             parameters[f"id_{i}"] = str(doc_id)
         affected_rows = await self.database.execute_command(command, parameters)
-        self.logger.info("%s개 문서 상태를 %s로 일괄 업데이트함", affected_rows, status.value)
+        self.logger.info("bulk_status_update", document_count=affected_rows, status=status.value)
         return affected_rows
 
     # 비공개 헬퍼 메서드

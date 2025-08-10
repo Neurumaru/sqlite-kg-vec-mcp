@@ -19,7 +19,11 @@ from .observability import (
     development_setup,
     get_current_span_id,
     get_current_trace_id,
+    get_logger,
     get_observability_integration,
+)
+from .observability import get_observable_logger as get_obs_logger
+from .observability import (
     initialize_observability,
     production_setup,
     quick_setup,
@@ -29,6 +33,7 @@ from .observability import (
 
 __all__ = [
     # 핵심 관찰 가능성
+    "get_logger",
     "get_observable_logger",
     "with_observability",
     "get_current_trace_id",

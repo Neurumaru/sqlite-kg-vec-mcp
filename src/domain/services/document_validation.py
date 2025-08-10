@@ -2,10 +2,10 @@
 문서 검증 도메인 서비스.
 """
 
-import logging
 from dataclasses import dataclass
 from typing import Optional
 
+from src.common.observability.logger import ObservableLogger
 from src.domain.config.validation_config import ValidationConfig
 from src.domain.entities.document import Document, DocumentStatus
 
@@ -53,11 +53,13 @@ class DocumentValidationService:
     def __init__(
         self,
         config: Optional[ValidationConfig] = None,
-        logger: Optional[logging.Logger] = None,
+        logger: Optional[ObservableLogger] = None,
     ):
         self.config = config or ValidationConfig.from_env()
         self.config.validate()  # 설정 검증
-        self.logger = logger or logging.getLogger(__name__)
+        from src.common.observability.logger import get_logger
+
+        self.logger = logger or get_logger("document_validation", "domain")
 
     def validate_for_processing(self, document: Document) -> DocumentValidationResult:
         """문서가 처리 가능한 상태인지 검증합니다."""
@@ -180,13 +182,19 @@ class DocumentValidationService:
     def log_validation_result(self, document: Document, result: DocumentValidationResult) -> None:
         """검증 결과를 로그에 기록."""
         if result.is_valid:
-            self.logger.info("문서 %s 검증 성공", document.id)
+            self.logger.info("validation_success", document_id=str(document.id))
             if result.warnings:
                 for warning in result.warnings:
-                    self.logger.warning("문서 %s 경고: %s", document.id, warning)
+                    self.logger.warning(
+                        "validation_warning", document_id=str(document.id), warning=warning
+                    )
         else:
-            self.logger.error("문서 %s 검증 실패", document.id)
+            self.logger.error(
+                "validation_failed", document_id=str(document.id), error_count=len(result.errors)
+            )
             for error in result.errors:
-                self.logger.error("문서 %s 에러: %s", document.id, error)
+                self.logger.error("validation_error", document_id=str(document.id), error=error)
             for warning in result.warnings:
-                self.logger.warning("문서 %s 경고: %s", document.id, warning)
+                self.logger.warning(
+                    "validation_warning", document_id=str(document.id), warning=warning
+                )

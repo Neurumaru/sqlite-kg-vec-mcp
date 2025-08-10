@@ -2,7 +2,6 @@
 MCP 서버 인터페이스를 위한 API 엔드포인트 및 핸들러.
 """
 
-import logging
 import sqlite3
 from typing import Any, Optional
 
@@ -51,8 +50,9 @@ class KnowledgeGraphServer:
         self.config = config
 
         # 로깅 설정
-        self.logger = logging.getLogger("kg_server")
-        self.logger.setLevel(getattr(logging, config.log_level))
+        from src.common.observability.logger import get_logger
+
+        self.logger = get_logger("kg_server", "adapter")
 
         # FastMCP로 MCP 서버 생성
         self.mcp_server: FastMCP = FastMCP(
@@ -112,7 +112,7 @@ class KnowledgeGraphServer:
         Returns:
             생성된 노드 데이터
         """
-        self.logger.info("'%s' 유형의 노드를 생성합니다.", node_type)
+        self.logger.info(f"'{node_type}' 유형의 노드를 생성합니다.")
 
         try:
             # 도메인 객체로 변환
@@ -133,7 +133,7 @@ class KnowledgeGraphServer:
             self.logger.error(error_msg)
             return {"error": error_msg}
         except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("노드 생성 중 오류 발생: %s", e)
+            self.logger.error(f"노드 생성 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="create_node",
@@ -166,12 +166,12 @@ class KnowledgeGraphServer:
         try:
             if node_id is not None:
                 domain_node_id = NodeId(str(node_id))
-                self.logger.info("ID %s로 노드를 검색합니다.", node_id)
+                self.logger.info(f"ID {node_id}로 노드를 검색합니다.")
             else:
                 # 위에서 둘 다 None이 아닌지 확인했으므로 node_uuid는 여기서 str임이 보장됨
                 assert node_uuid is not None, "이 시점에서 node_uuid는 None이 아니어야 합니다."
                 domain_node_id = NodeId(node_uuid)
-                self.logger.info("UUID %s로 노드를 검색합니다.", node_uuid)
+                self.logger.info(f"UUID {node_uuid}로 노드를 검색합니다.")
 
             # 유스케이스 호출
             node = await self.node_use_case.get_node(domain_node_id)
@@ -186,7 +186,7 @@ class KnowledgeGraphServer:
             return self._node_to_mcp_response(node)
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("노드 가져오기 중 오류 발생: %s", e)
+            self.logger.error(f"노드 가져오기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="get_node",
@@ -213,7 +213,7 @@ class KnowledgeGraphServer:
         Returns:
             업데이트된 노드 데이터
         """
-        self.logger.info("ID %s의 노드를 업데이트합니다.", node_id)
+        self.logger.info(f"ID {node_id}의 노드를 업데이트합니다.")
 
         try:
             domain_node_id = NodeId(str(node_id))
@@ -229,7 +229,7 @@ class KnowledgeGraphServer:
             return self._node_to_mcp_response(node)
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("노드 업데이트 중 오류 발생: %s", e)
+            self.logger.error(f"노드 업데이트 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="update_node",
@@ -252,7 +252,7 @@ class KnowledgeGraphServer:
         Returns:
             성공 또는 오류 메시지
         """
-        self.logger.info("ID %s의 노드를 삭제합니다.", node_id)
+        self.logger.info(f"ID {node_id}의 노드를 삭제합니다.")
 
         try:
             domain_node_id = NodeId(str(node_id))
@@ -263,7 +263,7 @@ class KnowledgeGraphServer:
             return {"success": True, "message": f"노드 {node_id}가 성공적으로 삭제되었습니다."}
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("노드 삭제 중 오류 발생: %s", e)
+            self.logger.error(f"노드 삭제 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="delete_node",
@@ -290,9 +290,7 @@ class KnowledgeGraphServer:
         Returns:
             조건과 일치하는 노드 목록
         """
-        self.logger.info(
-            "유형=%s, 제한=%s, 오프셋=%s으로 노드를 찾습니다.", node_type, limit, offset
-        )
+        self.logger.info(f"유형={node_type}, 제한={limit}, 오프셋={offset}으로 노드를 찾습니다.")
 
         try:
             domain_node_type = NodeType(node_type) if node_type else None
@@ -308,7 +306,7 @@ class KnowledgeGraphServer:
             result_nodes = [self._node_to_mcp_response(node) for node in nodes]
 
             if ctx:
-                self.logger.info("%s개의 노드를 찾았습니다.", len(result_nodes))
+                self.logger.info(f"{len(result_nodes)}개의 노드를 찾았습니다.")
 
             return {
                 "nodes": result_nodes,
@@ -318,7 +316,7 @@ class KnowledgeGraphServer:
             }
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("노드 찾기 중 오류 발생: %s", e)
+            self.logger.error(f"노드 찾기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="find_nodes",
@@ -351,7 +349,7 @@ class KnowledgeGraphServer:
         Returns:
             검색 결과
         """
-        self.logger.info("텍스트로 검색: '%s'", query)
+        self.logger.info(f"텍스트로 검색: '{query}'")
 
         try:
             # 유스케이스 호출
@@ -404,12 +402,12 @@ class KnowledgeGraphServer:
                     )
 
             if ctx:
-                self.logger.info("%s개의 결과를 찾았습니다.", len(result_items))
+                self.logger.info(f"{len(result_items)}개의 결과를 찾았습니다.")
 
             return {"results": result_items, "count": len(result_items)}
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("텍스트 검색 중 오류 발생: %s", e)
+            self.logger.error(f"텍스트 검색 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="search_by_text",
@@ -473,7 +471,7 @@ class KnowledgeGraphServer:
         Returns:
             생성된 관계 데이터
         """
-        self.logger.info("%s에서 %s로 엣지를 생성합니다.", source_node_id, target_node_id)
+        self.logger.info(f"{source_node_id}에서 {target_node_id}로 엣지를 생성합니다.")
 
         try:
             # 도메인 객체로 변환
@@ -504,7 +502,7 @@ class KnowledgeGraphServer:
             self.logger.error(error_msg)
             return {"error": error_msg}
         except (KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("관계 생성 중 오류 발생: %s", e)
+            self.logger.error(f"관계 생성 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="create_edge",
@@ -527,7 +525,7 @@ class KnowledgeGraphServer:
         Returns:
             관계 데이터 또는 오류
         """
-        self.logger.info("ID %s로 엣지를 검색합니다.", edge_id)
+        self.logger.info(f"ID {edge_id}로 엣지를 검색합니다.")
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
@@ -545,7 +543,7 @@ class KnowledgeGraphServer:
             return self._relationship_to_mcp_response(relationship)
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("관계 가져오기 중 오류 발생: %s", e)
+            self.logger.error(f"관계 가져오기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="get_edge",
@@ -574,7 +572,7 @@ class KnowledgeGraphServer:
         Returns:
             업데이트된 관계 데이터
         """
-        self.logger.info("ID %s의 엣지를 업데이트합니다.", edge_id)
+        self.logger.info(f"ID {edge_id}의 엣지를 업데이트합니다.")
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
@@ -591,7 +589,7 @@ class KnowledgeGraphServer:
             return self._relationship_to_mcp_response(relationship)
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("관계 업데이트 중 오류 발생: %s", e)
+            self.logger.error(f"관계 업데이트 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="update_edge",
@@ -614,7 +612,7 @@ class KnowledgeGraphServer:
         Returns:
             성공 또는 오류 메시지
         """
-        self.logger.info("ID %s의 엣지를 삭제합니다.", edge_id)
+        self.logger.info(f"ID {edge_id}의 엣지를 삭제합니다.")
 
         try:
             domain_relationship_id = RelationshipId(str(edge_id))
@@ -625,7 +623,7 @@ class KnowledgeGraphServer:
             return {"success": True, "message": f"관계 {edge_id}가 성공적으로 삭제되었습니다."}
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("관계 삭제 중 오류 발생: %s", e)
+            self.logger.error(f"관계 삭제 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="delete_edge",
@@ -657,10 +655,7 @@ class KnowledgeGraphServer:
             조건과 일치하는 관계 목록
         """
         self.logger.info(
-            "유형=%s, 소스=%s, 대상=%s으로 엣지를 찾습니다.",
-            relation_type,
-            source_node_id,
-            target_node_id,
+            f"유형={relation_type}, 소스={source_node_id}, 대상={target_node_id}으로 엣지를 찾습니다."
         )
 
         try:
@@ -684,7 +679,7 @@ class KnowledgeGraphServer:
             ]
 
             if ctx:
-                self.logger.info("%s개의 관계를 찾았습니다.", len(result_relationships))
+                self.logger.info(f"{len(result_relationships)}개의 관계를 찾았습니다.")
 
             return {
                 "edges": result_relationships,
@@ -694,7 +689,7 @@ class KnowledgeGraphServer:
             }
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("관계 찾기 중 오류 발생: %s", e)
+            self.logger.error(f"관계 찾기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="find_edges",
@@ -719,7 +714,7 @@ class KnowledgeGraphServer:
         Returns:
             이웃 노드 목록
         """
-        self.logger.info("깊이 %s에서 노드 %s의 이웃을 가져옵니다.", depth, node_id)
+        self.logger.info(f"깊이 {depth}에서 노드 {node_id}의 이웃을 가져옵니다.")
 
         try:
             domain_node_id = NodeId(str(node_id))
@@ -745,7 +740,7 @@ class KnowledgeGraphServer:
                     neighbors.append(self._node_to_mcp_response(neighbor))
 
             if ctx:
-                self.logger.info("%s개의 이웃을 찾았습니다.", len(neighbors))
+                self.logger.info(f"{len(neighbors)}개의 이웃을 찾았습니다.")
 
             return {
                 "neighbors": neighbors,
@@ -754,7 +749,7 @@ class KnowledgeGraphServer:
             }
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("이웃 가져오기 중 오류 발생: %s", e)
+            self.logger.error(f"이웃 가져오기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="get_neighbors",
@@ -781,7 +776,7 @@ class KnowledgeGraphServer:
         Returns:
             노드 간 최단 경로 또는 경로가 없는 경우 None
         """
-        self.logger.info("%s에서 %s로의 경로를 찾습니다.", source_node_id, target_node_id)
+        self.logger.info(f"{source_node_id}에서 {target_node_id}로의 경로를 찾습니다.")
 
         try:
             # RelationshipAnalysisUseCase 사용 가능 여부 확인
@@ -816,7 +811,7 @@ class KnowledgeGraphServer:
             path_edges = [self._relationship_to_mcp_response(rel) for rel in path_relationships]
 
             if ctx:
-                self.logger.info("%s개의 엣지가 있는 경로를 찾았습니다.", len(path_edges))
+                self.logger.info(f"{len(path_edges)}개의 엣지가 있는 경로를 찾았습니다.")
 
             return {
                 "path": path_edges,
@@ -826,7 +821,7 @@ class KnowledgeGraphServer:
             }
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("경로 찾기 중 오류 발생: %s", e)
+            self.logger.error(f"경로 찾기 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="find_paths",
@@ -853,7 +848,7 @@ class KnowledgeGraphServer:
         Returns:
             유사도 점수와 함께 유사한 노드 목록
         """
-        self.logger.info("%s와 유사한 노드를 검색합니다.", node_id)
+        self.logger.info(f"{node_id}와 유사한 노드를 검색합니다.")
 
         try:
             domain_node_id = NodeId(str(node_id))
@@ -893,7 +888,7 @@ class KnowledgeGraphServer:
 
                 if ctx:
                     self.logger.info(
-                        "%s개의 유사한 노드를 찾았습니다 (텍스트 검색 사용).", len(similar_nodes)
+                        f"{len(similar_nodes)}개의 유사한 노드를 찾았습니다 (텍스트 검색 사용)."
                     )
 
                 return {
@@ -921,7 +916,7 @@ class KnowledgeGraphServer:
                 )
 
             if ctx:
-                self.logger.info("%s개의 유사한 노드를 찾았습니다.", len(similar_nodes))
+                self.logger.info(f"{len(similar_nodes)}개의 유사한 노드를 찾았습니다.")
 
             return {
                 "similar_nodes": similar_nodes,
@@ -931,7 +926,7 @@ class KnowledgeGraphServer:
             }
 
         except (ValueError, KeyError, TypeError, sqlite3.Error, RuntimeError) as e:
-            self.logger.error("유사 노드 검색 중 오류 발생: %s", e)
+            self.logger.error(f"유사 노드 검색 중 오류 발생: {e}")
             raise MCPServerException(
                 server_state="running",
                 operation="search_similar_nodes",
@@ -956,7 +951,7 @@ class KnowledgeGraphServer:
         actual_host = host or self.config.host
         actual_port = port or self.config.port
 
-        self.logger.info("%s:%s에서 지식 그래프 MCP 서버를 시작합니다.", actual_host, actual_port)
+        self.logger.info(f"{actual_host}:{actual_port}에서 지식 그래프 MCP 서버를 시작합니다.")
 
         # FastMCP의 내장 메서드를 사용하여 서버 시작
         self.mcp_server.run()
