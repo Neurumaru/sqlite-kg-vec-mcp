@@ -131,6 +131,12 @@ dev = [
 # unittest는 Python 내장 모듈이므로 별도 설정 불필요
 # 테스트 실행: python -m unittest discover -s tests -p "test_*.py"
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests"
+]
+
 # Type checking configuration
 [tool.mypy]
 python_version = "3.10"

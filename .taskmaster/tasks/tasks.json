@@ -86,7 +86,7 @@
         "id": 5,
         "title": "로깅 패턴 표준화",
         "description": "getLogger vs 의존성 주입 방식 통일",
-        "status": "in-progress",
+        "status": "done",
         "priority": "medium",
         "dependencies": [],
         "details": "코드베이스 전반에 걸친 logging.getLogger(__name__) vs 파라미터 주입 방식 혼재 문제 해결",
@@ -97,7 +97,7 @@
             "title": "로거 팩토리 개선 및 표준화",
             "description": "ObservableLogger 팩토리 함수 개선하여 의존성 주입을 위한 표준 인터페이스 제공",
             "details": "기존 get_logger() 함수를 개선하여 컴포넌트별 로거 생성을 표준화하고, 타입 힌트와 문서화 추가",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -106,7 +106,7 @@
             "title": "Domain 서비스 로깅 리팩터링",
             "description": "도메인 서비스들의 로깅을 ObservableLogger로 통일하고 의존성 주입 패턴으로 변경",
             "details": "DocumentProcessor, DocumentValidation, DocumentPersistence, KnowledgeSearch 서비스들을 ObservableLogger로 변경",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -115,7 +115,7 @@
             "title": "Adapter 계층 로깅 리팩터링",
             "description": "어댑터 계층의 로깅을 ObservableLogger로 통일하고 직접 getLogger 호출 제거",
             "details": "SQLite, Ollama, FastMCP 어댑터들의 로깅을 표준화하고 의존성 주입 패턴 적용",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -124,7 +124,7 @@
             "title": "Validation Manager 로깅 개선",
             "description": "ValidationManager의 혼재된 로깅 패턴을 ObservableLogger로 통일",
             "details": "getLogger 직접 호출과 의존성 주입이 혼재된 ValidationManager를 일관된 패턴으로 리팩터링",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -133,7 +133,7 @@
             "title": "팩토리 함수들의 로거 주입 구현",
             "description": "모든 팩토리 함수와 생성자에 로거 매개변수 추가하여 의존성 주입 완성",
             "details": "서비스와 어댑터 팩토리 함수들에 logger 매개변수를 추가하고 기본값으로 get_logger() 사용",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           },
@@ -142,7 +142,7 @@
             "title": "테스트 및 검증",
             "description": "리팩터링된 로깅 시스템의 동작 확인과 회귀 테스트 실행",
             "details": "모든 테스트 통과 확인, 로깅 출력 형식 검증, 컨텍스트 전파 테스트",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 5
           }
@@ -572,7 +572,7 @@
       "total_tasks": 10,
       "created": "2025-08-07T04:23:06.511Z",
       "description": "Tasks for master context",
-      "updated": "2025-08-08T17:13:08.413Z"
+      "updated": "2025-08-09T07:16:00.011Z"
     }
   }
 }
